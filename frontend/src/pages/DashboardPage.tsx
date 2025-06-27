@@ -11,7 +11,8 @@ import {
   Eye,
   Plus,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Target
 } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 
@@ -26,6 +27,9 @@ const DashboardPage: React.FC = () => {
     : 0;
   const bestScore = totalAnalyses > 0 
     ? Math.max(...analysisHistory.map(analysis => analysis.score))
+    : 0;
+  const averageMatchRate = totalAnalyses > 0 
+    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + analysis.matchPercentage, 0) / totalAnalyses)
     : 0;
 
   // Filter analysis history
@@ -57,7 +61,7 @@ const DashboardPage: React.FC = () => {
               <p className="hero-subtitle">Track your resume analysis history and improvements</p>
             </div>
             <Link
-              to="/"
+              to="/resumechecker"
               onClick={resetAnalysis}
               className="hero-cta"
             >
@@ -103,6 +107,18 @@ const DashboardPage: React.FC = () => {
               <div>
                 <div className="stat-value">{bestScore}</div>
                 <div className="stat-label">Best Score</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-card-content">
+              <div className="stat-icon-wrapper orange">
+                <Target className="stat-icon orange" />
+              </div>
+              <div>
+                <div className="stat-value">{averageMatchRate}%</div>
+                <div className="stat-label">Avg Match Rate</div>
               </div>
             </div>
           </div>

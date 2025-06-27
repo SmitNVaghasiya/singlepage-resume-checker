@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
 
   const footerLinks = {
     product: [
-      { name: 'Resume Analysis', path: '/' },
+      { name: 'Resume Analysis', path: '/resumechecker' },
       { name: 'Dashboard', path: '/dashboard' },
       { name: 'Contact', path: '/contact' },
     ],

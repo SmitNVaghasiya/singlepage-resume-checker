@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, BarChart3, ArrowRight, ArrowLeft, Zap, Target, Lightbulb, CheckCircle, Play } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowRight, ArrowLeft, BarChart3, FileText, Briefcase, Sparkles, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import FileUpload from '../components/FileUpload';
 import LoadingAnalysis from '../components/LoadingAnalysis';
+import HeroSection from '../components/HeroSection';
+import WhyChooseUs from '../components/WhyChooseUs';
+import FAQ from '../components/FAQ';
+import ResumeUploadSection from '../components/ResumeUploadSection';
+import AnalysisUploadSection from '../components/AnalysisUploadSection';
 import { AnalysisResult, JobInputMethod } from '../types';
 
 const HomePage: React.FC = () => {
@@ -20,16 +25,13 @@ const HomePage: React.FC = () => {
   } = useAppContext();
   
   const navigate = useNavigate();
+  const location = useLocation();
   const [jobInputMethod, setJobInputMethod] = useState<JobInputMethod>('text');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStage, setAnalysisStage] = useState('');
-
-  const steps = [
-    { id: 'upload', title: 'Upload Resume', icon: Upload },
-    { id: 'job-description', title: 'Job Description', icon: FileText },
-    { id: 'analyze', title: 'Analyze', icon: BarChart3 }
-  ];
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const analysisStages = [
     'Parsing resume content...',
@@ -40,26 +42,20 @@ const HomePage: React.FC = () => {
     'Finalizing analysis report...'
   ];
 
-  const features = [
-    {
-      icon: Zap,
-      title: 'Instant Analysis',
-      description: 'Get comprehensive resume analysis in seconds',
-      color: 'blue'
-    },
-    {
-      icon: Target,
-      title: 'Job Matching',
-      description: 'See how well your resume matches specific job requirements',
-      color: 'green'
-    },
-    {
-      icon: Lightbulb,
-      title: 'Improvement Tips',
-      description: 'Get actionable suggestions to improve your resume',
-      color: 'purple'
+  const handleGetStarted = () => {
+    navigate('/resumechecker');
+  };
+
+  // Effect to handle route changes and set appropriate step
+  useEffect(() => {
+    if (location.pathname === '/resumechecker') {
+      if (!resumeFile) {
+        setCurrentStep('upload');
+      } else if (!canAnalyze()) {
+        setCurrentStep('job-description');
+      }
     }
-  ];
+  }, [location.pathname, resumeFile]);
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -76,7 +72,7 @@ const HomePage: React.FC = () => {
     // Mock analysis result
     const newResult: AnalysisResult = {
       id: Date.now().toString(),
-      score: Math.floor(Math.random() * 30) + 70, // Random score between 70-100
+      score: Math.floor(Math.random() * 30) + 70,
       remarks: "Strong technical background with relevant experience. Resume shows good progression in software development roles with specific achievements.",
       improvements: [
         "Add more quantifiable achievements (e.g., 'Improved application performance by 40%')",
@@ -90,7 +86,7 @@ const HomePage: React.FC = () => {
         "Strong educational background",
         "Relevant project experience demonstrated"
       ],
-      matchPercentage: Math.floor(Math.random() * 25) + 75, // Random match between 75-100%
+      matchPercentage: Math.floor(Math.random() * 25) + 75,
       resumeName: resumeFile?.name || 'Resume',
       jobTitle: 'Software Developer Position',
       analyzedAt: new Date()
@@ -112,221 +108,399 @@ const HomePage: React.FC = () => {
 
   const wordCount = jobDescription.trim().split(' ').filter(word => word.length > 0).length;
 
-  const getStepNumber = (stepId: string) => {
-    return steps.findIndex(step => step.id === stepId) + 1;
+  // File upload handlers
+  const isValidFile = (file: File) => {
+    const validTypes = ['.pdf', '.docx'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (file.size > maxSize) {
+      setUploadError('File size must be less than 5MB');
+      return false;
+    }
+    
+    const isValidType = validTypes.some(type => {
+      if (type === '.pdf') return file.type === 'application/pdf';
+      if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      return false;
+    });
+
+    if (!isValidType) {
+      setUploadError('Please upload a PDF or DOCX file');
+      return false;
+    }
+
+    setUploadError(null);
+    return true;
   };
 
-  return (
-    <div className="page-container">
-      {/* Hero Section - Only show when no resume uploaded */}
-      {!resumeFile && currentStep === 'upload' && (
-        <div className="hero-section">
-          <div className="hero-content container">
-            <h1 className="hero-title">Perfect Your Resume with AI</h1>
-            <p className="hero-subtitle">
-              Get instant, professional feedback on your resume. Our advanced AI analyzes your experience 
-              against job requirements and provides actionable insights to help you land your dream job.
-            </p>
-            
-            <div className="hero-features">
-              {features.map((feature, index) => {
-                const Icon = feature.icon;
-                return (
-                  <div key={index} className="hero-feature">
-                    <div className="hero-feature-icon-wrapper">
-                      <Icon className="hero-feature-icon" />
-                    </div>
-                    <h3 className="hero-feature-title">{feature.title}</h3>
-                    <p className="hero-feature-description">{feature.description}</p>
-                  </div>
-                );
-              })}
-            </div>
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
 
-            <button
-              onClick={() => document.getElementById('upload-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className="hero-cta"
-            >
-              <Play className="h-5 w-5" />
-              Start Analysis
-            </button>
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      if (isValidFile(droppedFile)) {
+        setResumeFile(droppedFile);
+        setCurrentStep('job-description');
+      }
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (isValidFile(selectedFile)) {
+        setResumeFile(selectedFile);
+        setCurrentStep('job-description');
+      }
+    }
+  };
+
+  const removeFile = () => {
+    setResumeFile(null);
+    setUploadError(null);
+    setCurrentStep('upload');
+  };
+
+  // Show different content based on route
+  if (location.pathname === '/') {
+    // Landing page with hero section and info
+    return (
+      <div className="homepage-modern">
+        <HeroSection onGetStarted={handleGetStarted} />
+        <div id="upload-section">
+          <ResumeUploadSection
+            file={resumeFile}
+            onFileChange={(file) => {
+              setResumeFile(file);
+              if (file) {
+                navigate('/resumechecker');
+              }
+            }}
+            onContinue={() => {
+              setCurrentStep('job-description');
+              navigate('/resumechecker');
+            }}
+          />
+        </div>
+        <WhyChooseUs />
+        <FAQ />
+      </div>
+    );
+  }
+
+  // Show analysis flow when file is uploaded
+  return (
+    <div className="resume-checker-modern">
+      {/* Background */}
+      <div className="checker-background">
+        <div className="checker-gradient-orb checker-orb-1"></div>
+        <div className="checker-gradient-orb checker-orb-2"></div>
+        <div className="checker-grid-pattern"></div>
+      </div>
+
+      {/* Header */}
+      <div className="checker-header">
+        <div className="container">
+          <div className="checker-header-content">
+            <div className="checker-header-info">
+              <h1 className="checker-title">AI Resume Analysis</h1>
+              <p className="checker-subtitle">Get instant feedback and improve your resume with AI-powered insights</p>
+            </div>
+            <div className="checker-header-stats">
+              <div className="header-stat">
+                <Sparkles className="header-stat-icon" />
+                <span className="header-stat-text">AI Powered</span>
+              </div>
+              <div className="header-stat">
+                <BarChart3 className="header-stat-icon" />
+                <span className="header-stat-text">Instant Results</span>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Progress Steps - Show when resume is uploaded */}
-      {resumeFile && (
-        <div className="container py-8">
-          <div className="progress-steps-container">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = step.id === currentStep;
-              const isCompleted = (step.id === 'upload' && resumeFile) || 
-                                (step.id === 'job-description' && resumeFile && canAnalyze()) ||
-                                (step.id === 'analyze' && isAnalyzing);
-              const canAccess = step.id === 'upload' || 
-                              (step.id === 'job-description' && resumeFile) ||
-                              (step.id === 'analyze' && canAnalyze());
-              
-              return (
-                <div key={step.id} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <button
-                      onClick={() => canAccess && setCurrentStep(step.id as any)}
-                      disabled={!canAccess}
-                      className={`
-                        step-circle relative
-                        ${isActive ? 'active' : isCompleted ? 'completed' : 'pending'}
-                        ${canAccess ? 'cursor-pointer' : 'cursor-not-allowed'}
-                      `}
-                    >
-                      {isCompleted && !isActive ? (
-                        <CheckCircle className="h-8 w-8" />
-                      ) : (
-                        <Icon className="h-8 w-8" />
-                      )}
-                      <span className="absolute -top-2 -right-2 bg-white text-gray-800 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-current">
-                        {getStepNumber(step.id)}
-                      </span>
-                    </button>
-                    <span className={`mt-3 text-sm font-medium ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {step.title}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`
-                      step-line w-16 mx-4
-                      ${isCompleted && index < steps.findIndex(s => s.id === currentStep) ? 'completed' : ''}
-                    `} />
+      {/* Progress Steps */}
+      <div className="progress-section">
+        <div className="container">
+          <div className="progress-steps-enhanced">
+            <div className={`progress-step-enhanced ${currentStep === 'upload' || resumeFile ? 'completed' : ''} ${currentStep === 'upload' ? 'active' : ''}`}>
+              <div className="step-indicator">
+                <div className="step-number">
+                  {resumeFile && currentStep !== 'upload' ? (
+                    <CheckCircle className="step-check-icon" />
+                  ) : (
+                    <span>1</span>
                   )}
                 </div>
-              );
-            })}
+                <div className="step-pulse"></div>
+              </div>
+              <div className="step-content">
+                <h3 className="step-title">Upload Resume</h3>
+                <p className="step-description">Upload your resume file</p>
+              </div>
+            </div>
+
+            <div className="progress-connector">
+              <div className={`connector-line ${resumeFile ? 'completed' : ''}`}></div>
+            </div>
+
+            <div className={`progress-step-enhanced ${currentStep === 'job-description' || canAnalyze() ? 'completed' : ''} ${currentStep === 'job-description' ? 'active' : ''}`}>
+              <div className="step-indicator">
+                <div className="step-number">
+                  {canAnalyze() && currentStep !== 'job-description' ? (
+                    <CheckCircle className="step-check-icon" />
+                  ) : (
+                    <span>2</span>
+                  )}
+                </div>
+                <div className="step-pulse"></div>
+              </div>
+              <div className="step-content">
+                <h3 className="step-title">Job Details</h3>
+                <p className="step-description">Add job requirements</p>
+              </div>
+            </div>
+
+            <div className="progress-connector">
+              <div className={`connector-line ${canAnalyze() ? 'completed' : ''}`}></div>
+            </div>
+
+            <div className={`progress-step-enhanced ${currentStep === 'analyze' ? 'active' : ''}`}>
+              <div className="step-indicator">
+                <div className="step-number">
+                  <span>3</span>
+                </div>
+                <div className="step-pulse"></div>
+              </div>
+              <div className="step-content">
+                <h3 className="step-title">Analysis</h3>
+                <p className="step-description">AI analysis results</p>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Main Content */}
-      <div className="container pb-16" id="upload-section">
+      <div className="container checker-content">
         {/* Step 1: Resume Upload */}
         {currentStep === 'upload' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="card">
-              <div className="card-header text-center">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Upload Your Resume</h2>
-                <p className="text-gray-600">Upload your resume to get started with AI-powered analysis</p>
+          <div className="checker-step-card">
+            <div className="step-card-header">
+              <div className="step-icon-wrapper resume">
+                <FileText className="step-icon" />
               </div>
-              <div className="card-body">
-                <FileUpload
-                  file={resumeFile}
-                  onFileChange={setResumeFile}
-                  acceptedTypes=".pdf,.docx"
-                  title=""
-                  description="Drop your resume here or click to browse • PDF, DOCX • Max 5MB"
-                  dragText="Drop your resume here, paste (Ctrl+V), or click to browse"
-                  supportText="PDF, DOCX • Max 5MB"
-                />
+              <div className="step-header-content">
+                <h2 className="step-card-title">Upload Your Resume</h2>
+                <p className="step-card-subtitle">
+                  Upload your resume to begin the AI-powered analysis process
+                </p>
+              </div>
+            </div>
 
-                {resumeFile && (
-                  <div className="mt-8 text-center">
-                    <button
-                      onClick={() => setCurrentStep('job-description')}
-                      className="btn btn-primary btn-lg"
-                    >
-                      <span>Continue to Job Description</span>
-                      <ArrowRight className="h-5 w-5" />
-                    </button>
-                  </div>
-                )}
+            <div className="step-card-body">
+              <div
+                className={`modern-upload-zone ${dragActive ? 'drag-active' : ''} ${resumeFile ? 'has-file' : ''} ${uploadError ? 'error' : ''}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                tabIndex={0}
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.docx"
+                  onChange={handleFileInput}
+                  className="upload-input-hidden"
+                  id="modern-resume-upload"
+                />
+                <label htmlFor="modern-resume-upload" className="upload-zone-label">
+                  {resumeFile ? (
+                    <div className="upload-success-state">
+                      <div className="success-icon-wrapper">
+                        <CheckCircle className="success-icon" />
+                      </div>
+                      <div className="file-info">
+                        <h4 className="file-name">{resumeFile.name}</h4>
+                        <p className="file-details">
+                          {(resumeFile.size / 1024 / 1024).toFixed(2)} MB • Ready for analysis
+                        </p>
+                      </div>
+                      <button
+                        onClick={removeFile}
+                        className="remove-file-btn"
+                        type="button"
+                      >
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="upload-empty-state">
+                      <div className="upload-icon-wrapper">
+                        <Upload className="upload-icon" />
+                      </div>
+                      <div className="upload-text-content">
+                        <h4 className="upload-main-text">
+                          Drop your resume here or click to browse
+                        </h4>
+                        <p className="upload-sub-text">
+                          Supports PDF and DOCX files up to 5MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </label>
               </div>
+
+              {uploadError && (
+                <div className="upload-error-message">
+                  <AlertCircle className="error-icon" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {resumeFile && (
+                <div className="step-actions">
+                  <button 
+                    onClick={() => setCurrentStep('job-description')} 
+                    className="primary-action-btn"
+                  >
+                    <span>Continue to Job Details</span>
+                    <ArrowRight className="btn-icon" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Step 2: Job Description */}
         {currentStep === 'job-description' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="card">
-              <div className="card-header text-center">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Job Description</h2>
-                <p className="text-gray-600">Provide the job description to analyze resume compatibility</p>
+          <div className="checker-step-card">
+            <div className="step-card-header">
+              <div className="step-icon-wrapper job">
+                <Briefcase className="step-icon" />
               </div>
-              <div className="card-body">
-                {/* Input Method Toggle */}
-                <div className="flex justify-center mb-8">
-                  <div className="bg-gray-100 p-1 rounded-lg flex">
-                    <button
-                      onClick={() => setJobInputMethod('text')}
-                      className={`px-6 py-3 rounded-md font-medium transition-all duration-200 ${
-                        jobInputMethod === 'text'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Enter Text
-                    </button>
-                    <button
-                      onClick={() => setJobInputMethod('file')}
-                      className={`px-6 py-3 rounded-md font-medium transition-all duration-200 ${
-                        jobInputMethod === 'file'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Upload File
-                    </button>
-                  </div>
+              <div className="step-header-content">
+                <h2 className="step-card-title">Add Job Requirements</h2>
+                <p className="step-card-subtitle">
+                  Provide the job description to get personalized analysis and matching insights
+                </p>
+              </div>
+            </div>
+
+            <div className="step-card-body">
+              <div className="job-input-methods">
+                <div className="input-method-toggle">
+                  <button
+                    className={`method-btn ${jobInputMethod === 'text' ? 'active' : ''}`}
+                    onClick={() => setJobInputMethod('text')}
+                  >
+                    <FileText className="method-icon" />
+                    <span>Paste Job Description</span>
+                  </button>
+                  <button
+                    className={`method-btn ${jobInputMethod === 'file' ? 'active' : ''}`}
+                    onClick={() => setJobInputMethod('file')}
+                  >
+                    <Upload className="method-icon" />
+                    <span>Upload Job File</span>
+                  </button>
                 </div>
 
-                <div className="space-y-6">
-                  {jobInputMethod === 'text' ? (
-                    <div className="input-group">
-                      <label className="input-label">
-                        Enter Job Description (minimum 50 words)
-                      </label>
+                {jobInputMethod === 'text' ? (
+                  <div className="text-input-area">
+                    <div className="textarea-wrapper">
                       <textarea
                         value={jobDescription}
                         onChange={(e) => setJobDescription(e.target.value)}
-                        placeholder="Paste the job description here..."
+                        placeholder="Paste the complete job description here, including requirements, responsibilities, and qualifications..."
+                        className="job-description-textarea"
                         rows={12}
-                        className="input-field resize-none"
                       />
-                      <p className={`text-sm ${wordCount >= 50 ? 'text-green-600' : 'text-gray-500'}`}>
-                        {wordCount} words {wordCount >= 50 ? '✓' : `(${50 - wordCount} more needed)`}
-                      </p>
+                      <div className={`word-counter ${wordCount >= 50 ? 'valid' : 'invalid'}`}>
+                        <span className="word-count">{wordCount} words</span>
+                        <span className="word-requirement">
+                          {wordCount >= 50 ? '✓ Sufficient detail' : 'Need at least 50 words'}
+                        </span>
+                      </div>
                     </div>
-                  ) : (
-                    <FileUpload
-                      file={jobFile}
-                      onFileChange={setJobFile}
-                      acceptedTypes=".pdf,.docx,.txt"
-                      title=""
-                      description="Drop job description file here or click to browse • PDF, DOCX, TXT • Max 5MB"
-                      dragText="Drop job description here or paste (Ctrl+V)"
-                      supportText="PDF, DOCX, TXT • Max 5MB"
-                    />
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="file-upload-area">
+                    <div className="job-file-upload">
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setJobFile(e.target.files[0]);
+                          }
+                        }}
+                        className="upload-input-hidden"
+                        id="job-file-upload"
+                      />
+                      <label htmlFor="job-file-upload" className="job-upload-label">
+                        {jobFile ? (
+                          <div className="job-file-success">
+                            <CheckCircle className="file-success-icon" />
+                            <div className="job-file-info">
+                              <span className="job-file-name">{jobFile.name}</span>
+                              <span className="job-file-size">
+                                {(jobFile.size / 1024).toFixed(1)} KB
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => setJobFile(null)}
+                              className="remove-job-file-btn"
+                              type="button"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="job-upload-empty">
+                            <Upload className="job-upload-icon" />
+                            <div className="job-upload-text">
+                              <h4>Upload Job Description File</h4>
+                              <p>PDF, DOCX, or TXT files accepted</p>
+                            </div>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                <div className="mt-8 flex justify-between">
-                  <button
-                    onClick={() => setCurrentStep('upload')}
-                    className="btn btn-ghost"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>Back</span>
-                  </button>
-                  
-                  {canAnalyze() && (
-                    <button
-                      onClick={handleAnalyze}
-                      className="btn btn-primary btn-lg"
-                    >
-                      <span>Analyze Resume</span>
-                      <BarChart3 className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
+              <div className="step-actions">
+                <button 
+                  onClick={() => setCurrentStep('upload')}
+                  className="secondary-action-btn"
+                >
+                  <ArrowLeft className="btn-icon" />
+                  <span>Back to Resume</span>
+                </button>
+                <button 
+                  onClick={handleAnalyze}
+                  disabled={!canAnalyze()}
+                  className="primary-action-btn"
+                >
+                  <span>Start Analysis</span>
+                  <Sparkles className="btn-icon" />
+                </button>
               </div>
             </div>
           </div>
@@ -334,40 +508,21 @@ const HomePage: React.FC = () => {
 
         {/* Step 3: Analysis */}
         {currentStep === 'analyze' && (
-          <div className="max-w-4xl mx-auto">
+          <div className="checker-step-card analysis-card">
             {isAnalyzing ? (
               <LoadingAnalysis 
                 progress={analysisProgress}
                 stage={analysisStage}
               />
             ) : (
-              <div className="card text-center">
-                <div className="card-body">
-                  <div className="mb-8">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                    <h2 className="text-3xl font-bold text-gray-900 mb-4">Analysis Complete!</h2>
-                    <p className="text-gray-600 mb-8">Your resume has been analyzed successfully. Redirecting to dashboard...</p>
-                  </div>
-                  <div className="flex justify-center space-x-4">
-                    <button
-                      onClick={() => navigate('/dashboard')}
-                      className="btn btn-primary btn-lg"
-                    >
-                      View Results
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCurrentStep('upload');
-                        setResumeFile(null);
-                        setJobDescription('');
-                        setJobFile(null);
-                      }}
-                      className="btn btn-secondary btn-lg"
-                    >
-                      Analyze Another Resume
-                    </button>
-                  </div>
+              <div className="analysis-complete-state">
+                <div className="completion-icon-wrapper">
+                  <CheckCircle className="completion-icon" />
                 </div>
+                <h3 className="completion-title">Analysis Complete!</h3>
+                <p className="completion-description">
+                  Your resume has been analyzed successfully. Redirecting to results...
+                </p>
               </div>
             )}
           </div>
