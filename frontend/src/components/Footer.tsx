@@ -43,8 +43,7 @@ const Footer: React.FC = () => {
               <span className="footer-brand-text">AI Resume Checker</span>
             </Link>
             <p className="footer-description">
-              Perfect your resume with AI-powered analysis. Get instant feedback, job matching, 
-              and actionable improvement suggestions to land your dream job.
+              Perfect your resume with AI-powered analysis. Get instant feedback and actionable insights.
             </p>
             <div className="footer-social">
               {socialLinks.map((social, index) => {
@@ -58,7 +57,7 @@ const Footer: React.FC = () => {
                     className="footer-social-link"
                     aria-label={social.label}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </a>
                 );
               })}
@@ -71,10 +70,7 @@ const Footer: React.FC = () => {
             <ul className="footer-links">
               {footerLinks.product.map((link, index) => (
                 <li key={index}>
-                  <Link
-                    to={link.path}
-                    className="footer-link group"
-                  >
+                  <Link to={link.path} className="footer-link">
                     <span>{link.name}</span>
                     <ExternalLink className="footer-link-icon" />
                   </Link>
@@ -89,10 +85,22 @@ const Footer: React.FC = () => {
             <ul className="footer-links">
               {footerLinks.company.map((link, index) => (
                 <li key={index}>
-                  <Link
-                    to={link.path}
-                    className="footer-link group"
-                  >
+                  <Link to={link.path} className="footer-link">
+                    <span>{link.name}</span>
+                    <ExternalLink className="footer-link-icon" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources Links */}
+          <div>
+            <h3 className="footer-section-title">Resources</h3>
+            <ul className="footer-links">
+              {footerLinks.resources.map((link, index) => (
+                <li key={index}>
+                  <Link to={link.path} className="footer-link">
                     <span>{link.name}</span>
                     <ExternalLink className="footer-link-icon" />
                   </Link>
@@ -103,8 +111,8 @@ const Footer: React.FC = () => {
 
           {/* Contact Information */}
           <div>
-            <h3 className="footer-section-title">Contact Us</h3>
-            <div className="space-y-4">
+            <h3 className="footer-section-title">Contact</h3>
+            <div className="footer-contact-list">
               <div className="footer-contact-item">
                 <Mail className="footer-contact-icon blue" />
                 <a href="mailto:support@airesumechecker.com" className="footer-contact-link">
@@ -121,48 +129,6 @@ const Footer: React.FC = () => {
                 <MapPin className="footer-contact-icon red" />
                 <span>San Francisco, CA</span>
               </div>
-            </div>
-            
-            {/* Newsletter Signup */}
-            <div className="footer-newsletter">
-              <h4 className="footer-newsletter-title">Stay Updated</h4>
-              <div className="footer-newsletter-form">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="footer-newsletter-input"
-                />
-                <button className="footer-newsletter-btn">
-                  Subscribe
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Features Highlight */}
-        <div className="footer-features">
-          <div className="footer-features-grid">
-            <div className="footer-feature-card">
-              <div className="footer-feature-icon blue">
-                ⚡
-              </div>
-              <h4 className="footer-feature-title">Instant Analysis</h4>
-              <p className="footer-feature-desc">Get comprehensive resume feedback in seconds</p>
-            </div>
-            <div className="footer-feature-card">
-              <div className="footer-feature-icon green">
-                🎯
-              </div>
-              <h4 className="footer-feature-title">Job Matching</h4>
-              <p className="footer-feature-desc">Match your skills against job requirements</p>
-            </div>
-            <div className="footer-feature-card">
-              <div className="footer-feature-icon purple">
-                💡
-              </div>
-              <h4 className="footer-feature-title">Smart Suggestions</h4>
-              <p className="footer-feature-desc">Get actionable improvement recommendations</p>
             </div>
           </div>
         </div>
