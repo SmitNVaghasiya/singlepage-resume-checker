@@ -1,0 +1,81 @@
+/* Layout Styles */
+
+/* App Layout */
+.app-container {
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #f8fafc, #eff6ff, #f3e8ff);
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .app-container {
+  background: linear-gradient(to bottom right, #1e293b, #1e1b4b, #1f2937);
+}
+
+.main-content {
+  flex: 1;
+}
+
+/* Page Containers */
+.page-container {
+  padding-top: 5rem;
+  min-height: 100vh;
+}
+
+/* Hero Section */
+.hero-header {
+  background: linear-gradient(135deg, #2563eb, #7c3aed, #4f46e5);
+  color: white;
+  padding: 4rem 0;
+  margin-bottom: 2rem;
+}
+
+.dark .hero-header {
+  background: linear-gradient(135deg, #1e40af, #6b21a8, #4338ca);
+}
+
+.hero-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+/* Max width containers */
+.max-w-4xl {
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.max-w-7xl {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .max-w-7xl {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .max-w-7xl {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, FileText } from 'lucide-react';
+import { Upload, FileText, X } from 'lucide-react';
+import '../styles/fileupload.css';
 
 interface FileUploadProps {
   file: File | null;
@@ -24,6 +25,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const isValidFile = (file: File) => {
     const validTypes = acceptedTypes.split(',').map(type => type.trim());
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB');
+      return false;
+    }
+    
     return validTypes.some(type => {
       if (type === '.pdf') return file.type === 'application/pdf';
       if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -76,19 +84,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
   };
 
+  const removeFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onFileChange(null);
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8">
-      <div className="text-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
-        <p className="text-gray-600">{description}</p>
+    <div>
+      <div className="file-upload-header">
+        <h2 className="file-upload-title">{title}</h2>
+        <p className="file-upload-description">{description}</p>
       </div>
 
       <div
-        className={`
-          relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300
-          ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-          ${file ? 'border-green-500 bg-green-50' : ''}
-        `}
+        className={`file-drop-zone ${dragActive ? 'drag-active' : ''} ${file ? 'has-file' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -100,34 +109,35 @@ const FileUpload: React.FC<FileUploadProps> = ({
           type="file"
           accept={acceptedTypes}
           onChange={handleFileInput}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          className="file-input-hidden"
         />
         
         {file ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-3">
-              <FileText className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-lg font-medium text-green-700">{file.name}</p>
-                <p className="text-sm text-green-600">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+          <div className="file-info">
+            <div className="file-info-row">
+              <FileText className="file-icon success" />
+              <div className="file-details">
+                <p className="file-name">{file.name}</p>
+                <p className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
+              <button
+                onClick={removeFile}
+                className="file-remove-btn"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="bg-green-100 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium">✓ File Uploaded Successfully!</p>
-              <p className="text-green-600 text-sm mt-1">Ready to proceed</p>
+            <div className="file-success-message">
+              <p className="file-success-text">✓ File Uploaded Successfully!</p>
             </div>
-            <button
-              onClick={() => onFileChange(null)}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              Upload Different File
-            </button>
           </div>
         ) : (
-          <div>
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-700 mb-2">{dragText}</p>
-            <p className="text-sm text-gray-500">{supportText}</p>
+          <div className="file-upload-content">
+            <Upload className="file-upload-icon" />
+            <div>
+              <p className="file-upload-text">{dragText}</p>
+              <p className="file-upload-subtext">{supportText}</p>
+            </div>
           </div>
         )}
       </div>

@@ -1,0 +1,132 @@
+/* Navbar Styles */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.3);
+}
+
+.dark .navbar {
+  background-color: rgba(31, 41, 55, 0.8);
+  border-bottom-color: rgba(75, 85, 99, 0.3);
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 4rem;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: opacity 0.2s;
+}
+
+.navbar-logo:hover {
+  opacity: 0.8;
+}
+
+.navbar-logo-icon {
+  background: linear-gradient(to right, #2563eb, #7c3aed);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.navbar-logo-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: white;
+}
+
+.navbar-logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #2563eb, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.navbar-link {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.navbar-link.active {
+  background-color: rgba(219, 234, 254, 0.8);
+  color: #1d4ed8;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(4px);
+}
+
+.dark .navbar-link.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93bbfc;
+}
+
+.navbar-link:not(.active) {
+  color: #4b5563;
+}
+
+.navbar-link:not(.active):hover {
+  color: #111827;
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.dark .navbar-link:not(.active) {
+  color: #d1d5db;
+}
+
+.dark .navbar-link:not(.active):hover {
+  color: #f3f4f6;
+  background-color: rgba(75, 85, 99, 0.5);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: 1rem;
+}
+
+.navbar-icon-btn {
+  padding: 0.5rem;
+  color: #4b5563;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.navbar-icon-btn:hover {
+  color: #111827;
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.dark .navbar-icon-btn {
+  color: #d1d5db;
+}
+
+.dark .navbar-icon-btn:hover {
+  color: #f3f4f6;
+  background-color: rgba(75, 85, 99, 0.5);
+}
+
+.navbar-icon-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
