@@ -1,0 +1,162 @@
+/* NotFoundPage Specific Styles */
+.not-found-page {
+  padding-top: 5rem;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.not-found-container {
+  text-align: center;
+  padding: 2rem;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.not-found-content {
+  margin-bottom: 3rem;
+}
+
+.error-code {
+  font-size: 6rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+  line-height: 1;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.error-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.error-description {
+  color: #64748b;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .not-found-actions {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: white;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-width: 10rem;
+  justify-content: center;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  background: white;
+  min-width: 10rem;
+  justify-content: center;
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.not-found-help {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.help-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.help-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Dark mode support */
+.dark .not-found-page {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+.dark .error-title {
+  color: #f1f5f9;
+}
+
+.dark .error-description {
+  color: #94a3b8;
+}
+
+.dark .btn-secondary {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.dark .btn-secondary:hover {
+  background: #334155;
+  border-color: #64748b;
+}
+
+.dark .not-found-help {
+  color: #94a3b8;
+}
+
+.dark .help-link {
+  color: #60a5fa;
+}
+
+.dark .help-link:hover {
+  color: #93c5fd;
+}

@@ -15,6 +15,8 @@ import './styles/footer.css';
 import './styles/pages.css';
 import './styles/fileupload.css';
 import './styles/analysis.css';
+import './styles/resume-checker.css';
+import './styles/job-description.css';
 
 function App() {
   return (
