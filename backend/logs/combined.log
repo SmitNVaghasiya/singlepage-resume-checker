@@ -1,0 +1,4 @@
+{"level":"info","message":"Worker 14620 started and listening on port 5000","service":"resume-checker-backend","timestamp":"2025-06-27 19:02:11"}
+{"level":"info","message":{"ip":"::1","method":"GET","type":"request","url":"/api/health","userAgent":"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-IN) WindowsPowerShell/5.1.26100.4202"},"service":"resume-checker-backend","timestamp":"2025-06-27 19:02:33"}
+{"level":"info","message":{"contentLength":"91","method":"GET","responseTime":"8ms","statusCode":200,"type":"response","url":"/"},"service":"resume-checker-backend","timestamp":"2025-06-27 19:02:33"}
+{"level":"info","message":"::1 - - [27/Jun/2025:13:32:33 +0000] \"GET /api/health HTTP/1.1\" 200 91 \"-\" \"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-IN) WindowsPowerShell/5.1.26100.4202\"","service":"resume-checker-backend","timestamp":"2025-06-27 19:02:33"}
