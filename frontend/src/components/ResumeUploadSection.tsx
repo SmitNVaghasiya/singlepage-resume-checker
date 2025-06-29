@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Upload, FileText, X, CheckCircle } from 'lucide-react';
 
 interface ResumeUploadSectionProps {
@@ -14,6 +14,7 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidFile = useCallback((file: File) => {
     const validTypes = ['.pdf', '.docx'];
@@ -81,13 +82,30 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
         onFileChange(selectedFile);
       }
     }
+    // Reset the input value to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }, [isValidFile, onFileChange]);
 
   const removeFile = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onFileChange(null);
     setUploadError(null);
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }, [onFileChange]);
+
+  const handleUploadClick = useCallback((e: React.MouseEvent) => {
+    // Only trigger file input if no file is uploaded
+    if (file) {
+      e.preventDefault();
+      return;
+    }
+  }, [file]);
 
   return (
     <div className="upload-section">
@@ -110,17 +128,24 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
             tabIndex={0}
           >
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.docx"
               onChange={handleFileInput}
               className="upload-input-hidden"
               id="resume-upload"
             />
-            <label htmlFor="resume-upload" className="upload-label">
+            <label 
+              htmlFor="resume-upload" 
+              className="upload-label"
+              onClick={handleUploadClick}
+            >
               {file ? (
                 <div className="upload-success">
                   <div className="upload-file-info">
-                    <CheckCircle className="upload-success-icon" />
+                    <div className="upload-file-icon">
+                      <FileText className="file-icon-uploaded" />
+                    </div>
                     <div className="upload-file-details">
                       <p className="upload-file-name">{file.name}</p>
                       <p className="upload-file-size">
@@ -131,12 +156,14 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
                       onClick={removeFile}
                       className="upload-remove-btn"
                       type="button"
+                      title="Remove file"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                   <div className="upload-success-message">
-                    <p>✓ Resume uploaded successfully!</p>
+                    <CheckCircle className="upload-success-icon" />
+                    <p>Resume uploaded successfully!</p>
                   </div>
                 </div>
               ) : (

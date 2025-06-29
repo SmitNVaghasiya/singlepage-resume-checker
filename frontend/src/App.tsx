@@ -4,6 +4,7 @@ import { AppProvider } from './contexts/AppContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
+import ResumeCheckerPage from './pages/ResumeCheckerPage';
 import DashboardPage from './pages/DashboardPage';
 import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -28,7 +29,7 @@ function App() {
           <main className="main-content">
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/resumechecker" element={<HomePage />} />
+              <Route path="/resumechecker" element={<ResumeCheckerPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/404" element={<NotFoundPage />} />
