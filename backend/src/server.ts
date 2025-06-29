@@ -8,11 +8,25 @@ import { rateLimiter } from './middleware/rateLimiter';
 import { requestLogger } from './middleware/requestLogger';
 import resumeRoutes from './routes/resumeRoutes';
 import healthRoutes from './routes/healthRoutes';
+import { analysisRoutes } from './routes/analysisRoutes';
+import authRoutes from './routes/authRoutes';
 import { config } from './config/config';
 import { logger } from './utils/logger';
+import { database } from './config/database';
 
 export const createServer = async (): Promise<Express> => {
   const app = express();
+
+  // Initialize database connection
+  try {
+    await database.connect();
+    logger.info('Database connected successfully');
+  } catch (error) {
+    logger.error('Database connection failed:', error);
+    logger.warn('Server starting without database connection - authentication features will not work!');
+    // For development, you might want to throw the error instead:
+    // throw error;
+  }
 
   // Trust proxy for accurate rate limiting
   app.set('trust proxy', 1);
@@ -51,11 +65,13 @@ export const createServer = async (): Promise<Express> => {
   app.use(requestLogger);
 
   // Rate limiting
-  app.use('/api/', rateLimiter);
+  app.use('/api/', rateLimiter());
 
   // Routes
   app.use('/api/health', healthRoutes);
+  app.use('/api/auth', authRoutes);
   app.use('/api/resume', resumeRoutes);
+  app.use('/api/analyses', analysisRoutes);
 
   // 404 handler
   app.use((_req, res) => {

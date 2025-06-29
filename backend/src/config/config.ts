@@ -17,6 +17,7 @@ interface Config {
   redisHost: string;
   redisPort: number;
   redisPassword?: string;
+  mongoUri: string;
   logLevel: string;
   logDir: string;
   clusterWorkers: number;
@@ -46,6 +47,9 @@ export const config: Config = {
   redisPort: parseInt(process.env.REDIS_PORT || '6379', 10),
   redisPassword: process.env.REDIS_PASSWORD,
 
+  // MongoDB
+  mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/resume_analyzer',
+
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',
   logDir: process.env.LOG_DIR || 'logs',
@@ -56,7 +60,7 @@ export const config: Config = {
 };
 
 // Validate required configuration
-const requiredConfig = ['pythonApiUrl'];
+const requiredConfig = ['pythonApiUrl', 'mongoUri'];
 for (const key of requiredConfig) {
   if (!config[key as keyof Config]) {
     throw new Error(`Missing required configuration: ${key}`);
