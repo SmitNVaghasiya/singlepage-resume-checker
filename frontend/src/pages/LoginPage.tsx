@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, LogIn, ArrowRight, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, LogIn, ArrowRight, CheckCircle, X, Shield } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAppContext } from '../contexts/AppContext';
 import '../styles/pages/AuthPages.css';
@@ -21,6 +21,11 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginForm>>({});
   const [serverError, setServerError] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordError, setForgotPasswordError] = useState('');
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState('');
 
   const validateForm = () => {
     const newErrors: Partial<LoginForm> = {};
@@ -80,6 +85,42 @@ const LoginPage: React.FC = () => {
     if (serverError) {
       setServerError('');
     }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordError('');
+    setForgotPasswordSuccess('');
+    
+    if (!forgotPasswordEmail.trim()) {
+      setForgotPasswordError('Email is required');
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotPasswordEmail)) {
+      setForgotPasswordError('Please enter a valid email address');
+      return;
+    }
+    
+    setForgotPasswordLoading(true);
+    
+    try {
+      const response = await apiService.forgotPassword(forgotPasswordEmail);
+      setForgotPasswordSuccess(response.message);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      setForgotPasswordError(error instanceof Error ? error.message : 'Failed to send reset email');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const closeForgotPasswordModal = () => {
+    setShowForgotPassword(false);
+    setForgotPasswordEmail('');
+    setForgotPasswordError('');
+    setForgotPasswordSuccess('');
   };
 
   return (
@@ -167,6 +208,17 @@ const LoginPage: React.FC = () => {
               </button>
             </form>
 
+            <div className="auth-links">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="forgot-password-link"
+                disabled={isLoading}
+              >
+                Forgot your password?
+              </button>
+            </div>
+
             <div className="auth-footer">
               <p>
                 Don't have an account?{' '}
@@ -207,6 +259,102 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="modal-overlay" onClick={closeForgotPasswordModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-container">
+                <div className="modal-icon">
+                  <Shield size={20} />
+                </div>
+                <h3>Reset Your Password</h3>
+              </div>
+              <button 
+                className="modal-close"
+                onClick={closeForgotPasswordModal}
+                disabled={forgotPasswordLoading}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {forgotPasswordSuccess ? (
+                <div className="success-message">
+                  <div className="success-icon">
+                    <CheckCircle size={24} />
+                  </div>
+                  <p>{forgotPasswordSuccess}</p>
+                  <button 
+                    className="btn-primary modal-button"
+                    onClick={closeForgotPasswordModal}
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword}>
+                  <p className="modal-description">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
+                  
+                  {forgotPasswordError && (
+                    <div className="error-banner">
+                      <p>{forgotPasswordError}</p>
+                    </div>
+                  )}
+                  
+                  <div className="input-group">
+                    <label className="input-label">Email Address</label>
+                    <div className="input-wrapper">
+                      <Mail className="input-icon" size={18} />
+                      <input
+                        type="email"
+                        value={forgotPasswordEmail}
+                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                        className="input-field"
+                        placeholder="Enter your email address"
+                        disabled={forgotPasswordLoading}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="modal-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary modal-button"
+                      onClick={closeForgotPasswordModal}
+                      disabled={forgotPasswordLoading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-primary modal-button"
+                      disabled={forgotPasswordLoading}
+                    >
+                      {forgotPasswordLoading ? (
+                        <>
+                          <div className="loading-spinner" />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Send Reset Link</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

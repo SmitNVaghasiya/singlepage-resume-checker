@@ -199,6 +199,95 @@ class EmailService {
       html
     });
   }
+
+  async sendPasswordResetEmail(email: string, username: string, resetLink: string): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset - AI Resume Checker</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; }
+          .header { background: linear-gradient(135deg, #ef4444, #f97316); padding: 2rem; text-align: center; }
+          .header h1 { color: white; margin: 0; font-size: 1.5rem; }
+          .content { padding: 2rem; }
+          .reset-box { background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.75rem; padding: 1.5rem; margin: 1.5rem 0; }
+          .reset-button { display: inline-block; background: linear-gradient(135deg, #ef4444, #f97316); color: white; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; margin: 1rem 0; }
+          .footer { background: #f8fafc; padding: 1rem 2rem; text-align: center; color: #6b7280; font-size: 0.875rem; }
+          .warning { color: #dc2626; font-size: 0.875rem; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔒 AI Resume Checker</h1>
+          </div>
+          <div class="content">
+            <h2>Password Reset Request</h2>
+            <p>Hello ${username},</p>
+            <p>We received a request to reset your password for your AI Resume Checker account. If you requested this, please click the button below to reset your password:</p>
+            
+            <div class="reset-box">
+              <div style="text-align: center;">
+                <a href="${resetLink}" class="reset-button">
+                  Reset Your Password
+                </a>
+              </div>
+              <p class="warning">⚠️ This link will expire in 30 minutes for security reasons.</p>
+            </div>
+            
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; background: #f8fafc; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem;">
+              ${resetLink}
+            </p>
+            
+            <p><strong>If you didn't request this password reset:</strong></p>
+            <ul>
+              <li>You can safely ignore this email</li>
+              <li>Your password will remain unchanged</li>
+              <li>Consider changing your password if you suspect unauthorized access</li>
+            </ul>
+            
+            <p>Best regards,<br>The AI Resume Checker Team</p>
+          </div>
+          <div class="footer">
+            <p>© 2024 AI Resume Checker. All rights reserved.</p>
+            <p>This password reset link will expire in 30 minutes.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      AI Resume Checker - Password Reset Request
+      
+      Hello ${username},
+      
+      We received a request to reset your password for your AI Resume Checker account.
+      
+      Reset your password by clicking this link:
+      ${resetLink}
+      
+      This link will expire in 30 minutes for security reasons.
+      
+      If you didn't request this password reset, you can safely ignore this email.
+      Your password will remain unchanged.
+      
+      Best regards,
+      The AI Resume Checker Team
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: '🔒 Reset Your Password - AI Resume Checker',
+      html,
+      text
+    });
+  }
 }
 
 export const emailService = new EmailService(); 

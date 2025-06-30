@@ -854,3 +854,46 @@ input:checked + .toggle-slider-compact:before {
     padding: 1rem;
   }
 }
+
+/* Security Info Styles */
+.security-info {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #7dd3fc;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
+}
+
+.security-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: #075985;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.security-note svg {
+  color: #0284c7;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Dark mode styles for security info */
+.dark .security-info {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-color: #475569;
+}
+
+.dark .security-note {
+  color: #94a3b8;
+}
+
+.dark .security-note svg {
+  color: #60a5fa;
+}

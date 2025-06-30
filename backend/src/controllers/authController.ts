@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 import { User, IUser } from '../models/User';
 import { emailService } from '../services/emailService';
@@ -511,6 +512,15 @@ export const updatePassword = async (req: Request, res: Response) => {
       });
     }
 
+    // Check if the new password is the same as current password
+    const isSameAsCurrentPassword = await user.comparePassword(newPassword);
+    if (isSameAsCurrentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot use your current password as the new password. Please choose a different password.'
+      });
+    }
+
     // Update password
     user.password = newPassword;
     await user.save();
@@ -633,6 +643,183 @@ export const exportUserData = async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error('Export user data error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Forgot password
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    // Always return success for security (don't reveal if email exists)
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+
+    // Check if user email is verified
+    if (!user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please verify your email address first before resetting password'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour instead of 30 minutes
+
+    // Save reset token to user
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = resetTokenExpires;
+    await user.save();
+
+    logger.info(`Password reset token generated for: ${user.email}, expires at: ${resetTokenExpires}`);
+
+    // Send password reset email
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const emailSent = await emailService.sendPasswordResetEmail(user.email, user.username, resetLink);
+    
+    if (!emailSent) {
+      // Clean up the reset token if email fails
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save();
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send password reset email. Please try again.'
+      });
+    }
+
+    logger.info(`Password reset requested for: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent.'
+    });
+
+  } catch (error) {
+    logger.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Reset password
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+
+    logger.info(`Password reset attempt with token: ${token ? token.substring(0, 10) + '...' : 'null'}`);
+
+    if (!token || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // First, find all users with the reset token (for debugging)
+    const allUsersWithToken = await User.findOne({ passwordResetToken: token });
+    logger.info(`Users found with token: ${allUsersWithToken ? 'Yes' : 'No'}`);
+    
+    if (allUsersWithToken) {
+      logger.info(`Token expiry: ${allUsersWithToken.passwordResetExpires}, Current time: ${new Date()}, Valid: ${allUsersWithToken.passwordResetExpires && allUsersWithToken.passwordResetExpires > new Date()}`);
+    }
+
+    // Find user by reset token and check expiry
+    const user = await User.findOne({
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      // More specific error message
+      const expiredUser = await User.findOne({ passwordResetToken: token });
+      if (expiredUser) {
+        logger.info(`Token expired for user: ${expiredUser.email}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Password reset token has expired. Please request a new password reset link.'
+        });
+      } else {
+        logger.info(`No user found with token: ${token.substring(0, 10)}...`);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid password reset token. Please request a new password reset link.'
+        });
+      }
+    }
+
+    logger.info(`Found user for password reset: ${user.email}`);
+
+    // Check if the new password is the same as current password
+    const isSameAsCurrentPassword = await user.comparePassword(newPassword);
+    if (isSameAsCurrentPassword) {
+      logger.info(`User attempted to use current password as new password: ${user.email}`);
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot use your current password as the new password. Please choose a different password.'
+      });
+    }
+
+    // Update password and clear reset token
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    logger.info(`Password reset successful for: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. You can now log in with your new password.'
+    });
+
+  } catch (error) {
+    logger.error('Reset password error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

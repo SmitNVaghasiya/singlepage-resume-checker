@@ -9,7 +9,9 @@ import {
   updatePassword,
   updateNotificationSettings,
   deleteAccount,
-  exportUserData 
+  exportUserData,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 import { rateLimiter } from '../middleware/rateLimiter';
@@ -33,6 +35,8 @@ const otpLimiter = rateLimiter({
 router.post('/send-otp', otpLimiter, sendOTP);
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+router.post('/forgot-password', authLimiter, forgotPassword);
+router.post('/reset-password', authLimiter, resetPassword);
 
 // Protected routes
 router.get('/me', authenticateToken, getCurrentUser);

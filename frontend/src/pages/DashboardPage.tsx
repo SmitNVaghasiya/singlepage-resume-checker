@@ -33,10 +33,10 @@ const DashboardPage: React.FC = () => {
   // Calculate statistics
   const totalAnalyses = analysisHistory.length;
   const averageScore = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.overallScore || analysis.score || 0), 0) / totalAnalyses)
+    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.overallScore || 0), 0) / totalAnalyses)
     : 0;
   const bestScore = totalAnalyses > 0 
-    ? Math.max(...analysisHistory.map(analysis => analysis.overallScore || analysis.score || 0))
+    ? Math.max(...analysisHistory.map(analysis => analysis.overallScore || 0))
     : 0;
   const averageMatchRate = totalAnalyses > 0 
     ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.matchPercentage || 0), 0) / totalAnalyses)
@@ -44,7 +44,7 @@ const DashboardPage: React.FC = () => {
 
   // Filter analysis history
   const filteredHistory = analysisHistory.filter(analysis => 
-    (analysis.resumeFilename || analysis.resumeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (analysis.resumeFilename || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (analysis.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -175,7 +175,7 @@ const DashboardPage: React.FC = () => {
                             <div className="file-icon-wrapper">
                               <FileText className="file-icon" />
                             </div>
-                            <span className="file-name">{analysis.resumeFilename || analysis.resumeName || 'Unknown'}</span>
+                            <span className="file-name">{analysis.resumeFilename || 'Unknown'}</span>
                           </div>
                         </td>
                         <td className="job-title">{analysis.jobTitle || 'Not specified'}</td>
@@ -186,8 +186,8 @@ const DashboardPage: React.FC = () => {
                           </div>
                         </td>
                         <td>
-                          <span className={`score-badge ${getScoreBadgeColor(analysis.overallScore || analysis.score || 0)}`}>
-                            {analysis.overallScore || analysis.score || 0}/100
+                          <span className={`score-badge ${getScoreBadgeColor(analysis.overallScore || 0)}`}>
+                            {analysis.overallScore || 0}/100
                           </span>
                         </td>
                         <td>
@@ -222,7 +222,7 @@ const DashboardPage: React.FC = () => {
             <h3 className="empty-title">No Analyses Yet</h3>
             <p className="empty-description">Start by analyzing your first resume to see results here.</p>
             <Link
-              to="/"
+              to="/resumechecker"
               onClick={resetAnalysis}
               className="start-analysis-btn"
             >

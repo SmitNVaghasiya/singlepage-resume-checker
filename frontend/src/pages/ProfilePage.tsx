@@ -156,6 +156,11 @@ const ProfilePage: React.FC = () => {
         newErrors.confirmPassword = 'Passwords do not match';
       }
 
+      // Check if new password is the same as current password
+      if (passwordData.newPassword === passwordData.currentPassword) {
+        newErrors.newPassword = 'You cannot use your current password as the new password. Please choose a different password.';
+      }
+
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         return;
@@ -378,6 +383,15 @@ const ProfilePage: React.FC = () => {
                   </button>
                 </div>
 
+                {!isChangingPassword && (
+                  <div className="security-info">
+                    <p className="security-note">
+                      <Shield className="w-4 h-4" />
+                      You can change your password here or use the "Forgot Password" feature on the login page if you need to reset it. Note: You cannot use your current password as the new password for security reasons.
+                    </p>
+                  </div>
+                )}
+
                 {isChangingPassword && (
                   <form onSubmit={handlePasswordUpdate} className="compact-form">
                     <div className="input-group-compact">
@@ -407,13 +421,33 @@ const ProfilePage: React.FC = () => {
                         <label className="input-label-compact">New Password</label>
                         <div className="input-wrapper-compact">
                           <Lock className="input-icon-compact" />
-                          <input
-                            type={showPasswords.new ? 'text' : 'password'}
-                            value={passwordData.newPassword}
-                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                            className={`input-field-compact ${errors.newPassword ? 'error' : ''}`}
-                            disabled={isLoading}
-                          />
+                                                  <input
+                          type={showPasswords.new ? 'text' : 'password'}
+                          value={passwordData.newPassword}
+                          onChange={(e) => {
+                            const newPassword = e.target.value;
+                            setPasswordData({ ...passwordData, newPassword });
+                            
+                            // Clear error when user starts typing
+                            if (errors.newPassword) {
+                              setErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.newPassword;
+                                return newErrors;
+                              });
+                            }
+                            
+                            // Real-time validation to check if new password matches current password
+                            if (newPassword && passwordData.currentPassword && newPassword === passwordData.currentPassword) {
+                              setErrors(prev => ({ 
+                                ...prev, 
+                                newPassword: 'You cannot use your current password as the new password. Please choose a different password.' 
+                              }));
+                            }
+                          }}
+                          className={`input-field-compact ${errors.newPassword ? 'error' : ''}`}
+                          disabled={isLoading}
+                        />
                           <button
                             type="button"
                             className="password-toggle-compact"
