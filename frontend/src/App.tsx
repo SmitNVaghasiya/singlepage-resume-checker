@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AppProvider } from './contexts/AppContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import HomePage from './pages/HomePage';
 import ResumeCheckerPage from './pages/ResumeCheckerPage';
 import DashboardPage from './pages/DashboardPage';
@@ -27,6 +28,7 @@ function App() {
   return (
     <AppProvider>
       <Router>
+        <ScrollToTop />
         <div className="app-container">
           <Navbar />
           
