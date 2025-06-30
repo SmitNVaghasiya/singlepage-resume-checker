@@ -3,22 +3,34 @@ import { pythonApiService } from '../services/pythonApiService';
 import { cacheService } from '../services/cacheService';
 import { analysisService } from '../services/analysisService';
 import { logger } from '../utils/logger';
-import { generateAnalysisId } from '../utils/helpers';
+import { generateAnalysisId, extractErrorMessage } from '../utils/helpers';
 
 interface MulterFiles {
   resume?: Express.Multer.File[];
   jobDescription?: Express.Multer.File[];
 }
 
-export const resumeController = {
+interface AnalysisStatus {
+  status: 'processing' | 'completed' | 'failed';
+  progress?: number;
+  currentStage?: string;
+  startedAt?: string;
+  completedAt?: string;
+  failedAt?: string;
+  error?: string;
+}
+
+class ResumeController {
   // Analyze resume against job description
-  analyzeResume: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public analyzeResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const startTime = Date.now();
+    
     try {
       const files = req.files as MulterFiles;
       const { jobDescriptionText } = req.body;
       
-      if (!files.resume) {
+      // Validate resume file
+      if (!files.resume?.length) {
         res.status(400).json({
           error: 'Missing file',
           message: 'Resume file is required',
@@ -29,8 +41,8 @@ export const resumeController = {
       const resumeFile = files.resume[0];
       const jobDescriptionFile = files.jobDescription?.[0];
 
-      // Validate that either job description file or text is provided
-      if (!jobDescriptionFile && !jobDescriptionText) {
+      // Validate job description input
+      if (!jobDescriptionFile && !jobDescriptionText?.trim()) {
         res.status(400).json({
           error: 'Missing job description',
           message: 'Either job description file or text is required',
@@ -41,20 +53,14 @@ export const resumeController = {
       // Generate unique analysis ID
       const analysisId = generateAnalysisId();
 
-      // Log analysis request
-      logger.info({
-        message: 'Starting comprehensive resume analysis',
-        analysisId,
-        resumeSize: resumeFile.size,
-        resumeFilename: resumeFile.originalname,
-        jobDescriptionSize: jobDescriptionFile?.size || 0,
-        jobDescriptionFilename: jobDescriptionFile?.originalname,
-        hasJobDescriptionText: !!jobDescriptionText,
-        hasJobDescriptionFile: !!jobDescriptionFile,
-      });
+      // Log analysis request with structured data
+      this.logAnalysisRequest(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
 
-      // Start analysis (async processing for better performance)
-      processAnalysisAsync(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText, startTime);
+      // Start async processing (fire and forget)
+      this.processAnalysisAsync(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText, startTime)
+        .catch(error => {
+          logger.error('Unhandled error in async processing:', { analysisId, error: extractErrorMessage(error) });
+        });
 
       // Return immediate response
       res.status(202).json({
@@ -65,17 +71,24 @@ export const resumeController = {
       });
 
     } catch (error) {
-      logger.error('Error in analyzeResume:', error);
+      logger.error('Error in analyzeResume:', { error: extractErrorMessage(error), requestId: req.headers['x-request-id'] });
       next(error);
     }
-  },
+  };
 
   // Get analysis status
-  getAnalysisStatus: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getAnalysisStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { analysisId } = req.params;
 
-      // Check cache for status
+      if (!analysisId) {
+        res.status(400).json({
+          error: 'Invalid request',
+          message: 'Analysis ID is required',
+        });
+        return;
+      }
+
       const status = await cacheService.getAnalysisStatus(analysisId);
 
       if (!status) {
@@ -88,28 +101,43 @@ export const resumeController = {
 
       res.json(status);
     } catch (error) {
-      logger.error('Error in getAnalysisStatus:', error);
+      logger.error('Error in getAnalysisStatus:', { 
+        analysisId: req.params.analysisId, 
+        error: extractErrorMessage(error) 
+      });
       next(error);
     }
-  },
+  };
 
   // Get analysis result
-  getAnalysisResult: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getAnalysisResult = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { analysisId } = req.params;
 
-      // Try cache first
+      if (!analysisId) {
+        res.status(400).json({
+          error: 'Invalid request',
+          message: 'Analysis ID is required',
+        });
+        return;
+      }
+
       let result = await cacheService.getAnalysisResult(analysisId);
 
+      // Fallback to database if not in cache
       if (!result) {
-        // Fallback to database
         try {
           const dbResult = await analysisService.getAnalysisByAnalysisId(analysisId);
-          if (dbResult && dbResult.status === 'completed') {
+          if (dbResult?.status === 'completed') {
             result = dbResult.result;
+            // Re-cache the result for future requests
+            await cacheService.setAnalysisResult(analysisId, result);
           }
         } catch (dbError) {
-          logger.warn('Database fallback failed:', dbError);
+          logger.warn('Database fallback failed:', { 
+            analysisId, 
+            error: extractErrorMessage(dbError) 
+          });
         }
       }
 
@@ -125,76 +153,155 @@ export const resumeController = {
         analysisId,
         status: 'completed',
         result,
+        retrievedAt: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error('Error in getAnalysisResult:', error);
+      logger.error('Error in getAnalysisResult:', { 
+        analysisId: req.params.analysisId, 
+        error: extractErrorMessage(error) 
+      });
       next(error);
     }
-  },
+  };
 
-  // Get user's analysis history (if authenticated)
-  getAnalysisHistory: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  // Get user's analysis history (paginated)
+  public getAnalysisHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const sortBy = req.query.sortBy as string || 'createdAt';
-      const sortOrder = req.query.sortOrder as string || 'desc';
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
+      const sortBy = (req.query.sortBy as string) || 'createdAt';
+      const sortOrder = (['asc', 'desc'].includes(req.query.sortOrder as string)) 
+        ? req.query.sortOrder as 'asc' | 'desc' 
+        : 'desc';
 
-      // For now, get all analyses (later filter by user when auth is implemented)
       const analyses = await analysisService.getAnalysesWithPagination({
         page,
         limit,
         sortBy,
-        sortOrder: sortOrder as 'asc' | 'desc',
+        sortOrder,
       });
 
-      res.json(analyses);
+      res.json({
+        ...analyses,
+        pagination: {
+          page,
+          limit,
+          hasNextPage: (analyses as any).results?.length === limit,
+          hasPrevPage: page > 1,
+        },
+      });
     } catch (error) {
-      logger.error('Error in getAnalysisHistory:', error);
+      logger.error('Error in getAnalysisHistory:', { 
+        query: req.query, 
+        error: extractErrorMessage(error) 
+      });
       next(error);
     }
-  },
-};
+  };
 
-// Async function to process analysis
-async function processAnalysisAsync(
-  analysisId: string,
-  resumeFile: Express.Multer.File,
-  jobDescriptionFile?: Express.Multer.File,
-  jobDescriptionText?: string,
-  startTime?: number
-) {
-  try {
-    // Update status to processing in cache
-    await cacheService.setAnalysisStatus(analysisId, {
-      status: 'processing',
-      startedAt: new Date().toISOString(),
-      progress: 10,
-      currentStage: 'Extracting resume content...',
+  // Private helper methods
+  private logAnalysisRequest(
+    analysisId: string,
+    resumeFile: Express.Multer.File,
+    jobDescriptionFile?: Express.Multer.File,
+    jobDescriptionText?: string
+  ): void {
+    logger.info('Starting comprehensive resume analysis', {
+      analysisId,
+      resume: {
+        size: resumeFile.size,
+        filename: resumeFile.originalname,
+        mimetype: resumeFile.mimetype,
+      },
+      jobDescription: {
+        hasFile: !!jobDescriptionFile,
+        hasText: !!jobDescriptionText?.trim(),
+        fileSize: jobDescriptionFile?.size || 0,
+        filename: jobDescriptionFile?.originalname,
+        textLength: jobDescriptionText?.length || 0,
+      },
     });
+  }
 
-    // Extract basic text for initial storage (will be properly processed by Python service)
-    let resumeTextPreview = '';
-    let jobDescriptionTextPreview = '';
-
+  private async processAnalysisAsync(
+    analysisId: string,
+    resumeFile: Express.Multer.File,
+    jobDescriptionFile?: Express.Multer.File,
+    jobDescriptionText?: string,
+    startTime?: number
+  ): Promise<void> {
     try {
-      resumeTextPreview = resumeFile.buffer.toString('utf-8').substring(0, 1000);
-    } catch {
-      resumeTextPreview = 'Binary file - will be processed by AI service';
-    }
+      // Update initial status
+      await this.updateAnalysisStatus(analysisId, {
+        status: 'processing',
+        startedAt: new Date().toISOString(),
+        progress: 10,
+        currentStage: 'Extracting resume content...',
+      });
 
-    if (jobDescriptionFile) {
-      try {
-        jobDescriptionTextPreview = jobDescriptionFile.buffer.toString('utf-8').substring(0, 1000);
-      } catch {
-        jobDescriptionTextPreview = 'Binary file - will be processed by AI service';
+      // Create initial database record
+      await this.createInitialAnalysisRecord(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
+
+      // Update progress - job description analysis
+      await this.updateAnalysisStatus(analysisId, {
+        status: 'processing',
+        progress: 25,
+        currentStage: 'Analyzing job requirements...',
+      });
+
+      // Call Python API for analysis
+      const result = await pythonApiService.analyzeResume(
+        resumeFile,
+        jobDescriptionFile,
+        jobDescriptionText
+      );
+
+      // Add processing time metadata
+      if (startTime && result.result) {
+        result.result.processingTime = Date.now() - startTime;
       }
-    } else {
-      jobDescriptionTextPreview = jobDescriptionText || '';
-    }
 
-    // Save initial analysis record to MongoDB
+      // Update progress - finalizing
+      await this.updateAnalysisStatus(analysisId, {
+        status: 'processing',
+        progress: 90,
+        currentStage: 'Finalizing analysis report...',
+      });
+
+      // Store results
+      await this.storeAnalysisResults(analysisId, result.result);
+
+      // Complete analysis
+      await this.completeAnalysis(analysisId, result.result);
+
+    } catch (error) {
+      await this.handleAnalysisError(analysisId, error);
+    }
+  }
+
+  private async updateAnalysisStatus(analysisId: string, status: AnalysisStatus): Promise<void> {
     try {
+      await cacheService.setAnalysisStatus(analysisId, status);
+    } catch (error) {
+      logger.warn('Failed to update analysis status in cache:', { 
+        analysisId, 
+        error: extractErrorMessage(error) 
+      });
+    }
+  }
+
+  private async createInitialAnalysisRecord(
+    analysisId: string,
+    resumeFile: Express.Multer.File,
+    jobDescriptionFile?: Express.Multer.File,
+    jobDescriptionText?: string
+  ): Promise<void> {
+    try {
+      const resumeTextPreview = this.extractTextPreview(resumeFile.buffer);
+      const jobDescriptionTextPreview = jobDescriptionFile 
+        ? this.extractTextPreview(jobDescriptionFile.buffer)
+        : jobDescriptionText || '';
+
       await analysisService.createAnalysis({
         analysisId,
         resumeFilename: resumeFile.originalname,
@@ -203,83 +310,81 @@ async function processAnalysisAsync(
         jobDescriptionText: jobDescriptionTextPreview,
       });
     } catch (dbError) {
-      logger.warn('Failed to save initial record to MongoDB, continuing with cache only:', dbError);
+      logger.warn('Failed to save initial record to MongoDB:', { 
+        analysisId, 
+        error: extractErrorMessage(dbError) 
+      });
     }
+  }
 
-    // Update progress
-    await cacheService.setAnalysisStatus(analysisId, {
-      status: 'processing',
-      progress: 25,
-      currentStage: 'Analyzing job requirements...',
-    });
-
-    // Call Python API for comprehensive analysis
-    const result = await pythonApiService.analyzeResume(
-      resumeFile,
-      jobDescriptionFile,
-      jobDescriptionText
-    );
-
-    // Calculate processing time
-    const processingTime = startTime ? Date.now() - startTime : undefined;
-    if (processingTime && result.result) {
-      result.result.processingTime = processingTime;
+  private extractTextPreview(buffer: Buffer): string {
+    try {
+      return buffer.toString('utf-8').substring(0, 1000);
+    } catch {
+      return 'Binary file - will be processed by AI service';
     }
+  }
 
-    // Update progress
-    await cacheService.setAnalysisStatus(analysisId, {
-      status: 'processing',
-      progress: 90,
-      currentStage: 'Finalizing analysis report...',
-    });
-
-    // Store result in cache
-    await cacheService.setAnalysisResult(analysisId, {
-      ...result.result,
+  private async storeAnalysisResults(analysisId: string, result: any): Promise<void> {
+    const enhancedResult = {
+      ...result,
       completedAt: new Date().toISOString(),
-    });
+    };
 
-    // Update status to completed in cache
-    await cacheService.setAnalysisStatus(analysisId, {
+    // Store in cache
+    await cacheService.setAnalysisResult(analysisId, enhancedResult);
+
+    // Update database
+    try {
+      await analysisService.updateAnalysisResult(analysisId, result);
+    } catch (dbError) {
+      logger.warn('Failed to update MongoDB with results:', { 
+        analysisId, 
+        error: extractErrorMessage(dbError) 
+      });
+    }
+  }
+
+  private async completeAnalysis(analysisId: string, result: any): Promise<void> {
+    await this.updateAnalysisStatus(analysisId, {
       status: 'completed',
       progress: 100,
       completedAt: new Date().toISOString(),
     });
 
-    // Update MongoDB with comprehensive results
-    try {
-      await analysisService.updateAnalysisResult(analysisId, result.result);
-    } catch (dbError) {
-      logger.warn('Failed to update MongoDB with results, cache updated successfully:', dbError);
-    }
-
-    logger.info({
-      message: 'Comprehensive analysis completed successfully',
+    logger.info('Comprehensive analysis completed successfully', {
       analysisId,
-      overallScore: result.result?.overallScore,
-      processingTime,
+      overallScore: result?.overallScore,
+      matchPercentage: result?.matchPercentage,
     });
+  }
 
-  } catch (error) {
-    logger.error({
-      message: 'Comprehensive analysis failed',
+  private async handleAnalysisError(analysisId: string, error: unknown): Promise<void> {
+    const errorMessage = extractErrorMessage(error);
+    
+    logger.error('Comprehensive analysis failed', {
       analysisId,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
     });
 
     // Update status to failed
-    await cacheService.setAnalysisStatus(analysisId, {
+    await this.updateAnalysisStatus(analysisId, {
       status: 'failed',
-      error: error instanceof Error ? error.message : 'Analysis failed',
+      error: errorMessage,
       failedAt: new Date().toISOString(),
     });
 
     // Update database status
     try {
-      await analysisService.updateAnalysisStatus(analysisId, 'failed', 
-        error instanceof Error ? error.message : 'Analysis failed');
+      await analysisService.updateAnalysisStatus(analysisId, 'failed', errorMessage);
     } catch (dbError) {
-      logger.warn('Failed to update database status:', dbError);
+      logger.warn('Failed to update database status:', { 
+        analysisId, 
+        error: extractErrorMessage(dbError) 
+      });
     }
   }
-} 
+}
+
+// Export singleton instance
+export const resumeController = new ResumeController(); 
