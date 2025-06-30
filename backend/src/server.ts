@@ -10,6 +10,7 @@ import resumeRoutes from './routes/resumeRoutes';
 import healthRoutes from './routes/healthRoutes';
 import { analysisRoutes } from './routes/analysisRoutes';
 import authRoutes from './routes/authRoutes';
+import contactRoutes from './routes/contactRoutes';
 import { config } from './config/config';
 import { logger } from './utils/logger';
 import { database } from './config/database';
@@ -72,6 +73,7 @@ export const createServer = async (): Promise<Express> => {
   app.use('/api/auth', authRoutes);
   app.use('/api/resume', resumeRoutes);
   app.use('/api/analyses', analysisRoutes);
+  app.use('/api/contact', contactRoutes);
 
   // 404 handler
   app.use((_req, res) => {

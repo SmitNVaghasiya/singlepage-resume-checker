@@ -34,9 +34,20 @@
   border: 1px solid var(--gray-300);
 }
 
+.dark .btn-secondary {
+  background: var(--gray-800);
+  color: var(--gray-200);
+  border-color: var(--gray-600);
+}
+
 .btn-secondary:hover {
   background: var(--gray-50);
   border-color: var(--gray-400);
+}
+
+.dark .btn-secondary:hover {
+  background: var(--gray-700);
+  border-color: var(--gray-500);
 }
 
 .btn-ghost {
@@ -44,9 +55,18 @@
   color: var(--gray-600);
 }
 
+.dark .btn-ghost {
+  color: var(--gray-400);
+}
+
 .btn-ghost:hover {
   background: var(--gray-100);
   color: var(--gray-900);
+}
+
+.dark .btn-ghost:hover {
+  background: var(--gray-800);
+  color: var(--gray-100);
 }
 
 .btn-sm {
@@ -68,9 +88,18 @@
   transition: var(--transition-normal);
 }
 
+.dark .card {
+  background: var(--gray-800);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4);
+}
+
 .card:hover {
   box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   transform: translateY(-2px);
+}
+
+.dark .card:hover {
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
 }
 
 .card-header {
@@ -99,6 +128,10 @@
   font-size: 0.875rem;
 }
 
+.dark .input-label {
+  color: var(--gray-300);
+}
+
 .input-field {
   padding: 0.75rem 1rem;
   border: 1px solid var(--gray-300);
@@ -106,6 +139,12 @@
   font-size: 0.875rem;
   transition: var(--transition-fast);
   background: white;
+}
+
+.dark .input-field {
+  background: var(--gray-700);
+  border-color: var(--gray-600);
+  color: var(--gray-100);
 }
 
 .input-field:focus {
@@ -168,6 +207,10 @@
   overflow: hidden;
 }
 
+.dark .progress-bar {
+  background: var(--gray-700);
+}
+
 .progress-fill {
   height: 100%;
   background: var(--gradient-primary);
@@ -210,11 +253,20 @@
   color: var(--gray-500);
 }
 
+.dark .step-circle.pending {
+  background: var(--gray-700);
+  color: var(--gray-400);
+}
+
 .step-line {
   height: 2px;
   background: var(--gray-200);
   flex: 1;
   transition: var(--transition-normal);
+}
+
+.dark .step-line {
+  background: var(--gray-700);
 }
 
 .step-line.completed {
@@ -232,9 +284,19 @@
   background: var(--gray-50);
 }
 
+.dark .file-upload-zone {
+  border-color: var(--gray-600);
+  background: var(--gray-800);
+}
+
 .file-upload-zone:hover {
   border-color: var(--gray-400);
   background: var(--gray-100);
+}
+
+.dark .file-upload-zone:hover {
+  border-color: var(--gray-500);
+  background: var(--gray-700);
 }
 
 .file-upload-zone.dragover {
