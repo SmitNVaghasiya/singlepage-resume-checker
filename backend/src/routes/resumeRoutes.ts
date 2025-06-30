@@ -30,4 +30,10 @@ router.get(
   resumeController.getAnalysisResult
 );
 
+// Get analysis history (for dashboard)
+router.get(
+  '/history',
+  resumeController.getAnalysisHistory
+);
+
 export default router; 

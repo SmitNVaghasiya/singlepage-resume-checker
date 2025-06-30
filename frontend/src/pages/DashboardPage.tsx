@@ -15,38 +15,62 @@ import {
   Award,
   Activity,
   Star,
-  X
+  X,
+  Loader
 } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
+import { apiService } from '../services/api';
+import { AnalysisResult } from '../types';
+import ComprehensiveAnalysisModal from '../components/ComprehensiveAnalysisModal';
 import '../styles/pages/DashboardPage.css';
 
 const DashboardPage: React.FC = () => {
   const { currentAnalysis, analysisHistory, resetAnalysis } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisResult | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Calculate statistics
   const totalAnalyses = analysisHistory.length;
   const averageScore = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + analysis.score, 0) / totalAnalyses)
+    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.overallScore || analysis.score || 0), 0) / totalAnalyses)
     : 0;
   const bestScore = totalAnalyses > 0 
-    ? Math.max(...analysisHistory.map(analysis => analysis.score))
+    ? Math.max(...analysisHistory.map(analysis => analysis.overallScore || analysis.score || 0))
     : 0;
   const averageMatchRate = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + analysis.matchPercentage, 0) / totalAnalyses)
+    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.matchPercentage || 0), 0) / totalAnalyses)
     : 0;
 
   // Filter analysis history
   const filteredHistory = analysisHistory.filter(analysis => 
-    analysis.resumeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    analysis.jobTitle.toLowerCase().includes(searchTerm.toLowerCase())
+    (analysis.resumeFilename || analysis.resumeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (analysis.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getScoreBadgeColor = (score: number) => {
     if (score >= 80) return 'success';
     if (score >= 60) return 'warning';
     return 'error';
+  };
+
+  const loadFullAnalysisDetails = async (analysisId: string) => {
+    setLoadingDetails(true);
+    try {
+      const response = await apiService.getAnalysisResult(analysisId);
+      if (response.result) {
+        setSelectedAnalysis(response.result);
+      }
+    } catch (error) {
+      console.error('Failed to load analysis details:', error);
+      // Still show basic info from history if full details fail to load
+      const basicAnalysis = analysisHistory.find(a => a.analysisId === analysisId);
+      if (basicAnalysis) {
+        setSelectedAnalysis(basicAnalysis);
+      }
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   return (
@@ -151,10 +175,10 @@ const DashboardPage: React.FC = () => {
                             <div className="file-icon-wrapper">
                               <FileText className="file-icon" />
                             </div>
-                            <span className="file-name">{analysis.resumeName}</span>
+                            <span className="file-name">{analysis.resumeFilename || analysis.resumeName || 'Unknown'}</span>
                           </div>
                         </td>
-                        <td className="job-title">{analysis.jobTitle}</td>
+                        <td className="job-title">{analysis.jobTitle || 'Not specified'}</td>
                         <td>
                           <div className="date-info">
                             <Calendar className="date-icon" />
@@ -162,17 +186,22 @@ const DashboardPage: React.FC = () => {
                           </div>
                         </td>
                         <td>
-                          <span className={`score-badge ${getScoreBadgeColor(analysis.score)}`}>
-                            {analysis.score}/100
+                          <span className={`score-badge ${getScoreBadgeColor(analysis.overallScore || analysis.score || 0)}`}>
+                            {analysis.overallScore || analysis.score || 0}/100
                           </span>
                         </td>
                         <td>
                           <button 
                             className="view-details-btn"
-                            onClick={() => setSelectedAnalysis(analysis)}
+                            onClick={() => loadFullAnalysisDetails(analysis.analysisId)}
+                            disabled={loadingDetails}
                           >
-                            <Eye className="view-icon" />
-                            View Details
+                            {loadingDetails ? (
+                              <Loader className="view-icon animate-spin" />
+                            ) : (
+                              <Eye className="view-icon" />
+                            )}
+                            {loadingDetails ? 'Loading...' : 'View Details'}
                           </button>
                         </td>
                       </tr>
@@ -203,146 +232,12 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Analysis Details Modal - Redesigned */}
+        {/* Comprehensive Analysis Modal */}
         {selectedAnalysis && (
-          <div className="modal-overlay" onClick={() => setSelectedAnalysis(null)}>
-            <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-              {/* Modal Header */}
-              <div className="modal-header">
-                <div className="modal-header-content">
-                  <h2 className="modal-title">Analysis Details</h2>
-                  <button 
-                    className="modal-close-btn"
-                    onClick={() => setSelectedAnalysis(null)}
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-                <button className="download-report-btn">
-                  <Download size={16} />
-                  <span>Download Report</span>
-                </button>
-              </div>
-              
-              {/* Modal Content */}
-              <div className="modal-content">
-                {/* Stats Overview */}
-                <div className="modal-stats">
-                  <div className="modal-stat-card primary">
-                    <div className="stat-icon-circle">
-                      <Activity size={20} />
-                    </div>
-                    <div className="stat-info">
-                      <div className="stat-number">{selectedAnalysis.score}</div>
-                      <div className="stat-title">Overall Score</div>
-                      <div className="stat-subtitle">Out of 100</div>
-                    </div>
-                  </div>
-                  
-                  <div className="modal-stat-card success">
-                    <div className="stat-icon-circle">
-                      <Target size={20} />
-                    </div>
-                    <div className="stat-info">
-                      <div className="stat-number">{selectedAnalysis.matchPercentage}%</div>
-                      <div className="stat-title">Job Match</div>
-                      <div className="stat-subtitle">Compatibility</div>
-                    </div>
-                  </div>
-                  
-                  <div className="modal-stat-card info">
-                    <div className="stat-icon-circle">
-                      <Calendar size={20} />
-                    </div>
-                    <div className="stat-info">
-                      <div className="stat-number">{new Date(selectedAnalysis.analyzedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                      <div className="stat-title">Analysis Date</div>
-                      <div className="stat-subtitle">Last Updated</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* File Information */}
-                <div className="file-meta">
-                  <div className="meta-item">
-                    <FileText size={16} className="meta-icon" />
-                    <div className="meta-text">
-                      <span className="meta-label">Resume File</span>
-                      <span className="meta-value">{selectedAnalysis.resumeName}</span>
-                    </div>
-                  </div>
-                  <div className="meta-item">
-                    <Target size={16} className="meta-icon" />
-                    <div className="meta-text">
-                      <span className="meta-label">Target Position</span>
-                      <span className="meta-value">{selectedAnalysis.jobTitle}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Analysis Sections */}
-                <div className="analysis-sections">
-                  {/* AI Analysis */}
-                  <div className="analysis-section">
-                    <div className="section-header">
-                      <div className="section-icon ai">
-                        <Star size={18} />
-                      </div>
-                      <h3 className="section-title">AI Analysis</h3>
-                    </div>
-                    <div className="section-content">
-                      <p className="analysis-text">{selectedAnalysis.remarks}</p>
-                    </div>
-                  </div>
-
-                  {/* Strengths & Improvements Grid */}
-                  <div className="feedback-grid">
-                    {/* Strengths */}
-                    <div className="analysis-section">
-                      <div className="section-header">
-                        <div className="section-icon success">
-                          <CheckCircle size={18} />
-                        </div>
-                        <h3 className="section-title">Strengths</h3>
-                        <span className="item-count">{selectedAnalysis.strengths.length}</span>
-                      </div>
-                      <div className="section-content">
-                        <div className="feedback-list">
-                          {selectedAnalysis.strengths.map((strength: string, index: number) => (
-                            <div key={index} className="feedback-item success">
-                              <div className="feedback-dot success"></div>
-                              <span className="feedback-text">{strength}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Improvements */}
-                    <div className="analysis-section">
-                      <div className="section-header">
-                        <div className="section-icon warning">
-                          <AlertCircle size={18} />
-                        </div>
-                        <h3 className="section-title">Improvements</h3>
-                        <span className="item-count">{selectedAnalysis.improvements.length}</span>
-                      </div>
-                      <div className="section-content">
-                        <div className="feedback-list">
-                          {selectedAnalysis.improvements.map((improvement: string, index: number) => (
-                            <div key={index} className="feedback-item warning">
-                              <div className="feedback-dot warning"></div>
-                              <span className="feedback-text">{improvement}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ComprehensiveAnalysisModal
+            analysis={selectedAnalysis}
+            onClose={() => setSelectedAnalysis(null)}
+          />
         )}
       </div>
     </div>

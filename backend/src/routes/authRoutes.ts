@@ -4,7 +4,12 @@ import {
   login, 
   logout, 
   getCurrentUser, 
-  sendOTP 
+  sendOTP,
+  updateProfile,
+  updatePassword,
+  updateNotificationSettings,
+  deleteAccount,
+  exportUserData 
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 import { rateLimiter } from '../middleware/rateLimiter';
@@ -32,5 +37,10 @@ router.post('/login', authLimiter, login);
 // Protected routes
 router.get('/me', authenticateToken, getCurrentUser);
 router.post('/logout', authenticateToken, logout);
+router.put('/profile', authenticateToken, updateProfile);
+router.put('/password', authenticateToken, updatePassword);
+router.put('/notifications', authenticateToken, updateNotificationSettings);
+router.delete('/account', authenticateToken, deleteAccount);
+router.get('/export', authenticateToken, exportUserData);
 
 export default router; 

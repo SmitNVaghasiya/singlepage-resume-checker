@@ -360,4 +360,282 @@ export const logout = async (req: Request, res: Response) => {
       message: 'Internal server error'
     });
   }
+};
+
+// Update user profile
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { username, email } = req.body;
+
+    if (!username || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and email are required'
+      });
+    }
+
+    // Validate username
+    if (username.length < 3 || username.length > 30) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username must be between 3 and 30 characters'
+      });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username can only contain letters, numbers, and underscores'
+      });
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // Check if username or email already exists for other users
+    const existingUser = await User.findOne({
+      $and: [
+        { _id: { $ne: userId } },
+        {
+          $or: [
+            { email: email.toLowerCase() },
+            { username: username }
+          ]
+        }
+      ]
+    });
+
+    if (existingUser) {
+      if (existingUser.email === email.toLowerCase()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already registered to another account'
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Username is already taken'
+        });
+      }
+    }
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { 
+        username, 
+        email: email.toLowerCase() 
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    logger.info(`User profile updated: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt
+      }
+    });
+
+  } catch (error) {
+    logger.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Update password
+export const updatePassword = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'All password fields are required'
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New passwords do not match'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long'
+      });
+    }
+
+    // Get user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    logger.info(`Password updated for user: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    logger.error('Update password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Update notification settings (placeholder - can be extended with actual notification preferences)
+export const updateNotificationSettings = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { analysisNotifications, accountActivityNotifications, marketingEmails } = req.body;
+
+    // For now, we'll just acknowledge the settings update
+    // In a real implementation, you'd store these preferences in the user model or a separate settings collection
+    
+    logger.info(`Notification settings updated for user: ${userId}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification settings updated successfully'
+    });
+
+  } catch (error) {
+    logger.error('Update notification settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Delete user account
+export const deleteAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    // Get user first to log the deletion
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // In a real implementation, you might want to:
+    // 1. Delete related data (analyses, etc.)
+    // 2. Soft delete instead of hard delete
+    // 3. Send confirmation email
+    // 4. Add a grace period before actual deletion
+
+    // For now, we'll do a hard delete
+    await User.findByIdAndDelete(userId);
+
+    logger.info(`User account deleted: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Export user data
+export const exportUserData = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    // Get user data
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // In a real implementation, you'd also fetch:
+    // - User's analysis history
+    // - Any other related data
+    // For now, we'll export basic user data
+
+    const userData = {
+      profile: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
+      exportedAt: new Date().toISOString(),
+      note: 'This export contains your basic profile information. Analysis data export will be available in a future update.'
+    };
+
+    logger.info(`Data export requested by user: ${user.email}`);
+
+    res.status(200).json(userData);
+
+  } catch (error) {
+    logger.error('Export user data error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
 }; 

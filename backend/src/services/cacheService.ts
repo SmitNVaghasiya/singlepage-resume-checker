@@ -7,6 +7,8 @@ interface CacheItem<T> {
 
 interface AnalysisStatus {
   status: 'processing' | 'completed' | 'failed';
+  progress?: number;
+  currentStage?: string;
   startedAt?: string;
   completedAt?: string;
   failedAt?: string;

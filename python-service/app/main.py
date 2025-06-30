@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -8,7 +8,7 @@ import sys
 
 from .config import settings
 from .database import connect_to_mongo, close_mongo_connection, save_analysis, get_analysis_by_id, check_mongo_health
-from .file_processor import process_files
+from .file_processor import process_files, extract_text_from_file
 from .ai_analyzer import ai_analyzer
 from .models import AnalysisResult, AnalysisDocument, AnalysisResponse, HealthResponse
 
@@ -109,21 +109,38 @@ async def health_check():
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_resume(
     resume: UploadFile = File(..., description="Resume file (PDF, DOC, DOCX, TXT)"),
-    job_description: UploadFile = File(..., description="Job description file (PDF, DOC, DOCX, TXT)")
+    job_description: UploadFile = File(None, description="Job description file (PDF, DOC, DOCX, TXT)"),
+    job_description_text: str = Form(None, description="Job description as text")
 ):
     """Analyze resume against job description"""
     analysis_id = str(uuid.uuid4())
     
     try:
-        logger.info(f"Starting analysis {analysis_id} for files: {resume.filename}, {job_description.filename}")
+        # Determine input method for job description
+        has_job_file = job_description is not None
+        has_job_text = job_description_text is not None and job_description_text.strip()
         
-        # Process files to extract text
-        resume_text, job_description_text = await process_files(resume, job_description)
+        logger.info(f"Starting analysis {analysis_id} for resume: {resume.filename}, job description: {'file' if has_job_file else 'text' if has_job_text else 'none'}")
+        
+        # Process resume file
+        resume_text = await extract_text_from_file(resume)
+        
+        # Process job description
+        if has_job_file:
+            job_description_text_final = await extract_text_from_file(job_description)
+            logger.info(f"Job description extracted from file: {job_description.filename}")
+        elif has_job_text:
+            job_description_text_final = job_description_text.strip()
+            logger.info(f"Job description provided as text: {len(job_description_text_final)} characters")
+        else:
+            # Use a default job description
+            job_description_text_final = "General professional position requiring relevant skills and experience."
+            logger.warning("No job description provided, using default")
         
         logger.info(f"Files processed successfully for analysis {analysis_id}")
         
         # Perform AI analysis
-        analysis_result = await ai_analyzer.analyze_resume(resume_text, job_description_text)
+        analysis_result = await ai_analyzer.analyze_resume(resume_text, job_description_text_final)
         
         logger.info(f"AI analysis completed for {analysis_id} with score: {analysis_result.score}")
         
@@ -131,9 +148,9 @@ async def analyze_resume(
         analysis_doc = AnalysisDocument(
             analysis_id=analysis_id,
             resume_filename=resume.filename or "unknown",
-            job_description_filename=job_description.filename or "unknown",
+            job_description_filename=job_description.filename if has_job_file else "text_input",
             resume_text=resume_text,
-            job_description_text=job_description_text,
+            job_description_text=job_description_text_final,
             result=analysis_result,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()

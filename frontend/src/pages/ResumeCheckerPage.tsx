@@ -83,6 +83,10 @@ const ResumeCheckerPage: React.FC = () => {
       return false;
     } else {
       setJobDescriptionError('');
+      // If validation passes and we have everything needed, proceed to analysis
+      if (canProceedToAnalysis()) {
+        startAnalysis();
+      }
       return true;
     }
   };
@@ -194,45 +198,103 @@ const ResumeCheckerPage: React.FC = () => {
     setAnalysisProgress(0);
     setCurrentStageIndex(0);
 
-    // Simulate analysis process
-    for (let i = 0; i < analysisStages.length; i++) {
-      setCurrentStageIndex(i);
+    try {
+      // Import the API service
+      const { apiService } = await import('../services/api');
+
+      // Stage 1: Preparing analysis
+      setCurrentStageIndex(0);
+      setAnalysisProgress(10);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Stage 2: Uploading files
+      setCurrentStageIndex(1);
+      setAnalysisProgress(25);
+
+      // Prepare analysis request
+      const analysisRequest = {
+        resumeFile: resumeFile!,
+        ...(jobInputMethod === 'text' 
+          ? { jobDescriptionText: jobDescription }
+          : { jobDescriptionFile: jobFile! }
+        )
+      };
+
+      // Start analysis
+      const analysisResponse = await apiService.analyzeResume(analysisRequest);
       
-      // Simulate processing time for each stage
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Stage 3: Processing with AI
+      setCurrentStageIndex(2);
+      setAnalysisProgress(50);
+
+      // Poll for results
+      const result = await apiService.pollForResult(analysisResponse.analysisId);
+
+      // Stage 4: Finalizing results
+      setCurrentStageIndex(3);
+      setAnalysisProgress(90);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Complete
+      setAnalysisProgress(100);
+
+      // Transform API result to frontend format
+      const analysisResult: AnalysisResult = {
+        id: analysisResponse.analysisId,
+        analysisId: analysisResponse.analysisId,
+        overallScore: result.overallScore || (result as any).score,
+        matchPercentage: result.matchPercentage || result.keywordMatch?.percentage || result.overallScore || (result as any).score,
+        resumeFilename: resumeFile?.name || 'Resume',
+        jobDescriptionFilename: jobInputMethod === 'file' ? jobFile?.name : 'Text Input',
+        jobTitle: result.jobTitle || 'Target Position',
+        industry: result.industry || 'General',
+        keywordMatch: result.keywordMatch || {
+          matched: [],
+          missing: [],
+          percentage: 0,
+          suggestions: []
+        },
+        skillsAnalysis: result.skillsAnalysis || {
+          technical: { required: [], present: [], missing: [], recommendations: [] },
+          soft: { required: [], present: [], missing: [], recommendations: [] },
+          industry: { required: [], present: [], missing: [], recommendations: [] }
+        },
+        experienceAnalysis: result.experienceAnalysis || {
+          yearsRequired: 0,
+          yearsFound: 0,
+          relevant: true,
+          experienceGaps: [],
+          strengthAreas: [],
+          improvementAreas: []
+        },
+        resumeQuality: result.resumeQuality,
+        competitiveAnalysis: result.competitiveAnalysis,
+        detailedFeedback: result.detailedFeedback,
+        improvementPlan: result.improvementPlan,
+        overallRecommendation: result.overallRecommendation,
+        aiInsights: result.aiInsights || [],
+        candidateStrengths: result.candidateStrengths || (result as any).strengths || [],
+        developmentAreas: result.developmentAreas || (result as any).weaknesses || [],
+        analyzedAt: new Date(),
+        processingTime: result.processingTime,
+        confidence: result.confidence || 85
+      };
+
+      setAnalysisResult(analysisResult);
+      addAnalysisToHistory(analysisResult);
+      setIsAnalyzing(false);
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      setIsAnalyzing(false);
       
-      const progress = ((i + 1) / analysisStages.length) * 100;
-      setAnalysisProgress(progress);
+      // Show error to user
+      const errorMessage = error instanceof Error ? error.message : 'Analysis failed. Please try again.';
+      alert(`Analysis failed: ${errorMessage}`);
+      
+      // Reset to job description step
+      setCurrentStep('job-description');
     }
-
-    // Generate mock analysis result
-    const result: AnalysisResult = {
-      id: Date.now().toString(),
-      score: Math.floor(Math.random() * 31) + 70, // 70-100
-      matchPercentage: Math.floor(Math.random() * 26) + 75, // 75-100
-      resumeName: resumeFile?.name || 'Resume',
-      jobTitle: 'Software Developer', // Mock job title
-      analyzedAt: new Date(),
-      remarks: 'Your resume shows strong technical skills and relevant experience.',
-      strengths: [
-        'Strong technical skills in programming languages',
-        'Relevant work experience in software development',
-        'Good educational background',
-        'Clear and well-structured resume format',
-        'Demonstrates problem-solving abilities'
-      ],
-      improvements: [
-        'Add more quantifiable achievements and metrics',
-        'Include relevant certifications or training',
-        'Expand on leadership and teamwork experiences',
-        'Add keywords that match the job description',
-        'Consider adding a professional summary section'
-      ]
-    };
-
-    setAnalysisResult(result);
-    addAnalysisToHistory(result);
-    setIsAnalyzing(false);
   };
 
   const handleAnalyzeAnother = () => {
@@ -517,12 +579,12 @@ const ResumeCheckerPage: React.FC = () => {
 
                 <div className="score-cards">
                   <div className="score-card resume-score">
-                    <div className="score-value">{analysisResult.score}</div>
+                    <div className="score-value">{analysisResult.overallScore || (analysisResult as any).score || 0}</div>
                     <div className="score-label">Resume Score</div>
                     <div className="score-description">Overall resume quality</div>
                   </div>
                   <div className="score-card match-score">
-                    <div className="score-value">{analysisResult.matchPercentage}%</div>
+                    <div className="score-value">{analysisResult.matchPercentage || 0}%</div>
                     <div className="score-label">Job Match</div>
                     <div className="score-description">Compatibility with job requirements</div>
                   </div>
@@ -532,7 +594,7 @@ const ResumeCheckerPage: React.FC = () => {
                   <div className="strengths-section">
                     <h3>🌟 Key Strengths</h3>
                     <ul className="strengths-list">
-                      {analysisResult.strengths.map((strength, index) => (
+                      {(analysisResult.candidateStrengths || (analysisResult as any).strengths || []).map((strength: string, index: number) => (
                         <li key={index}>{strength}</li>
                       ))}
                     </ul>
@@ -541,8 +603,11 @@ const ResumeCheckerPage: React.FC = () => {
                   <div className="improvements-section">
                     <h3>💡 Improvement Suggestions</h3>
                     <ul className="improvements-list">
-                      {analysisResult.improvements.map((improvement, index) => (
-                        <li key={index}>{improvement}</li>
+                      {(analysisResult.improvementPlan?.immediate || []).map((improvement, index: number) => (
+                        <li key={index}>{(improvement.actions || []).join(', ') || 'No specific actions available'}</li>
+                      ))}
+                      {(analysisResult.developmentAreas || (analysisResult as any).suggestions || []).slice(0, 3).map((suggestion: string, index: number) => (
+                        <li key={`suggestion-${index}`}>{suggestion}</li>
                       ))}
                     </ul>
                   </div>

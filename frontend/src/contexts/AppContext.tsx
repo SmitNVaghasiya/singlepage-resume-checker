@@ -69,10 +69,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         try {
           const currentUser = await apiService.getCurrentUser();
           setUser(currentUser);
+          // Load analysis history after authentication
+          await loadAnalysisHistory();
         } catch (error) {
           console.warn('Failed to get current user:', error);
           localStorage.removeItem('authToken');
         }
+      } else {
+        // Load analysis history even without authentication (for demo purposes)
+        await loadAnalysisHistory();
       }
       setIsAuthLoading(false);
     };
@@ -80,9 +85,77 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Function to load analysis history
+  const loadAnalysisHistory = async () => {
+    try {
+      const historyResponse = await apiService.getAnalysisHistory(1, 50); // Get recent analyses
+      // Convert AnalysisHistoryItem to AnalysisResult format for compatibility
+      const convertedHistory: AnalysisResult[] = historyResponse.analyses.map(item => ({
+        id: item.id,
+        analysisId: item.analysisId,
+        resumeFilename: item.resumeFilename,
+        jobTitle: item.jobTitle || 'Not specified',
+        overallScore: item.overallScore,
+        matchPercentage: 0, // Will be loaded when viewing details
+        industry: 'General', // Default value
+        analyzedAt: item.analyzedAt,
+        keywordMatch: { matched: [], missing: [], percentage: 0, suggestions: [] },
+        skillsAnalysis: {
+          technical: { required: [], present: [], missing: [], recommendations: [] },
+          soft: { required: [], present: [], missing: [], recommendations: [] },
+          industry: { required: [], present: [], missing: [], recommendations: [] }
+        },
+        experienceAnalysis: {
+          yearsRequired: 0,
+          yearsFound: 0,
+          relevant: true,
+          experienceGaps: [],
+          strengthAreas: [],
+          improvementAreas: []
+        },
+        resumeQuality: {
+          formatting: { score: 0, issues: [], suggestions: [] },
+          content: { score: 0, issues: [], suggestions: [] },
+          length: { score: 0, wordCount: 0, recommendations: [] },
+          structure: { score: 0, missingSections: [], suggestions: [] }
+        },
+        competitiveAnalysis: {
+          positioningStrength: 0,
+          competitorComparison: [],
+          differentiators: [],
+          marketPosition: '',
+          improvementImpact: []
+        },
+        detailedFeedback: {
+          strengths: [],
+          weaknesses: [],
+          quickWins: [],
+          industryInsights: []
+        },
+        improvementPlan: {
+          immediate: [],
+          shortTerm: [],
+          longTerm: []
+        },
+        overallRecommendation: '',
+        aiInsights: [],
+        candidateStrengths: [],
+        developmentAreas: [],
+        confidence: 85
+      }));
+      
+      setAnalysisHistory(convertedHistory);
+    } catch (error) {
+      console.warn('Failed to load analysis history:', error);
+      // Don't throw error to avoid breaking the app
+    }
+  };
+
   const addAnalysisToHistory = (analysis: AnalysisResult) => {
     setCurrentAnalysis(analysis);
     setAnalysisHistory((prev) => [analysis, ...prev]);
+    // Also reload the full history to get the latest data
+    loadAnalysisHistory().catch(console.warn);
   };
 
   const resetAnalysis = () => {

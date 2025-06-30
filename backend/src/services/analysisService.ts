@@ -19,6 +19,13 @@ export interface PaginatedAnalysisResult {
   hasPrevPage: boolean;
 }
 
+export interface PaginationOptions {
+  page: number;
+  limit: number;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+}
+
 class AnalysisService {
   
   /**
@@ -79,43 +86,106 @@ class AnalysisService {
   }
 
   /**
-   * Mark analysis as failed
+   * Update analysis status
    */
-  async markAnalysisAsFailed(analysisId: string, error: string): Promise<IAnalysis | null> {
+  async updateAnalysisStatus(analysisId: string, status: 'processing' | 'completed' | 'failed', error?: string): Promise<IAnalysis | null> {
     try {
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      };
+
+      if (error) {
+        updateData.error = error;
+      }
+
+      if (status === 'completed') {
+        updateData.completedAt = new Date();
+      }
+
       const updatedAnalysis = await Analysis.findOneAndUpdate(
         { analysisId },
-        {
-          status: 'failed',
-          error,
-          updatedAt: new Date()
-        },
+        updateData,
         { new: true, runValidators: true }
       );
 
       if (!updatedAnalysis) {
-        logger.warn(`Analysis not found for failure update: ${analysisId}`);
+        logger.warn(`Analysis not found for status update: ${analysisId}`);
         return null;
       }
 
-      logger.info(`Analysis marked as failed: ${analysisId}`);
+      logger.info(`Analysis status updated: ${analysisId} -> ${status}`);
       return updatedAnalysis;
     } catch (error) {
-      logger.error('Error marking analysis as failed:', error);
+      logger.error('Error updating analysis status:', error);
       throw new Error('Failed to update analysis status');
     }
   }
 
   /**
-   * Get analysis by ID
+   * Mark analysis as failed
    */
-  async getAnalysisById(analysisId: string): Promise<IAnalysis | null> {
+  async markAnalysisAsFailed(analysisId: string, error: string): Promise<IAnalysis | null> {
+    return this.updateAnalysisStatus(analysisId, 'failed', error);
+  }
+
+  /**
+   * Get analysis by analysis ID
+   */
+  async getAnalysisByAnalysisId(analysisId: string): Promise<IAnalysis | null> {
     try {
       const analysis = await Analysis.findOne({ analysisId });
       return analysis;
     } catch (error) {
-      logger.error('Error fetching analysis by ID:', error);
+      logger.error('Error fetching analysis by analysis ID:', error);
       throw new Error('Failed to fetch analysis');
+    }
+  }
+
+  /**
+   * Get analysis by ID (alias for compatibility)
+   */
+  async getAnalysisById(analysisId: string): Promise<IAnalysis | null> {
+    return this.getAnalysisByAnalysisId(analysisId);
+  }
+
+  /**
+   * Get analyses with pagination
+   */
+  async getAnalysesWithPagination(options: PaginationOptions): Promise<PaginatedAnalysisResult> {
+    try {
+      const { page, limit, sortBy, sortOrder } = options;
+
+      // Build sort object
+      const sort: any = {};
+      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+      // Calculate pagination
+      const skip = (page - 1) * limit;
+
+      // Execute queries
+      const [analyses, totalCount] = await Promise.all([
+        Analysis.find({ status: 'completed' }) // Only show completed analyses
+          .sort(sort)
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Analysis.countDocuments({ status: 'completed' })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      return {
+        analyses: analyses as IAnalysis[],
+        totalCount,
+        currentPage: page,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      };
+    } catch (error) {
+      logger.error('Error fetching analyses with pagination:', error);
+      throw new Error('Failed to fetch analyses');
     }
   }
 
@@ -209,12 +279,12 @@ class AnalysisService {
             ],
             averageScore: [
               {
-                $match: { 'result.score': { $exists: true } }
+                $match: { 'result.overallScore': { $exists: true } }
               },
               {
                 $group: {
                   _id: null,
-                  avgScore: { $avg: '$result.score' }
+                  avgScore: { $avg: '$result.overallScore' }
                 }
               }
             ],
@@ -282,9 +352,9 @@ class AnalysisService {
     try {
       const topAnalyses = await Analysis.find({ 
         status: 'completed',
-        'result.score': { $exists: true }
+        'result.overallScore': { $exists: true }
       })
-        .sort({ 'result.score': -1 })
+        .sort({ 'result.overallScore': -1 })
         .limit(limit)
         .lean();
 
