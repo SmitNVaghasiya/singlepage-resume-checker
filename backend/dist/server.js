@@ -14,10 +14,25 @@ const rateLimiter_1 = require("./middleware/rateLimiter");
 const requestLogger_1 = require("./middleware/requestLogger");
 const resumeRoutes_1 = __importDefault(require("./routes/resumeRoutes"));
 const healthRoutes_1 = __importDefault(require("./routes/healthRoutes"));
+const analysisRoutes_1 = require("./routes/analysisRoutes");
+const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const contactRoutes_1 = __importDefault(require("./routes/contactRoutes"));
 const config_1 = require("./config/config");
 const logger_1 = require("./utils/logger");
+const database_1 = require("./config/database");
 const createServer = async () => {
     const app = (0, express_1.default)();
+    // Initialize database connection
+    try {
+        await database_1.database.connect();
+        logger_1.logger.info('Database connected successfully');
+    }
+    catch (error) {
+        logger_1.logger.error('Database connection failed:', error);
+        logger_1.logger.warn('Server starting without database connection - authentication features will not work!');
+        // For development, you might want to throw the error instead:
+        // throw error;
+    }
     // Trust proxy for accurate rate limiting
     app.set('trust proxy', 1);
     // Security middleware
@@ -49,10 +64,13 @@ const createServer = async () => {
     // Custom request logger
     app.use(requestLogger_1.requestLogger);
     // Rate limiting
-    app.use('/api/', rateLimiter_1.rateLimiter);
+    app.use('/api/', (0, rateLimiter_1.rateLimiter)());
     // Routes
     app.use('/api/health', healthRoutes_1.default);
+    app.use('/api/auth', authRoutes_1.default);
     app.use('/api/resume', resumeRoutes_1.default);
+    app.use('/api/analyses', analysisRoutes_1.analysisRoutes);
+    app.use('/api/contact', contactRoutes_1.default);
     // 404 handler
     app.use((_req, res) => {
         res.status(404).json({

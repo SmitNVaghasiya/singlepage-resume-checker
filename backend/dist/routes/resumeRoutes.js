@@ -12,5 +12,7 @@ router.post('/analyze', rateLimiter_1.uploadRateLimiter, fileUpload_1.uploadFiel
 router.get('/status/:analysisId', validation_1.validateAnalysisId, resumeController_1.resumeController.getAnalysisStatus);
 // Get analysis result
 router.get('/result/:analysisId', validation_1.validateAnalysisId, resumeController_1.resumeController.getAnalysisResult);
+// Get analysis history (for dashboard)
+router.get('/history', resumeController_1.resumeController.getAnalysisHistory);
 exports.default = router;
 //# sourceMappingURL=resumeRoutes.js.map

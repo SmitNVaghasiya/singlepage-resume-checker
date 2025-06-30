@@ -26,6 +26,8 @@ exports.config = {
     redisHost: process.env.REDIS_HOST || 'localhost',
     redisPort: parseInt(process.env.REDIS_PORT || '6379', 10),
     redisPassword: process.env.REDIS_PASSWORD,
+    // MongoDB
+    mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/resume_analyzer',
     // Logging
     logLevel: process.env.LOG_LEVEL || 'info',
     logDir: process.env.LOG_DIR || 'logs',
@@ -34,7 +36,7 @@ exports.config = {
     compressionLevel: parseInt(process.env.COMPRESSION_LEVEL || '6', 10),
 };
 // Validate required configuration
-const requiredConfig = ['pythonApiUrl'];
+const requiredConfig = ['pythonApiUrl', 'mongoUri'];
 for (const key of requiredConfig) {
     if (!exports.config[key]) {
         throw new Error(`Missing required configuration: ${key}`);

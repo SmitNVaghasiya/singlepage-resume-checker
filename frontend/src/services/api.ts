@@ -61,6 +61,12 @@ export interface ContactFormData {
   message: string;
 }
 
+export interface ExportReportRequest {
+  userEmail: string;
+  userName: string;
+  format: 'pdf' | 'docx' | 'html';
+}
+
 class ApiService {
   private baseUrl: string;
 
@@ -360,6 +366,21 @@ class ApiService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to submit contact form');
+    }
+
+    return response.json();
+  }
+
+  async exportAnalysisReport(analysisId: string, exportData: ExportReportRequest): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/analyses/${analysisId}/export`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(exportData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to export analysis report');
     }
 
     return response.json();

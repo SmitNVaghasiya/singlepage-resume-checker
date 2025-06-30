@@ -18,6 +18,8 @@ import {
   Brain
 } from 'lucide-react';
 import { AnalysisResult } from '../types';
+import { useAppContext } from '../contexts/AppContext';
+import { apiService } from '../services/api';
 import '../styles/components/ComprehensiveAnalysisModal.css';
 
 interface ComprehensiveAnalysisModalProps {
@@ -26,7 +28,11 @@ interface ComprehensiveAnalysisModalProps {
 }
 
 const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({ analysis, onClose }) => {
+  const { user } = useAppContext();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState<string>('');
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -48,6 +54,35 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
     if (score >= 80) return 'bg-green-100 text-green-800';
     if (score >= 60) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
+  };
+
+  const handleExportReport = async () => {
+    if (!user) {
+      setExportError('Please log in to export reports');
+      return;
+    }
+
+    setIsExporting(true);
+    setExportError('');
+    setExportSuccess(false);
+
+    try {
+      await apiService.exportAnalysisReport(analysis.analysisId, {
+        userEmail: user.email,
+        userName: user.username,
+        format: 'pdf' // Could be extended to support multiple formats
+      });
+      
+      setExportSuccess(true);
+      setTimeout(() => {
+        setExportSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to export report:', error);
+      setExportError(error instanceof Error ? error.message : 'Failed to export report');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const renderContent = () => {
@@ -120,14 +155,38 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
             <p>{analysis.jobTitle || 'Position Analysis'} • {analysis.industry || 'General'}</p>
           </div>
           <div className="header-actions">
-            <button className="download-btn">
-              <Download size={16} />
-              Export Report
+            <button 
+              className={`download-btn ${isExporting ? 'loading' : ''} ${exportSuccess ? 'success' : ''}`}
+              onClick={handleExportReport}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <div className="spinner"></div>
+                  <span>Exporting...</span>
+                </>
+              ) : exportSuccess ? (
+                <>
+                  <CheckCircle size={16} />
+                  <span>Sent to Email!</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} />
+                  <span>Export Report</span>
+                </>
+              )}
             </button>
             <button className="close-btn" onClick={onClose}>
               <X size={20} />
             </button>
           </div>
+          {exportError && (
+            <div className="export-error">
+              <AlertCircle size={16} />
+              <span>{exportError}</span>
+            </div>
+          )}
         </div>
 
         {/* Content */}

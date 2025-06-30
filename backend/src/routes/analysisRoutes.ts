@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { analysisController } from '../controllers/analysisController';
 import { rateLimiter } from '../middleware/rateLimiter';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
@@ -18,6 +19,9 @@ router.get('/top', analysisController.getTopAnalyses);
 
 // GET /api/analyses/health - Check database health
 router.get('/health', analysisController.getDatabaseHealth);
+
+// POST /api/analyses/:analysisId/export - Export analysis report (requires authentication)
+router.post('/:analysisId/export', authenticateToken, analysisController.exportAnalysisReport);
 
 // GET /api/analyses/:analysisId - Get specific analysis by ID
 router.get('/:analysisId', analysisController.getAnalysisById);
