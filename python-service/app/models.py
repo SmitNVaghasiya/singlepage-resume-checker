@@ -20,126 +20,114 @@ class PyObjectId(ObjectId):
         field_schema.update(type="string")
 
 
-# Enhanced models for comprehensive analysis
+# Comprehensive AI Analysis Models (for new endpoint)
+class CandidateInformation(BaseModel):
+    name: str
+    position_applied: str
+    experience_level: str
+    current_status: str
+
+
+class StrengthsAnalysis(BaseModel):
+    technical_skills: List[str]
+    project_portfolio: List[str]
+    educational_background: List[str]
+
+
+class WeaknessesAnalysis(BaseModel):
+    critical_gaps_against_job_description: List[str]
+    technical_deficiencies: List[str]
+    resume_presentation_issues: List[str]
+    soft_skills_gaps: List[str]
+    missing_essential_elements: List[str]
+
+
+class SectionFeedback(BaseModel):
+    current_state: str
+    strengths: List[str]
+    improvements: List[str]
+
+
+class MissingSections(BaseModel):
+    certifications: str
+    experience: str
+    achievements: str
+    soft_skills: str
+
+
+class SectionWiseDetailedFeedback(BaseModel):
+    contact_information: SectionFeedback
+    profile_summary: SectionFeedback
+    education: SectionFeedback
+    skills: SectionFeedback
+    projects: SectionFeedback
+    missing_sections: MissingSections
+
+
+class ImprovementRecommendations(BaseModel):
+    immediate_resume_additions: List[str]
+    immediate_priority_actions: List[str]
+    short_term_development_goals: List[str]
+    medium_term_objectives: List[str]
+
+
+class SoftSkillsEnhancementSuggestions(BaseModel):
+    communication_skills: List[str]
+    teamwork_and_collaboration: List[str]
+    leadership_and_initiative: List[str]
+    problem_solving_approach: List[str]
+
+
+class FinalAssessment(BaseModel):
+    eligibility_status: str
+    hiring_recommendation: str
+    key_interview_areas: List[str]
+    onboarding_requirements: List[str]
+    long_term_potential: str
+
+
+class ResumeAnalysisReport(BaseModel):
+    candidate_information: CandidateInformation
+    strengths_analysis: StrengthsAnalysis
+    weaknesses_analysis: WeaknessesAnalysis
+    section_wise_detailed_feedback: SectionWiseDetailedFeedback
+    improvement_recommendations: ImprovementRecommendations
+    soft_skills_enhancement_suggestions: SoftSkillsEnhancementSuggestions
+    final_assessment: FinalAssessment
+
+
+class ResumeAnalysisResponse(BaseModel):
+    job_description_validity: str
+    resume_eligibility: str
+    score_out_of_100: int
+    short_conclusion: str
+    chance_of_selection_percentage: int
+    resume_improvement_priority: List[str]
+    overall_fit_summary: str
+    resume_analysis_report: ResumeAnalysisReport
+
+
+class ErrorResponse(BaseModel):
+    error: str
+    message: str
+    details: Optional[str] = None
+
+
+# Legacy Models (for backward compatibility with existing /analyze endpoint)
 class KeywordMatch(BaseModel):
     matched: List[str] = []
     missing: List[str] = []
     percentage: float = 0.0
-    suggestions: List[str] = []
-
-
-class SkillCategory(BaseModel):
-    required: List[str] = []
-    present: List[str] = []
-    missing: List[str] = []
-    recommendations: List[str] = []
-
-
-class SkillsAnalysis(BaseModel):
-    technical: SkillCategory = Field(default=SkillCategory())
-    soft: SkillCategory = Field(default=SkillCategory())
-    industry: SkillCategory = Field(default=SkillCategory())
-
-
-class ExperienceAnalysis(BaseModel):
-    years_required: int = 0
-    years_found: int = 0
-    relevant: bool = False
-    experience_gaps: List[str] = []
-    strength_areas: List[str] = []
-    improvement_areas: List[str] = []
-
-
-class QualitySubsection(BaseModel):
-    score: int = 0
-    issues: List[str] = []
-    suggestions: List[str] = []
-
-
-class ResumeQualityAssessment(BaseModel):
-    formatting: QualitySubsection = Field(default=QualitySubsection())
-    content: QualitySubsection = Field(default=QualitySubsection())
-    length: Dict[str, Any] = Field(default={
-        "score": 0,
-        "wordCount": 0,
-        "recommendations": []
-    })
-    structure: Dict[str, Any] = Field(default={
-        "score": 0,
-        "missingSections": [],
-        "suggestions": []
-    })
-
-
-class CompetitiveAnalysis(BaseModel):
-    positioning_strength: int = 0
-    competitor_comparison: List[str] = []
-    differentiators: List[str] = []
-    market_position: str = ""
-    improvement_impact: List[str] = []
-
-
-class ImprovementItem(BaseModel):
-    priority: str = Field(default="medium", description="Priority level: high, medium, low")
-    actions: List[str] = []
-    estimated_impact: str = ""
-
-
-class ImprovementPlan(BaseModel):
-    immediate: List[ImprovementItem] = []
-    short_term: List[ImprovementItem] = []
-    long_term: List[ImprovementItem] = []
-
-
-class FeedbackStrength(BaseModel):
-    category: str
-    points: List[str] = []
-    impact: str = ""
-
-
-class FeedbackWeakness(BaseModel):
-    category: str
-    points: List[str] = []
-    impact: str = ""
-    solutions: List[str] = []
-
-
-class DetailedFeedback(BaseModel):
-    strengths: List[FeedbackStrength] = []
-    weaknesses: List[FeedbackWeakness] = []
-    quick_wins: List[str] = []
-    industry_insights: List[str] = []
+    total_found: int = 0
 
 
 class AnalysisResult(BaseModel):
-    # Core compatibility scores
-    score: float = Field(..., ge=0, le=100, description="Overall match score (0-100)")
-    
-    # Legacy fields for backward compatibility
-    strengths: List[str] = Field(default=[], description="Resume strengths")
-    weaknesses: List[str] = Field(default=[], description="Areas for improvement")
-    suggestions: List[str] = Field(default=[], description="Improvement suggestions")
-    
-    # Basic analysis fields
-    keyword_match: KeywordMatch = Field(default=KeywordMatch())
-    skills_analysis: SkillsAnalysis = Field(default=SkillsAnalysis())
-    experience_analysis: ExperienceAnalysis = Field(default=ExperienceAnalysis())
-    overall_recommendation: str = Field(default="", description="Overall recommendation")
-    
-    # Enhanced comprehensive analysis fields (optional for backward compatibility)
-    overall_score: Optional[float] = Field(default=None, description="Comprehensive overall score")
-    match_percentage: Optional[float] = Field(default=None, description="Job match percentage")
-    job_title: Optional[str] = Field(default=None, description="Target job title")
-    industry: Optional[str] = Field(default=None, description="Industry/field")
-    resume_quality: Optional[ResumeQualityAssessment] = Field(default=None)
-    competitive_analysis: Optional[CompetitiveAnalysis] = Field(default=None)
-    detailed_feedback: Optional[DetailedFeedback] = Field(default=None)
-    improvement_plan: Optional[ImprovementPlan] = Field(default=None)
-    ai_insights: Optional[List[str]] = Field(default=None)
-    candidate_strengths: Optional[List[str]] = Field(default=None)
-    development_areas: Optional[List[str]] = Field(default=None)
-    confidence: Optional[float] = Field(default=None, description="Analysis confidence level")
-    processing_time: Optional[float] = Field(default=None, description="Processing time in seconds")
+    score: int = Field(..., ge=0, le=100, description="Overall score out of 100")
+    strengths: List[str] = Field(..., description="List of candidate strengths")
+    weaknesses: List[str] = Field(..., description="List of areas for improvement")
+    suggestions: List[str] = Field(..., description="List of improvement suggestions")
+    keyword_match: KeywordMatch = Field(..., description="Keyword matching analysis")
+    overall_recommendation: str = Field(..., description="Overall hiring recommendation")
 
 
 class AnalysisDocument(BaseModel):
@@ -164,10 +152,9 @@ class AnalysisDocument(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    analysis_id: str
-    status: str
-    message: str
-    result: Optional[AnalysisResult] = None
+    success: bool
+    analysis: AnalysisResult
+    metadata: Dict[str, Any]
 
 
 class HealthResponse(BaseModel):

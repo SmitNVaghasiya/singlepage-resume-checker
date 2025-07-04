@@ -420,6 +420,80 @@ class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Temporary file upload methods
+  async uploadTempFiles(resumeFile?: File, jobDescriptionFile?: File): Promise<{
+    message: string;
+    tempFiles: {
+      resume?: { tempId: string; filename: string; size: number; expiresAt: string };
+      jobDescription?: { tempId: string; filename: string; size: number; expiresAt: string };
+    };
+    requiresAuth: boolean;
+    expiresAt: string;
+  }> {
+    const formData = new FormData();
+    
+    if (resumeFile) {
+      formData.append('resume', resumeFile);
+    }
+    
+    if (jobDescriptionFile) {
+      formData.append('jobDescription', jobDescriptionFile);
+    }
+
+    const response = await fetch(`${this.baseUrl}/resume/upload-temp`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to upload temporary files');
+    }
+
+    return response.json();
+  }
+
+  async analyzeResumeWithTempFiles(
+    resumeTempId?: string,
+    jobDescriptionTempId?: string,
+    jobDescriptionText?: string,
+    resumeFile?: File,
+    jobDescriptionFile?: File
+  ): Promise<AnalysisResponse> {
+    const formData = new FormData();
+    
+    if (resumeFile) {
+      formData.append('resume', resumeFile);
+    } else if (resumeTempId) {
+      formData.append('resumeTempId', resumeTempId);
+    }
+    
+    if (jobDescriptionFile) {
+      formData.append('jobDescription', jobDescriptionFile);
+    } else if (jobDescriptionTempId) {
+      formData.append('jobDescriptionTempId', jobDescriptionTempId);
+    } else if (jobDescriptionText) {
+      formData.append('jobDescriptionText', jobDescriptionText);
+    }
+
+    const response = await fetch(`${this.baseUrl}/resume/analyze`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...(localStorage.getItem('authToken') && { 
+          Authorization: `Bearer ${localStorage.getItem('authToken')}` 
+        }),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to reset password');
     }
 

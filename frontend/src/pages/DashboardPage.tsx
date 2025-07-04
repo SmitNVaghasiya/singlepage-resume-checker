@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -16,36 +16,136 @@ import {
   Activity,
   Star,
   X,
-  Loader
+  Loader,
+  Lock
 } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/api';
 import { AnalysisResult } from '../types';
 import ComprehensiveAnalysisModal from '../components/ComprehensiveAnalysisModal';
+import AuthModal from '../components/AuthModal';
 import '../styles/pages/DashboardPage.css';
+import '../styles/components/AuthModal.css';
 
 const DashboardPage: React.FC = () => {
-  const { currentAnalysis, analysisHistory, resetAnalysis } = useAppContext();
+  const navigate = useNavigate();
+  const { user, isAuthLoading, currentAnalysis, analysisHistory, resetAnalysis, addAnalysisToHistory } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisResult | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Check authentication when component mounts
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      setShowAuthModal(true);
+    }
+  }, [user, isAuthLoading]);
+
+  // Handle successful authentication
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    // Reload the page to fetch user's analysis history
+    window.location.reload();
+  };
+
+  // Handle auth modal close
+  const handleAuthModalClose = () => {
+    setShowAuthModal(false);
+    navigate('/'); // Redirect to homepage if user closes auth modal
+  };
+
+  // Don't render content until we know authentication status
+  if (isAuthLoading) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-loading">
+          <Loader className="loading-spinner" />
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="dashboard-page">
+        <div className="auth-required-section">
+          <div className="auth-required-content">
+            <div className="auth-required-icon">
+              <Lock className="lock-icon" />
+            </div>
+            <h2>Authentication Required</h2>
+            <p>Please sign in to view your analysis dashboard and track your resume improvements.</p>
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="auth-required-btn"
+            >
+              Sign In to Continue
+            </button>
+          </div>
+        </div>
+
+        {showAuthModal && (
+          <AuthModal
+            isOpen={showAuthModal}
+            onAuthSuccess={handleAuthSuccess}
+            onClose={handleAuthModalClose}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Helper functions to handle both new and legacy formats
+  const getAnalysisScore = (analysis: AnalysisResult): number => {
+    const score = analysis.score_out_of_100 || analysis.overallScore || (analysis as any).score || 0;
+    return typeof score === 'number' ? Math.max(0, Math.min(100, score)) : 0;
+  };
+
+  const getMatchPercentage = (analysis: AnalysisResult): number => {
+    const percentage = analysis.chance_of_selection_percentage || analysis.matchPercentage || 0;
+    return typeof percentage === 'number' ? Math.max(0, Math.min(100, percentage)) : 0;
+  };
+
+  const getJobTitle = (analysis: AnalysisResult): string => {
+    return analysis.resume_analysis_report?.candidate_information?.position_applied ||
+           analysis.jobTitle ||
+           'Position Analysis';
+  };
+
+  const getAnalyzedDate = (analysis: AnalysisResult): string => {
+    try {
+      if (!analysis.analyzedAt) {
+        return 'Recently';
+      }
+      const date = new Date(analysis.analyzedAt);
+      if (isNaN(date.getTime())) {
+        return 'Recently';
+      }
+      return date.toLocaleDateString();
+    } catch {
+      return 'Recently';
+    }
+  };
 
   // Calculate statistics
   const totalAnalyses = analysisHistory.length;
   const averageScore = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.overallScore || 0), 0) / totalAnalyses)
+    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + getAnalysisScore(analysis), 0) / totalAnalyses)
     : 0;
   const bestScore = totalAnalyses > 0 
-    ? Math.max(...analysisHistory.map(analysis => analysis.overallScore || 0))
+    ? Math.max(...analysisHistory.map(analysis => getAnalysisScore(analysis)))
     : 0;
   const averageMatchRate = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + (analysis.matchPercentage || 0), 0) / totalAnalyses)
+    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + getMatchPercentage(analysis), 0) / totalAnalyses)
     : 0;
 
   // Filter analysis history
   const filteredHistory = analysisHistory.filter(analysis => 
     (analysis.resumeFilename || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (analysis.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase())
+    getJobTitle(analysis).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getScoreBadgeColor = (score: number) => {
@@ -82,7 +182,7 @@ const DashboardPage: React.FC = () => {
             <h1 className="dashboard-title">Analysis Dashboard</h1>
             <p className="dashboard-subtitle">Track your resume analysis history and improvements</p>
           </div>
-          <Link
+                    <Link
             to="/resumechecker"
             onClick={resetAnalysis}
             className="new-analysis-btn"
@@ -168,7 +268,7 @@ const DashboardPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredHistory.map((analysis) => (
+                    {filteredHistory.map((analysis: AnalysisResult) => (
                       <tr key={analysis.id} className="table-row">
                         <td>
                           <div className="file-info">
@@ -178,22 +278,27 @@ const DashboardPage: React.FC = () => {
                             <span className="file-name">{analysis.resumeFilename || 'Unknown'}</span>
                           </div>
                         </td>
-                        <td className="job-title">{analysis.jobTitle || 'Not specified'}</td>
+                        <td className="job-title">{getJobTitle(analysis)}</td>
                         <td>
                           <div className="date-info">
                             <Calendar className="date-icon" />
-                            <span className="date-text">{new Date(analysis.analyzedAt).toLocaleDateString()}</span>
+                            <span className="date-text">{getAnalyzedDate(analysis)}</span>
                           </div>
                         </td>
                         <td>
-                          <span className={`score-badge ${getScoreBadgeColor(analysis.overallScore || 0)}`}>
-                            {analysis.overallScore || 0}/100
+                          <span className={`score-badge ${getScoreBadgeColor(getAnalysisScore(analysis))}`}>
+                            {getAnalysisScore(analysis)}/100
                           </span>
                         </td>
                         <td>
                           <button 
                             className="view-details-btn"
-                            onClick={() => loadFullAnalysisDetails(analysis.analysisId)}
+                            onClick={() => {
+                              const analysisId = analysis.analysisId || analysis.id;
+                              if (analysisId) {
+                                loadFullAnalysisDetails(analysisId);
+                              }
+                            }}
                             disabled={loadingDetails}
                           >
                             {loadingDetails ? (

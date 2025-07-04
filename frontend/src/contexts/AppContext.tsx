@@ -26,10 +26,19 @@ interface AppContextType {
   jobFile: File | null;
   setJobFile: (file: File | null) => void;
   
+  // Temporary file state
+  tempFiles: {
+    resume?: { tempId: string; filename: string; size: number; expiresAt: string };
+    jobDescription?: { tempId: string; filename: string; size: number; expiresAt: string };
+  };
+  setTempFiles: (tempFiles: any) => void;
+  
   // Actions
   addAnalysisToHistory: (analysis: AnalysisResult) => void;
   resetAnalysis: () => void;
   logout: () => void;
+  requiresAuth: boolean;
+  setRequiresAuth: (requires: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -61,6 +70,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [jobDescription, setJobDescription] = useState('');
   const [jobFile, setJobFile] = useState<File | null>(null);
 
+  // Temporary file state
+  const [tempFiles, setTempFiles] = useState<{
+    resume?: { tempId: string; filename: string; size: number; expiresAt: string };
+    jobDescription?: { tempId: string; filename: string; size: number; expiresAt: string };
+  }>({});
+  const [requiresAuth, setRequiresAuth] = useState(false);
+
   // Check for existing authentication on app load
   useEffect(() => {
     const checkAuth = async () => {
@@ -90,59 +106,134 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       const historyResponse = await apiService.getAnalysisHistory(1, 50); // Get recent analyses
       // Convert AnalysisHistoryItem to AnalysisResult format for compatibility
-      const convertedHistory: AnalysisResult[] = historyResponse.analyses.map(item => ({
-        id: item.id,
-        analysisId: item.analysisId,
-        resumeFilename: item.resumeFilename,
-        jobTitle: item.jobTitle || 'Not specified',
-        overallScore: item.overallScore,
-        matchPercentage: 0, // Will be loaded when viewing details
-        industry: 'General', // Default value
-        analyzedAt: item.analyzedAt,
-        keywordMatch: { matched: [], missing: [], percentage: 0, suggestions: [] },
-        skillsAnalysis: {
-          technical: { required: [], present: [], missing: [], recommendations: [] },
-          soft: { required: [], present: [], missing: [], recommendations: [] },
-          industry: { required: [], present: [], missing: [], recommendations: [] }
-        },
-        experienceAnalysis: {
-          yearsRequired: 0,
-          yearsFound: 0,
-          relevant: true,
-          experienceGaps: [],
-          strengthAreas: [],
-          improvementAreas: []
-        },
-        resumeQuality: {
-          formatting: { score: 0, issues: [], suggestions: [] },
-          content: { score: 0, issues: [], suggestions: [] },
-          length: { score: 0, wordCount: 0, recommendations: [] },
-          structure: { score: 0, missingSections: [], suggestions: [] }
-        },
-        competitiveAnalysis: {
-          positioningStrength: 0,
-          competitorComparison: [],
-          differentiators: [],
-          marketPosition: '',
-          improvementImpact: []
-        },
-        detailedFeedback: {
-          strengths: [],
-          weaknesses: [],
-          quickWins: [],
-          industryInsights: []
-        },
-        improvementPlan: {
-          immediate: [],
-          shortTerm: [],
-          longTerm: []
-        },
-        overallRecommendation: '',
-        aiInsights: [],
-        candidateStrengths: [],
-        developmentAreas: [],
-        confidence: 85
-      }));
+      const convertedHistory: AnalysisResult[] = historyResponse.analyses.map(item => {
+        // Ensure date is properly handled
+        let analyzedDate: Date;
+        try {
+          analyzedDate = new Date(item.analyzedAt);
+          // Check if date is valid
+          if (isNaN(analyzedDate.getTime())) {
+            analyzedDate = new Date(); // Fallback to current date
+          }
+        } catch {
+          analyzedDate = new Date(); // Fallback to current date
+        }
+
+        return {
+          // Basic required fields
+          job_description_validity: 'Valid',
+          resume_eligibility: 'Eligible', 
+          score_out_of_100: item.overallScore || 0,
+          short_conclusion: 'Analysis completed successfully.',
+          chance_of_selection_percentage: 0,
+          resume_improvement_priority: [],
+          overall_fit_summary: '',
+          
+          // Resume analysis report with minimal structure
+          resume_analysis_report: {
+            candidate_information: {
+              name: 'Candidate',
+              position_applied: item.jobTitle || 'Position Analysis',
+              experience_level: 'Not specified',
+              current_status: 'Analyzing'
+            },
+            strengths_analysis: {
+              technical_skills: [],
+              project_portfolio: [],
+              educational_background: []
+            },
+            weaknesses_analysis: {
+              critical_gaps_against_job_description: [],
+              technical_deficiencies: [],
+              resume_presentation_issues: [],
+              soft_skills_gaps: [],
+              missing_essential_elements: []
+            },
+            section_wise_detailed_feedback: {
+              contact_information: { current_state: '', strengths: [], improvements: [] },
+              profile_summary: { current_state: '', strengths: [], improvements: [] },
+              education: { current_state: '', strengths: [], improvements: [] },
+              skills: { current_state: '', strengths: [], improvements: [] },
+              projects: { current_state: '', strengths: [], improvements: [] },
+              missing_sections: {}
+            },
+            improvement_recommendations: {
+              immediate_resume_additions: [],
+              immediate_priority_actions: [],
+              short_term_development_goals: [],
+              medium_term_objectives: []
+            },
+            soft_skills_enhancement_suggestions: {
+              communication_skills: [],
+              teamwork_and_collaboration: [],
+              leadership_and_initiative: [],
+              problem_solving_approach: []
+            },
+            final_assessment: {
+              eligibility_status: 'Qualified',
+              hiring_recommendation: '',
+              key_interview_areas: [],
+              onboarding_requirements: [],
+              long_term_potential: ''
+            }
+          },
+          
+          // Metadata
+          id: item.id,
+          analysisId: item.analysisId,
+          resumeFilename: item.resumeFilename || 'Resume',
+          jobTitle: item.jobTitle || 'Position Analysis',
+          overallScore: item.overallScore || 0,
+          matchPercentage: 0, // Will be loaded when viewing details
+          industry: 'General', // Default value
+          analyzedAt: analyzedDate,
+          
+          // Legacy compatibility fields
+          keywordMatch: { matched: [], missing: [], percentage: 0, suggestions: [] },
+          skillsAnalysis: {
+            technical: { required: [], present: [], missing: [], recommendations: [] },
+            soft: { required: [], present: [], missing: [], recommendations: [] },
+            industry: { required: [], present: [], missing: [], recommendations: [] }
+          },
+          experienceAnalysis: {
+            yearsRequired: 0,
+            yearsFound: 0,
+            relevant: true,
+            experienceGaps: [],
+            strengthAreas: [],
+            improvementAreas: []
+          },
+          resumeQuality: {
+            formatting: { score: 0, issues: [], suggestions: [] },
+            content: { score: 0, issues: [], suggestions: [] },
+            length: { score: 0, wordCount: 0, recommendations: [] },
+            structure: { score: 0, missingSections: [], suggestions: [] }
+          },
+          competitiveAnalysis: {
+            positioningStrength: 0,
+            competitorComparison: [],
+            differentiators: [],
+            marketPosition: '',
+            improvementImpact: []
+          },
+          detailedFeedback: {
+            strengths: [],
+            weaknesses: [],
+            quickWins: [],
+            industryInsights: []
+          },
+          improvementPlan: {
+            immediate: [],
+            shortTerm: [],
+            longTerm: []
+          },
+          overallRecommendation: '',
+          aiInsights: [],
+          candidateStrengths: [],
+          developmentAreas: [],
+          confidence: 85
+        };
+      });
       
       setAnalysisHistory(convertedHistory);
     } catch (error) {
@@ -152,8 +243,42 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addAnalysisToHistory = (analysis: AnalysisResult) => {
-    setCurrentAnalysis(analysis);
-    setAnalysisHistory((prev) => [analysis, ...prev]);
+    // Ensure the analysis has proper metadata
+    const enrichedAnalysis: AnalysisResult = {
+      ...analysis,
+      // Ensure we have proper IDs
+      id: analysis.id || analysis.analysisId || Date.now().toString(),
+      analysisId: analysis.analysisId || analysis.id || Date.now().toString(),
+      
+      // Ensure we have a proper date
+      analyzedAt: analysis.analyzedAt || new Date(),
+      
+      // Ensure we have proper scores mapped from new format to legacy
+      overallScore: analysis.score_out_of_100 || analysis.overallScore || 0,
+      matchPercentage: analysis.chance_of_selection_percentage || analysis.matchPercentage || 0,
+      
+      // Ensure we have job title - try multiple sources
+      jobTitle: analysis.resume_analysis_report?.candidate_information?.position_applied || 
+                analysis.jobTitle || 
+                'Position Analysis',
+      
+      // Map other fields for compatibility
+      overallRecommendation: analysis.short_conclusion || analysis.overallRecommendation || '',
+      
+      // Ensure candidate strengths are available
+      candidateStrengths: analysis.resume_analysis_report?.strengths_analysis ? [
+        ...analysis.resume_analysis_report.strengths_analysis.technical_skills,
+        ...analysis.resume_analysis_report.strengths_analysis.project_portfolio,
+        ...analysis.resume_analysis_report.strengths_analysis.educational_background
+      ] : (analysis.candidateStrengths || []),
+      
+      // Ensure development areas are available
+      developmentAreas: analysis.resume_improvement_priority || analysis.developmentAreas || []
+    };
+
+    setCurrentAnalysis(enrichedAnalysis);
+    setAnalysisHistory((prev) => [enrichedAnalysis, ...prev]);
+    
     // Also reload the full history to get the latest data
     loadAnalysisHistory().catch(console.warn);
   };
@@ -164,6 +289,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setResumeFile(null);
     setJobDescription('');
     setJobFile(null);
+    setTempFiles({});
+    setRequiresAuth(false);
   };
 
   const logout = async () => {
@@ -193,6 +320,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addAnalysisToHistory,
     resetAnalysis,
     logout,
+    tempFiles,
+    setTempFiles,
+    requiresAuth,
+    setRequiresAuth,
   };
 
   return (

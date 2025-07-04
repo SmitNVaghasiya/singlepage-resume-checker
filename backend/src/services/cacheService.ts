@@ -181,6 +181,22 @@ class InMemoryCacheService {
     this.delete(resultKey);
   }
 
+  // Temporary file methods
+  public async setTempFile(tempId: string, fileData: any): Promise<void> {
+    const key = `temp:file:${tempId}`;
+    this.set(key, fileData, 1800000); // 30 minutes for temporary files
+  }
+
+  public async getTempFile(tempId: string): Promise<any | null> {
+    const key = `temp:file:${tempId}`;
+    return this.get(key);
+  }
+
+  public async deleteTempFile(tempId: string): Promise<boolean> {
+    const key = `temp:file:${tempId}`;
+    return this.delete(key);
+  }
+
   // Generic cache methods for other use cases
   public async setString(key: string, value: string, ttl?: number): Promise<void> {
     this.set(key, value, ttl);

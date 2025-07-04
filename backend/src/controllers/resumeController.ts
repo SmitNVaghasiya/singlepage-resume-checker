@@ -4,6 +4,9 @@ import { cacheService } from '../services/cacheService';
 import { analysisService } from '../services/analysisService';
 import { logger } from '../utils/logger';
 import { generateAnalysisId, extractErrorMessage } from '../utils/helpers';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 interface MulterFiles {
   resume?: Express.Multer.File[];
@@ -20,26 +23,100 @@ interface AnalysisStatus {
   error?: string;
 }
 
+interface TempFileInfo {
+  tempId: string;
+  filename: string;
+  size: number;
+  mimetype: string;
+  uploadedAt: string;
+  expiresAt: string;
+}
+
 class ResumeController {
+  // Upload temporary files without authentication
+  public uploadTempFiles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const files = req.files as MulterFiles;
+      
+      if (!files.resume?.length && !files.jobDescription?.length) {
+        res.status(400).json({
+          error: 'No files uploaded',
+          message: 'At least one file (resume or job description) is required',
+        });
+        return;
+      }
+
+      const tempFiles: { resume?: TempFileInfo; jobDescription?: TempFileInfo } = {};
+
+      // Process resume file
+      if (files.resume?.length) {
+        const resumeFile = files.resume[0];
+        const resumeTempInfo = await this.storeTempFile(resumeFile, 'resume');
+        tempFiles.resume = resumeTempInfo;
+      }
+
+      // Process job description file
+      if (files.jobDescription?.length) {
+        const jobFile = files.jobDescription[0];
+        const jobTempInfo = await this.storeTempFile(jobFile, 'job-description');
+        tempFiles.jobDescription = jobTempInfo;
+      }
+
+      logger.info('Temporary files uploaded successfully', {
+        resumeUploaded: !!tempFiles.resume,
+        jobDescriptionUploaded: !!tempFiles.jobDescription,
+        tempIds: {
+          resume: tempFiles.resume?.tempId,
+          jobDescription: tempFiles.jobDescription?.tempId,
+        }
+      });
+
+      res.status(200).json({
+        message: 'Files uploaded successfully. Please log in to continue with analysis.',
+        tempFiles,
+        requiresAuth: true,
+        expiresAt: tempFiles.resume?.expiresAt || tempFiles.jobDescription?.expiresAt,
+      });
+
+    } catch (error) {
+      logger.error('Error in uploadTempFiles:', { error: extractErrorMessage(error) });
+      next(error);
+    }
+  };
+
   // Analyze resume against job description
   public analyzeResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const startTime = Date.now();
     
     try {
       const files = req.files as MulterFiles;
-      const { jobDescriptionText } = req.body;
+      const { jobDescriptionText, resumeTempId, jobDescriptionTempId } = req.body;
       
+      let resumeFile: Express.Multer.File | undefined;
+      let jobDescriptionFile: Express.Multer.File | undefined;
+
+      // Handle resume file - either from upload or from temp storage
+      if (files.resume?.length) {
+        resumeFile = files.resume[0];
+      } else if (resumeTempId) {
+        resumeFile = await this.retrieveTempFile(resumeTempId);
+      }
+
+      // Handle job description file - either from upload or from temp storage
+      if (files.jobDescription?.length) {
+        jobDescriptionFile = files.jobDescription[0];
+      } else if (jobDescriptionTempId) {
+        jobDescriptionFile = await this.retrieveTempFile(jobDescriptionTempId);
+      }
+
       // Validate resume file
-      if (!files.resume?.length) {
+      if (!resumeFile) {
         res.status(400).json({
           error: 'Missing file',
           message: 'Resume file is required',
         });
         return;
       }
-
-      const resumeFile = files.resume[0];
-      const jobDescriptionFile = files.jobDescription?.[0];
 
       // Validate job description input
       if (!jobDescriptionFile && !jobDescriptionText?.trim()) {
@@ -61,6 +138,18 @@ class ResumeController {
         .catch(error => {
           logger.error('Unhandled error in async processing:', { analysisId, error: extractErrorMessage(error) });
         });
+
+      // Clean up temp files after starting analysis
+      if (resumeTempId) {
+        this.cleanupTempFile(resumeTempId).catch(error => {
+          logger.warn('Failed to cleanup temp resume file:', { resumeTempId, error: extractErrorMessage(error) });
+        });
+      }
+      if (jobDescriptionTempId) {
+        this.cleanupTempFile(jobDescriptionTempId).catch(error => {
+          logger.warn('Failed to cleanup temp job description file:', { jobDescriptionTempId, error: extractErrorMessage(error) });
+        });
+      }
 
       // Return immediate response
       res.status(202).json({
@@ -382,6 +471,82 @@ class ResumeController {
         analysisId, 
         error: extractErrorMessage(dbError) 
       });
+    }
+  }
+
+  // Temporary file handling methods
+  private async storeTempFile(file: Express.Multer.File, type: string): Promise<TempFileInfo> {
+    const tempId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+    
+    const tempFileInfo: TempFileInfo = {
+      tempId,
+      filename: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype,
+      uploadedAt: new Date().toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
+
+    // Store file info and content in cache (with expiration)
+    await cacheService.setTempFile(tempId, {
+      ...tempFileInfo,
+      buffer: file.buffer,
+    });
+
+    // Schedule cleanup
+    setTimeout(() => {
+      this.cleanupTempFile(tempId).catch((error: unknown) => {
+        logger.warn('Scheduled cleanup failed:', { tempId, error: extractErrorMessage(error) });
+      });
+    }, 30 * 60 * 1000); // 30 minutes
+
+    return tempFileInfo;
+  }
+
+  private async retrieveTempFile(tempId: string): Promise<Express.Multer.File | undefined> {
+    try {
+      const tempFileData = await cacheService.getTempFile(tempId);
+      if (!tempFileData) {
+        logger.warn('Temporary file not found or expired:', { tempId });
+        return undefined;
+      }
+
+      // Check if file has expired
+      const now = new Date();
+      const expiresAt = new Date(tempFileData.expiresAt);
+      if (now > expiresAt) {
+        logger.warn('Temporary file has expired:', { tempId, expiresAt });
+        await this.cleanupTempFile(tempId);
+        return undefined;
+      }
+
+      // Convert back to Multer file format
+      const file: Express.Multer.File = {
+        fieldname: 'temp',
+        originalname: tempFileData.filename,
+        encoding: '7bit',
+        mimetype: tempFileData.mimetype,
+        size: tempFileData.size,
+        buffer: tempFileData.buffer,
+        destination: '',
+        filename: '',
+        path: '',
+        stream: {} as any,
+      };
+
+      return file;
+    } catch (error) {
+      logger.error('Error retrieving temporary file:', { tempId, error: extractErrorMessage(error) });
+      return undefined;
+    }
+  }
+
+  private async cleanupTempFile(tempId: string): Promise<void> {
+    try {
+      await cacheService.deleteTempFile(tempId);
+    } catch (error) {
+      logger.warn('Failed to cleanup temporary file:', { tempId, error: extractErrorMessage(error) });
     }
   }
 }

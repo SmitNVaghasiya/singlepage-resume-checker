@@ -1,4 +1,111 @@
 // Enhanced Analysis Result Types for comprehensive resume analysis
+
+// New comprehensive analysis result structure matching the sample response
+export interface CandidateInformation {
+  name: string;
+  position_applied: string;
+  experience_level: string;
+  current_status: string;
+}
+
+export interface StrengthsAnalysis {
+  technical_skills: string[];
+  project_portfolio: string[];
+  educational_background: string[];
+}
+
+export interface WeaknessesAnalysis {
+  critical_gaps_against_job_description: string[];
+  technical_deficiencies: string[];
+  resume_presentation_issues: string[];
+  soft_skills_gaps: string[];
+  missing_essential_elements: string[];
+}
+
+export interface SectionFeedback {
+  current_state: string;
+  strengths: string[];
+  improvements: string[];
+}
+
+export interface SectionWiseDetailedFeedback {
+  contact_information: SectionFeedback;
+  profile_summary: SectionFeedback;
+  education: SectionFeedback;
+  skills: SectionFeedback;
+  projects: SectionFeedback;
+  missing_sections: {
+    certifications?: string;
+    experience?: string;
+    achievements?: string;
+    soft_skills?: string;
+  };
+}
+
+export interface ImprovementRecommendations {
+  immediate_resume_additions: string[];
+  immediate_priority_actions: string[];
+  short_term_development_goals: string[];
+  medium_term_objectives: string[];
+}
+
+export interface SoftSkillsEnhancementSuggestions {
+  communication_skills: string[];
+  teamwork_and_collaboration: string[];
+  leadership_and_initiative: string[];
+  problem_solving_approach: string[];
+}
+
+export interface FinalAssessment {
+  eligibility_status: string;
+  hiring_recommendation: string;
+  key_interview_areas: string[];
+  onboarding_requirements: string[];
+  long_term_potential: string;
+}
+
+export interface ResumeAnalysisReport {
+  candidate_information: CandidateInformation;
+  strengths_analysis: StrengthsAnalysis;
+  weaknesses_analysis: WeaknessesAnalysis;
+  section_wise_detailed_feedback: SectionWiseDetailedFeedback;
+  improvement_recommendations: ImprovementRecommendations;
+  soft_skills_enhancement_suggestions: SoftSkillsEnhancementSuggestions;
+  final_assessment: FinalAssessment;
+}
+
+export interface AnalysisResult {
+  // Basic analysis fields
+  job_description_validity: string;
+  resume_eligibility: string;
+  score_out_of_100: number;
+  short_conclusion: string;
+  chance_of_selection_percentage: number;
+  resume_improvement_priority: string[];
+  overall_fit_summary: string;
+  
+  // Detailed analysis report
+  resume_analysis_report: ResumeAnalysisReport;
+  
+  // Metadata for compatibility with existing frontend
+  id?: string;
+  analysisId?: string;
+  resumeFilename?: string;
+  jobDescriptionFilename?: string;
+  jobTitle?: string;
+  industry?: string;
+  analyzedAt?: Date;
+  processingTime?: number;
+  
+  // Legacy compatibility fields (these will map to the new structure)
+  overallScore?: number; // maps to score_out_of_100
+  matchPercentage?: number; // maps to chance_of_selection_percentage
+  overallRecommendation?: string; // maps to short_conclusion
+  candidateStrengths?: string[]; // maps to various strengths
+  developmentAreas?: string[]; // maps to various weaknesses
+}
+
+// Legacy types for backward compatibility
 export interface KeywordMatch {
   matched: string[];
   missing: string[];
@@ -99,41 +206,6 @@ export interface DetailedFeedback {
   }[];
   quickWins: string[];
   industryInsights: string[];
-}
-
-export interface AnalysisResult {
-  id: string;
-  analysisId: string;
-  overallScore: number;
-  matchPercentage: number;
-  
-  // File Information
-  resumeFilename: string;
-  jobDescriptionFilename?: string;
-  jobTitle: string;
-  industry: string;
-  
-  // Core Analysis
-  keywordMatch: KeywordMatch;
-  skillsAnalysis: SkillsAnalysis;
-  experienceAnalysis: ExperienceAnalysis;
-  resumeQuality: ResumeQualityAssessment;
-  
-  // Advanced Analysis
-  competitiveAnalysis: CompetitiveAnalysis;
-  detailedFeedback: DetailedFeedback;
-  improvementPlan: ImprovementPlan;
-  
-  // AI Insights
-  overallRecommendation: string;
-  aiInsights: string[];
-  candidateStrengths: string[];
-  developmentAreas: string[];
-  
-  // Metadata
-  analyzedAt: Date;
-  processingTime?: number;
-  confidence: number;
 }
 
 // API Request/Response Types

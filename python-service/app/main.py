@@ -5,12 +5,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 import sys
+from typing import Optional, Union
 
 from .config import settings
 from .database import connect_to_mongo, close_mongo_connection, save_analysis, get_analysis_by_id, check_mongo_health
-from .file_processor import process_files, extract_text_from_file
+from .file_processor import process_files, extract_text_from_file, FileProcessor
 from .ai_analyzer import ai_analyzer
-from .models import AnalysisResult, AnalysisDocument, AnalysisResponse, HealthResponse
+from .groq_service import GroqService
+from .response_validator import ResponseValidator
+from .models import (
+    AnalysisResult, AnalysisDocument, AnalysisResponse, HealthResponse,
+    ResumeAnalysisResponse, ErrorResponse
+)
 
 
 # Configure logging
@@ -77,12 +83,22 @@ async def health_check():
         # Check MongoDB
         mongo_health = await check_mongo_health()
         
-        # Check AI service
+        # Check AI service (legacy)
         ai_health = await ai_analyzer.check_ai_health()
+        
+        # Check GroqService
+        groq_health = {"status": "unavailable"}
+        if groq_service:
+            try:
+                groq_health = await groq_service.check_health()
+            except Exception as e:
+                groq_health = {"status": "error", "error": str(e)}
         
         # Overall status
         overall_status = "healthy"
-        if mongo_health.get("status") != "connected" or ai_health.get("status") != "healthy":
+        if (mongo_health.get("status") != "connected" or 
+            ai_health.get("status") != "healthy" or
+            groq_health.get("status") not in ["healthy", "unavailable"]):
             overall_status = "degraded"
         
         return HealthResponse(
@@ -90,7 +106,8 @@ async def health_check():
             timestamp=datetime.utcnow(),
             services={
                 "mongodb": mongo_health,
-                "groq_ai": ai_health,
+                "groq_ai_legacy": ai_health,
+                "groq_service": groq_health,
                 "file_processor": {"status": "healthy"}
             }
         )
@@ -227,6 +244,270 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={"error": "Internal server error", "status_code": 500}
     )
+
+
+# Initialize services
+try:
+    groq_service = GroqService()
+    logger.info("GroqService initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize GroqService: {str(e)}")
+    groq_service = None
+
+
+@app.post("/analyze-resume", response_model=Union[ResumeAnalysisResponse, ErrorResponse])
+async def analyze_resume_comprehensive(
+    resume_file: UploadFile = File(...),
+    job_description_file: Optional[UploadFile] = File(None),
+    job_description_text: Optional[str] = Form(None)
+):
+    """
+    Comprehensive AI-powered resume analysis with detailed JSON output
+    
+    - **resume_file**: Resume file (PDF, DOCX, or TXT)
+    - **job_description_file**: Job description file (PDF, DOCX, or TXT) - optional if job_description_text is provided
+    - **job_description_text**: Job description as plain text - optional if job_description_file is provided
+    """
+    analysis_id = str(uuid.uuid4())
+    
+    try:
+        # Check if GroqService is available
+        if not groq_service:
+            return JSONResponse(
+                status_code=503,
+                content=ErrorResponse(
+                    error="service_unavailable",
+                    message="AI analysis service is not available",
+                    details="GroqService could not be initialized"
+                ).dict()
+            )
+        
+        # Validate inputs
+        if not job_description_file and not job_description_text:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="missing_job_description",
+                    message="Either job_description_file or job_description_text must be provided"
+                ).dict()
+            )
+        
+        if job_description_file and job_description_text:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="multiple_job_descriptions",
+                    message="Please provide either job_description_file OR job_description_text, not both"
+                ).dict()
+            )
+        
+        # Process resume file
+        logger.info(f"Starting comprehensive analysis {analysis_id} for resume: {resume_file.filename}")
+        resume_content = await resume_file.read()
+        
+        if not resume_content:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="empty_resume_file",
+                    message="Resume file is empty"
+                ).dict()
+            )
+        
+        # Extract text from resume
+        resume_text, resume_success, resume_file_type = FileProcessor.process_file(
+            resume_content, resume_file.filename or "resume"
+        )
+        
+        if not resume_success:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="resume_processing_failed",
+                    message="Failed to extract text from resume",
+                    details=resume_text
+                ).dict()
+            )
+        
+        # Validate resume content
+        resume_valid, resume_validation_msg = FileProcessor.validate_content(resume_text, "resume")
+        if not resume_valid:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="invalid_resume_content",
+                    message=resume_validation_msg
+                ).dict()
+            )
+        
+        # Process job description
+        job_description_text_final = ""
+        job_desc_filename = ""
+        
+        if job_description_file:
+            logger.info(f"Processing job description file: {job_description_file.filename}")
+            job_desc_content = await job_description_file.read()
+            job_desc_filename = job_description_file.filename or "job_description"
+            
+            if not job_desc_content:
+                return JSONResponse(
+                    status_code=400,
+                    content=ErrorResponse(
+                        error="empty_job_description_file",
+                        message="Job description file is empty"
+                    ).dict()
+                )
+            
+            job_desc_text, job_desc_success, job_desc_file_type = FileProcessor.process_file(
+                job_desc_content, job_desc_filename
+            )
+            
+            if not job_desc_success:
+                return JSONResponse(
+                    status_code=400,
+                    content=ErrorResponse(
+                        error="job_description_processing_failed",
+                        message="Failed to extract text from job description file",
+                        details=job_desc_text
+                    ).dict()
+                )
+            
+            job_description_text_final = job_desc_text
+        else:
+            job_description_text_final = job_description_text.strip()
+            job_desc_filename = "text_input"
+        
+        # Validate job description content
+        job_desc_valid, job_desc_validation_msg = FileProcessor.validate_content(
+            job_description_text_final, "job description"
+        )
+        if not job_desc_valid:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="invalid_job_description_content",
+                    message=job_desc_validation_msg
+                ).dict()
+            )
+        
+        # Validate job description with AI
+        logger.info("Validating job description with AI")
+        validation_result = groq_service.validate_job_description(job_description_text_final)
+        
+        if not validation_result.get("is_valid", False):
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="invalid_job_description",
+                    message="Job description validation failed",
+                    details=validation_result.get("reason", "Invalid job description format")
+                ).dict()
+            )
+        
+        # Perform resume analysis
+        logger.info("Starting resume analysis with AI")
+        analysis_result = groq_service.analyze_resume(resume_text, job_description_text_final)
+        
+        if not analysis_result:
+            return JSONResponse(
+                status_code=500,
+                content=ErrorResponse(
+                    error="analysis_failed",
+                    message="Failed to analyze resume with AI",
+                    details="AI service returned no result"
+                ).dict()
+            )
+        
+        # Comprehensive response validation
+        logger.info("Validating AI response against schema")
+        is_valid, validation_report = ResponseValidator.comprehensive_validate(analysis_result)
+        
+        if not is_valid:
+            # Log detailed validation errors
+            logger.error("AI response validation failed:")
+            logger.error(f"Validation report: {validation_report}")
+            
+            return JSONResponse(
+                status_code=500,
+                content=ErrorResponse(
+                    error="invalid_ai_response_structure",
+                    message="AI response does not match required schema format",
+                    details=f"Validation errors: {'; '.join(validation_report['errors'])}"
+                ).dict()
+            )
+        
+        # Log validation success with warnings if any
+        if validation_report.get("warnings"):
+            logger.warning(f"Response validation passed with warnings: {validation_report['warnings']}")
+        
+        # Final Pydantic model creation (this should now always succeed)
+        try:
+            response = ResumeAnalysisResponse(**analysis_result)
+            logger.info("✅ Resume analysis completed successfully with valid schema")
+            
+            # **CRITICAL FIX: Save comprehensive analysis to database**
+            # Create legacy format analysis result for database storage compatibility
+            legacy_analysis_result = AnalysisResult(
+                score=analysis_result.get("score_out_of_100", 0),
+                strengths=analysis_result.get("resume_improvement_priority", [])[:3],  # Top 3 as strengths
+                weaknesses=analysis_result.get("resume_analysis_report", {}).get("weaknesses_analysis", {}).get("critical_gaps_against_job_description", [])[:3],
+                suggestions=analysis_result.get("resume_improvement_priority", []),
+                keyword_match={
+                    "matched": analysis_result.get("resume_analysis_report", {}).get("strengths_analysis", {}).get("technical_skills", []),
+                    "missing": analysis_result.get("resume_analysis_report", {}).get("weaknesses_analysis", {}).get("technical_deficiencies", [])[:5],
+                    "percentage": float(analysis_result.get("chance_of_selection_percentage", 0)),
+                    "total_found": len(analysis_result.get("resume_analysis_report", {}).get("strengths_analysis", {}).get("technical_skills", []))
+                },
+                overall_recommendation=analysis_result.get("short_conclusion", "")
+            )
+            
+            # Save comprehensive analysis to database
+            comprehensive_analysis_doc = AnalysisDocument(
+                analysis_id=analysis_id,
+                resume_filename=resume_file.filename or "unknown",
+                job_description_filename=job_desc_filename,
+                resume_text=resume_text,
+                job_description_text=job_description_text_final,
+                result=legacy_analysis_result,  # Store in legacy format for compatibility
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            await save_analysis(comprehensive_analysis_doc)
+            logger.info(f"Comprehensive analysis {analysis_id} saved to database")
+            
+            # Add analysis_id to response for tracking
+            response_dict = response.dict()
+            response_dict["analysis_id"] = analysis_id
+            response_dict["timestamp"] = datetime.utcnow().isoformat()
+            
+            return JSONResponse(content=response_dict, status_code=200)
+        
+        except Exception as e:
+            # This should rarely happen now due to comprehensive validation
+            logger.error(f"Unexpected error creating response model: {str(e)}")
+            return JSONResponse(
+                status_code=500,
+                content=ErrorResponse(
+                    error="response_model_creation_failed",
+                    message="Failed to create response model despite validation",
+                    details=str(e)
+                ).dict()
+            )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in analyze_resume_comprehensive: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                error="internal_server_error",
+                message="An unexpected error occurred",
+                details=str(e)
+            ).dict()
+        )
 
 
 if __name__ == "__main__":

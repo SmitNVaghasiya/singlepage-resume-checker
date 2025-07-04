@@ -19,16 +19,17 @@ declare global {
   }
 }
 
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Access token is required'
       });
+      return;
     }
 
     // Verify JWT token
@@ -37,18 +38,20 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     // Check if user still exists
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'User not found'
       });
+      return;
     }
 
     // Check if user's email is verified
     if (!user.isEmailVerified) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Email not verified'
       });
+      return;
     }
 
     // Attach user info to request
@@ -58,17 +61,19 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid token'
       });
+      return;
     }
     
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Token expired'
       });
+      return;
     }
 
     logger.error('Auth middleware error:', error);
@@ -80,13 +85,14 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 };
 
 // Optional authentication - doesn't fail if no token provided
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-      return next(); // Continue without authentication
+      next(); // Continue without authentication
+      return;
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;

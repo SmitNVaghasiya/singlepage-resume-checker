@@ -208,7 +208,7 @@ class Server {
 
   private setupErrorHandling(): void {
     // 404 handler for undefined routes
-    this.app.use('*', (req, res) => {
+    this.app.use((req, res, next) => {
       logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`, {
         ip: req.ip,
         userAgent: req.get('user-agent'),
