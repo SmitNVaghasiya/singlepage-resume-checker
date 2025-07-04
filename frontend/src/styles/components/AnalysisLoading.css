@@ -1,0 +1,160 @@
+/* Analysis Loading Styles */
+.analysis-loading {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.loading-header {
+  margin-bottom: 2rem;
+}
+
+.loading-header h2 {
+  color: #333;
+  font-size: 1.6rem;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+
+.loading-header p {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Progress Container */
+.progress-container {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  animation: progressGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes progressGlow {
+  from {
+    box-shadow: 0 0 4px rgba(102, 126, 234, 0.4);
+  }
+  to {
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.7);
+  }
+}
+
+.progress-text {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* Analysis Stages */
+.analysis-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+.stage.active {
+  background: linear-gradient(135deg, #667eea20, #764ba220);
+  transform: translateX(8px);
+}
+
+.stage.completed {
+  background: #4caf5020;
+}
+
+.stage-indicator {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+  background: #ddd;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.stage.active .stage-indicator {
+  background: #667eea;
+  color: white;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.stage.completed .stage-indicator {
+  background: #4caf50;
+  color: white;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.stage-text {
+  color: #333;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .analysis-stages {
+    gap: 0.4rem;
+  }
+
+  .stage {
+    padding: 0.6rem;
+  }
+}
+
+/* Dark Mode Styles */
+.dark .loading-header h2 {
+  color: #f1f5f9;
+}
+
+.dark .loading-header p {
+  color: #94a3b8;
+}
+
+.dark .progress-bar {
+  background: #334155;
+}
+
+.dark .progress-text {
+  color: #cbd5e1;
+}
+
+.dark .stage-text {
+  color: #cbd5e1;
+}

@@ -1,0 +1,289 @@
+/* Step Content - Using Homepage Design */
+.step-content {
+  background: white;
+  border-radius: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-header {
+  padding: 3rem 3rem 1rem 3rem;
+  text-align: center;
+}
+
+.step-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.step-header p {
+  color: #64748b;
+  font-size: 1.125rem;
+}
+
+.file-upload-area {
+  margin: 2rem 3rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 1.5rem;
+  padding: 3rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: #f8fafc;
+  position: relative;
+}
+
+.file-upload-area:hover,
+.file-upload-area.drag-active {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+  transform: scale(1.02);
+}
+
+.file-upload-area.has-file {
+  border-color: #059669;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.file-upload-area.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.file-upload-area.small {
+  margin: 0;
+  padding: 2rem;
+  min-height: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.upload-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon {
+  width: 2rem;
+  height: 2rem;
+  color: white;
+}
+
+.file-upload-area h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.file-upload-area h4 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.file-upload-area p {
+  color: #64748b;
+  margin: 0;
+}
+
+.upload-success {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.upload-file-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+}
+
+.upload-file-icon {
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-icon-uploaded {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: white;
+}
+
+.upload-success-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #059669;
+  margin-right: 0.5rem;
+}
+
+.upload-file-details {
+  flex: 1;
+  text-align: left;
+}
+
+.upload-file-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+  word-break: break-word;
+  font-size: 1rem;
+}
+
+.upload-file-size {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.upload-remove-btn {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.upload-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+.upload-remove-btn:active {
+  transform: scale(0.95);
+}
+
+.upload-success-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #059669;
+  font-weight: 500;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-message {
+  margin: 1rem 3rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  color: #dc2626;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Dark mode styles for ResumeUploadStep */
+.dark .step-content {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+
+.dark .step-header h2 {
+  color: #f1f5f9;
+}
+
+.dark .step-header p {
+  color: #94a3b8;
+}
+
+.dark .file-upload-area {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark .file-upload-area:hover,
+.dark .file-upload-area.drag-active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.dark .file-upload-area.has-file {
+  border-color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.dark .file-upload-area.error {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.dark .file-upload-area h3,
+.dark .file-upload-area h4 {
+  color: #f1f5f9;
+}
+
+.dark .file-upload-area p {
+  color: #94a3b8;
+}
+
+.dark .upload-file-info {
+  background: #334155;
+}
+
+.dark .upload-file-name {
+  color: #f1f5f9;
+}
+
+.dark .upload-file-size {
+  color: #94a3b8;
+}
+
+.dark .upload-success-message {
+  color: #059669;
+}

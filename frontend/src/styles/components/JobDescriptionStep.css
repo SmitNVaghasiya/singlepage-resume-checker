@@ -1,0 +1,256 @@
+/* Modern Job Input Methods */
+.job-input-methods {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem 3rem 1.5rem 3rem;
+  justify-content: center;
+}
+
+.method-button {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #cbd5e1;
+  background: white;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+  min-width: 140px;
+}
+
+.method-button:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: translateY(-1px);
+}
+
+.method-button.active {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-color: #3b82f6;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Modern Text Input Section */
+.text-input-section {
+  margin: 0 3rem 1rem 3rem;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.textarea-container {
+  position: relative;
+}
+
+.job-description-textarea {
+  width: 100%;
+  min-height: 160px;
+  height: 165px;
+  padding: 1rem;
+  padding-right: 5rem;
+  padding-bottom: 3.5rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: all 0.3s ease;
+  background: #f8fafc;
+}
+
+.job-description-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: scale(1.01);
+}
+
+.job-description-textarea.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.word-count-error {
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  animation: fadeInLeft 0.3s ease-out;
+}
+
+.word-count-error::before {
+  content: "⚠️";
+  font-size: 0.875rem;
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.textarea-counter-box {
+  position: absolute;
+  bottom: 3rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.textarea-counter-box.insufficient {
+  background: rgba(254, 242, 242, 0.95);
+}
+
+.textarea-counter-box.sufficient {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.textarea-counter-text {
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.textarea-counter-box.insufficient .textarea-counter-text {
+  color: #dc2626;
+}
+
+.textarea-counter-box.sufficient .textarea-counter-text {
+  color: #3b82f6;
+}
+
+.textarea-validate-button {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: none;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.textarea-validate-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.textarea-validate-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.word-counter-error-container {
+  margin-top: 0.5rem;
+  min-height: 1.5rem;
+}
+
+.file-input-section {
+  margin: 0 3rem 1rem 3rem;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Dark mode styles for JobDescriptionStep */
+.dark .job-input-methods {
+  /* Add any dark mode overrides if needed */
+}
+
+.dark .method-button {
+  background: #1e293b;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.dark .method-button:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.dark .job-description-textarea {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark .job-description-textarea::placeholder {
+  color: #64748b;
+}
+
+.dark .job-description-textarea:focus {
+  background: #334155;
+  border-color: #3b82f6;
+}
+
+.dark .job-description-textarea.error {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.dark .textarea-counter-box {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .textarea-counter-box.insufficient {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.dark .textarea-counter-box.sufficient {
+  background: rgba(5, 150, 105, 0.1);
+  border-color: #059669;
+}
+
+.dark .textarea-counter-text {
+  color: #cbd5e1;
+}
+
+.dark .textarea-counter-box.insufficient .textarea-counter-text {
+  color: #ef4444;
+}
+
+.dark .textarea-counter-box.sufficient .textarea-counter-text {
+  color: #059669;
+}
+
+.dark .textarea-validate-button {
+  background: #3b82f6;
+  color: white;
+}
+
+.dark .textarea-validate-button:hover {
+  background: #2563eb;
+}
+
+.dark .word-count-error {
+  color: #ef4444;
+}
