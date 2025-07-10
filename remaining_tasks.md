@@ -1,6 +1,14 @@
 ------- Important tasks.
+-- Make the python server start running.
+
 -- My main function of the resume checking is not complete. - Currently dashboard is not able to take all the data from the resumechecker and show in the dashboard. - After making proper resumechecker make dashboard according to that.
--- Check if authentication was mendatory before starting the analysing.
+    -- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
+    -- Make sure that analysis result page is showing all the content and also the dashbord page.
+    
+-- Check if authentication was mendatory before starting the analysing. 
+    -- Yes but we are not redirecting to the original sign up and sign in page but we have made pop up  special sign in and up page so remove and use original one.
+
+-- Add validation in the python service for the json response we are generating.
 
 
 -------- Must complete only after completing above tasks.
@@ -17,3 +25,13 @@
 
 -------- Normal Site Future add on.
 -- add option where user can find out which are the improvements resume needs.
+
+
+
+
+------
+-------------------------------------------------------------------------- ---
+
+Which folder is responsible for the handling the login and sign up python or the node backend folder and is there any need of the python server for handling the login and the sign up
+
+tell this for the contact us page also and the logic which is responsible for sending the feedback given by the user

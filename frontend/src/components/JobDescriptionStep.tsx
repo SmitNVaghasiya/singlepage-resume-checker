@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { validateFile, formatFileSize } from '../utils/fileValidation';
+import React from 'react';
+import { formatFileSize } from '../utils/fileValidation';
 import InlineProgressSteps from './InlineProgressSteps';
 import { AnalysisResult, JobInputMethod } from '../types';
+import { useJobDescriptionLogic } from './JobDescriptionLogic';
 import '../styles/components/JobDescriptionStep.css';
 
 interface JobDescriptionStepProps {
@@ -33,70 +34,29 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   onStepChange,
   onStartAnalysis
 }) => {
-  const [jobDescriptionError, setJobDescriptionError] = useState('');
-  const [jobFileError, setJobFileError] = useState('');
-  const [wordCount, setWordCount] = useState(0);
-  const [shouldValidateText, setShouldValidateText] = useState(false);
-
-  // File validation config
-  const fileConfig = {
-    acceptedTypes: ['.pdf', '.docx'],
-    maxSize: 5 * 1024 * 1024 // 5MB
-  };
-
-  useEffect(() => {
-    const words = jobDescription.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
-    if (shouldValidateText) {
-      if (jobDescription.trim() && words.length < 50) {
-        setJobDescriptionError('Job description must be at least 50 words');
-      } else {
-        setJobDescriptionError('');
-      }
-    }
-  }, [jobDescription, shouldValidateText]);
-
-  const validateJobDescription = () => {
-    setShouldValidateText(true);
-    const words = jobDescription.trim().split(/\s+/).filter(word => word.length > 0);
-    if (jobDescription.trim() && words.length < 50) {
-      setJobDescriptionError('Job description must be at least 50 words');
-      return false;
-    } else {
-      setJobDescriptionError('');
-      if (canProceedToAnalysis) {
-        onStartAnalysis();
-      }
-      return true;
-    }
-  };
-
-  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      validateJobDescription();
-    }
-  };
-
-  const handleJobFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      const validation = validateFile(file, fileConfig);
-      if (!validation.isValid) {
-        setJobFileError(validation.error || 'Invalid file');
-        return;
-      }
-      setJobFile(file);
-      setJobFileError('');
-      setJobDescription('');
-    }
-  };
-
-  const removeJobFile = () => {
-    setJobFile(null);
-    setJobFileError('');
-  };
+  const {
+    jobDescriptionError,
+    setJobDescriptionError,
+    jobFileError,
+    setJobFileError,
+    wordCount,
+    setWordCount,
+    shouldValidateText,
+    setShouldValidateText,
+    validateJobDescription,
+    handleTextareaKeyDown,
+    handleJobFileInput,
+    removeJobFile,
+    fileConfig
+  } = useJobDescriptionLogic({
+    jobDescription,
+    setJobDescription,
+    jobFile,
+    setJobFile,
+    resumeFile,
+    canProceedToAnalysis: () => canProceedToAnalysis,
+    onStartAnalysis
+  });
 
   return (
     <div className="step-content">

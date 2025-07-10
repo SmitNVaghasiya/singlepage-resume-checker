@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from bson import ObjectId
@@ -16,7 +16,7 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
 
     @classmethod
-    def __modify_schema__(cls, field_schema):
+    def __get_pydantic_json_schema__(cls, field_schema, field):
         field_schema.update(type="string")
 
 
@@ -98,13 +98,15 @@ class ResumeAnalysisReport(BaseModel):
 
 class ResumeAnalysisResponse(BaseModel):
     job_description_validity: str
+    resume_validity: Optional[str] = None  # Added for resume validation
+    validation_error: Optional[str] = None  # Added for temp folder compatibility
     resume_eligibility: str
     score_out_of_100: int
     short_conclusion: str
     chance_of_selection_percentage: int
     resume_improvement_priority: List[str]
     overall_fit_summary: str
-    resume_analysis_report: ResumeAnalysisReport
+    resume_analysis_report: Optional[ResumeAnalysisReport] = None
 
 
 class ErrorResponse(BaseModel):
@@ -128,6 +130,23 @@ class AnalysisResult(BaseModel):
     suggestions: List[str] = Field(..., description="List of improvement suggestions")
     keyword_match: KeywordMatch = Field(..., description="Keyword matching analysis")
     overall_recommendation: str = Field(..., description="Overall hiring recommendation")
+    
+    # Additional fields for comprehensive analysis
+    skills_analysis: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Skills analysis")
+    experience_analysis: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Experience analysis")
+    overall_score: Optional[float] = Field(default=None, description="Overall score as float")
+    match_percentage: Optional[float] = Field(default=None, description="Match percentage")
+    job_title: Optional[str] = Field(default=None, description="Job title")
+    industry: Optional[str] = Field(default=None, description="Industry")
+    resume_quality: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Resume quality analysis")
+    competitive_analysis: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Competitive analysis")
+    detailed_feedback: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Detailed feedback")
+    improvement_plan: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Improvement plan")
+    ai_insights: Optional[List[str]] = Field(default_factory=list, description="AI insights")
+    candidate_strengths: Optional[List[str]] = Field(default_factory=list, description="Candidate strengths")
+    development_areas: Optional[List[str]] = Field(default_factory=list, description="Development areas")
+    confidence: Optional[float] = Field(default=None, description="Confidence level")
+    processing_time: Optional[float] = Field(default=None, description="Processing time")
 
 
 class AnalysisDocument(BaseModel):
@@ -141,20 +160,22 @@ class AnalysisDocument(BaseModel):
     created_at: datetime = Field(default=None, description="Creation timestamp")
     updated_at: datetime = Field(default=None, description="Update timestamp")
 
-    @validator('created_at', 'updated_at', pre=True, always=True)
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
     def set_datetime(cls, v):
         return v or datetime.utcnow()
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
 
 class AnalysisResponse(BaseModel):
-    success: bool
-    analysis: AnalysisResult
-    metadata: Dict[str, Any]
+    analysis_id: str
+    status: str
+    message: str
+    result: AnalysisResult
 
 
 class HealthResponse(BaseModel):
@@ -162,6 +183,7 @@ class HealthResponse(BaseModel):
     timestamp: datetime
     services: Dict[str, Any]
     
-    @validator('timestamp', pre=True, always=True)
+    @field_validator('timestamp', mode='before')
+    @classmethod
     def set_timestamp(cls, v):
         return v or datetime.utcnow() 

@@ -1,1 +1,0 @@
-# FastAPI Resume Analyzer Service 

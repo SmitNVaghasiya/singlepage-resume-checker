@@ -1,5 +1,6 @@
 import os
 import io
+import tempfile
 from typing import Optional, Tuple
 import logging
 from docx import Document
@@ -264,6 +265,60 @@ async def save_temp_file(file: UploadFile) -> str:
     except Exception as e:
         logger.error(f"Error saving temporary file: {e}")
         raise HTTPException(status_code=500, detail="Failed to save uploaded file")
+
+
+# Async file processing functions for the new endpoint
+async def extract_text_from_pdf(file_path: str) -> str:
+    """Extract text from PDF file path"""
+    try:
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        text, success = FileProcessor.extract_text_from_pdf(content)
+        if not success:
+            raise Exception(text)
+        return text
+    except Exception as e:
+        raise Exception(f"Failed to extract text from PDF: {str(e)}")
+
+
+async def extract_text_from_docx(file_path: str) -> str:
+    """Extract text from DOCX file path"""
+    try:
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        text, success = FileProcessor.extract_text_from_docx(content)
+        if not success:
+            raise Exception(text)
+        return text
+    except Exception as e:
+        raise Exception(f"Failed to extract text from DOCX: {str(e)}")
+
+
+async def extract_text_from_doc(file_path: str) -> str:
+    """Extract text from DOC file path (legacy format)"""
+    try:
+        # For DOC files, we'll try to extract as text since python-docx doesn't support .doc
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        text, success = FileProcessor.extract_text_from_txt(content)
+        if not success:
+            raise Exception(text)
+        return text
+    except Exception as e:
+        raise Exception(f"Failed to extract text from DOC: {str(e)}")
+
+
+async def extract_text_from_txt(file_path: str) -> str:
+    """Extract text from TXT file path"""
+    try:
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        text, success = FileProcessor.extract_text_from_txt(content)
+        if not success:
+            raise Exception(text)
+        return text
+    except Exception as e:
+        raise Exception(f"Failed to extract text from TXT: {str(e)}")
 
 
 async def extract_text_from_file(file: UploadFile) -> str:

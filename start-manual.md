@@ -5,4 +5,4 @@ cd frontend
 npm run dev
 
 cd python-service
-python start.py
+python main.py
