@@ -261,7 +261,18 @@ class ApiService {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    
+    // Handle the new response format from backend
+    if (data.analysisId) {
+      return {
+        analysisId: data.analysisId,
+        status: data.status || 'processing',
+        message: data.message || 'Analysis started successfully'
+      };
+    }
+    
+    return data;
   }
 
   async getAnalysisStatus(analysisId: string): Promise<AnalysisStatus> {

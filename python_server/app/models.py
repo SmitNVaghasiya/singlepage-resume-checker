@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 
@@ -12,15 +12,15 @@ class PyObjectId(ObjectId):
     @classmethod
     def validate(cls, v):
         if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
+            raise ValueError("Invalid ObjectId")
         return ObjectId(v)
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, field_schema, field):
+    def __get_pydantic_json_schema__(cls, field_schema):
         field_schema.update(type="string")
+        return field_schema
 
 
-# Comprehensive AI Analysis Models (for new endpoint)
 class CandidateInformation(BaseModel):
     name: str
     position_applied: str
@@ -52,7 +52,7 @@ class MissingSections(BaseModel):
     certifications: str
     experience: str
     achievements: str
-    soft_skills: str
+    soft_skills: Optional[str] = ""
 
 
 class SectionWiseDetailedFeedback(BaseModel):
@@ -98,8 +98,7 @@ class ResumeAnalysisReport(BaseModel):
 
 class ResumeAnalysisResponse(BaseModel):
     job_description_validity: str
-    resume_validity: Optional[str] = None  # Added for resume validation
-    validation_error: Optional[str] = None  # Added for temp folder compatibility
+    validation_error: Optional[str] = None
     resume_eligibility: str
     score_out_of_100: int
     short_conclusion: str
@@ -115,75 +114,39 @@ class ErrorResponse(BaseModel):
     details: Optional[str] = None
 
 
-# Legacy Models (for backward compatibility with existing /analyze endpoint)
-class KeywordMatch(BaseModel):
-    matched: List[str] = []
-    missing: List[str] = []
-    percentage: float = 0.0
-    total_found: int = 0
-
-
-class AnalysisResult(BaseModel):
-    score: int = Field(..., ge=0, le=100, description="Overall score out of 100")
-    strengths: List[str] = Field(..., description="List of candidate strengths")
-    weaknesses: List[str] = Field(..., description="List of areas for improvement")
-    suggestions: List[str] = Field(..., description="List of improvement suggestions")
-    keyword_match: KeywordMatch = Field(..., description="Keyword matching analysis")
-    overall_recommendation: str = Field(..., description="Overall hiring recommendation")
-    
-    # Additional fields for comprehensive analysis
-    skills_analysis: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Skills analysis")
-    experience_analysis: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Experience analysis")
-    overall_score: Optional[float] = Field(default=None, description="Overall score as float")
-    match_percentage: Optional[float] = Field(default=None, description="Match percentage")
-    job_title: Optional[str] = Field(default=None, description="Job title")
-    industry: Optional[str] = Field(default=None, description="Industry")
-    resume_quality: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Resume quality analysis")
-    competitive_analysis: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Competitive analysis")
-    detailed_feedback: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Detailed feedback")
-    improvement_plan: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Improvement plan")
-    ai_insights: Optional[List[str]] = Field(default_factory=list, description="AI insights")
-    candidate_strengths: Optional[List[str]] = Field(default_factory=list, description="Candidate strengths")
-    development_areas: Optional[List[str]] = Field(default_factory=list, description="Development areas")
-    confidence: Optional[float] = Field(default=None, description="Confidence level")
-    processing_time: Optional[float] = Field(default=None, description="Processing time")
-
-
+# Database Models
 class AnalysisDocument(BaseModel):
-    id: Optional[PyObjectId] = Field(default=None, alias="_id")
-    analysis_id: str = Field(..., description="Unique analysis identifier")
+    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    analysis_id: str = Field(..., description="Unique analysis ID")
+    user_id: Optional[str] = Field(None, description="User ID if authenticated")
     resume_filename: str = Field(..., description="Original resume filename")
-    job_description_filename: str = Field(..., description="Original job description filename")
-    resume_text: str = Field(..., description="Extracted resume text")
-    job_description_text: str = Field(..., description="Extracted job description text")
-    result: AnalysisResult = Field(..., description="Analysis results")
-    created_at: datetime = Field(default=None, description="Creation timestamp")
-    updated_at: datetime = Field(default=None, description="Update timestamp")
-
-    @field_validator('created_at', 'updated_at', mode='before')
-    @classmethod
-    def set_datetime(cls, v):
-        return v or datetime.utcnow()
+    job_description_filename: Optional[str] = Field(None, description="Job description filename if file upload")
+    job_description_text: Optional[str] = Field(None, description="Job description text if text input")
+    analysis_result: ResumeAnalysisResponse = Field(..., description="Complete analysis result")
+    status: str = Field(default="completed", description="Analysis status")
+    processing_time: Optional[float] = Field(None, description="Processing time in seconds")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Analysis creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
     class Config:
-        populate_by_name = True
+        validate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+        json_schema_extra = {
+            "example": {
+                "analysis_id": "uuid-string",
+                "user_id": "user-123",
+                "resume_filename": "resume.pdf",
+                "job_description_filename": "job_desc.pdf",
+                "status": "completed",
+                "created_at": "2024-01-01T00:00:00Z"
+            }
+        }
 
 
-class AnalysisResponse(BaseModel):
+class AnalysisStatus(BaseModel):
     analysis_id: str
     status: str
     message: str
-    result: AnalysisResult
-
-
-class HealthResponse(BaseModel):
-    status: str
-    timestamp: datetime
-    services: Dict[str, Any]
-    
-    @field_validator('timestamp', mode='before')
-    @classmethod
-    def set_timestamp(cls, v):
-        return v or datetime.utcnow() 
+    progress: Optional[int] = None
+    result: Optional[ResumeAnalysisResponse] = None

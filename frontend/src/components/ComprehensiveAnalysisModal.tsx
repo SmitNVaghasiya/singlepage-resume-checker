@@ -19,7 +19,12 @@ import {
   Settings,
   TrendingDown,
   Briefcase,
-  BarChart3
+  BarChart3,
+  Code,
+  Calendar,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { AnalysisResult } from '../types';
 import { useAppContext } from '../contexts/AppContext';
@@ -36,6 +41,22 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportError, setExportError] = useState<string>('');
+  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
+    overview: true,
+    strengths: true,
+    weaknesses: true,
+    sectionFeedback: false,
+    improvements: true,
+    softSkills: false,
+    finalAssessment: true
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   const handleExportReport = async () => {
     if (!user) {
@@ -69,7 +90,7 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
   // Helper functions to get data from both new and legacy formats
   const getScore = () => analysis.score_out_of_100 || analysis.overallScore || (analysis as any).overallScore || 0;
   const getChance = () => analysis.chance_of_selection_percentage || analysis.matchPercentage || (analysis as any).matchPercentage || 0;
-  const getJobTitle = () => analysis.jobTitle || (analysis as any).jobTitle || 'Position Analysis';
+  const getJobTitle = () => analysis.resume_analysis_report?.candidate_information?.position_applied || analysis.jobTitle || (analysis as any).jobTitle || 'Position Analysis';
   const getIndustry = () => analysis.industry || (analysis as any).industry || 'General';
   
   const getOverallRecommendation = () => {
@@ -79,56 +100,31 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
            'Analysis completed successfully.';
   };
 
-  const getCandidateStrengths = (): string[] => {
-    if (analysis.resume_analysis_report?.strengths_analysis) {
-      return [
-        ...analysis.resume_analysis_report.strengths_analysis.technical_skills,
-        ...analysis.resume_analysis_report.strengths_analysis.project_portfolio,
-        ...analysis.resume_analysis_report.strengths_analysis.educational_background
-      ];
-    }
-    return analysis.candidateStrengths || 
-           (analysis as any).candidateStrengths || 
-           (analysis as any).strengths || 
-           [];
-  };
-
-  const getDevelopmentAreas = () => {
-    if (analysis.resume_improvement_priority?.length) {
-      return analysis.resume_improvement_priority;
-    }
-    return analysis.developmentAreas || 
-           (analysis as any).developmentAreas || 
-           (analysis as any).weaknesses || 
-           [];
-  };
-
-  const getAIInsights = () => {
-    return (analysis as any).aiInsights || [];
-  };
-
-  const getKeywordMatch = () => {
-    return (analysis as any).keywordMatch || null;
-  };
-
-  const getSkillsAnalysis = () => {
-    return (analysis as any).skillsAnalysis || null;
-  };
-
-  const getResumeQuality = () => {
-    return (analysis as any).resumeQuality || null;
-  };
-
-  const getCompetitiveAnalysis = () => {
-    return (analysis as any).competitiveAnalysis || null;
-  };
-
-  const getDetailedFeedback = () => {
-    return (analysis as any).detailedFeedback || null;
-  };
-
-  const getImprovementPlan = () => {
-    return (analysis as any).improvementPlan || null;
+  const ExpandableSection = ({ title, children, sectionKey, icon: Icon, defaultExpanded = false }: {
+    title: string;
+    children: React.ReactNode;
+    sectionKey: string;
+    icon: React.ComponentType<any>;
+    defaultExpanded?: boolean;
+  }) => {
+    const isExpanded = expandedSections[sectionKey] ?? defaultExpanded;
+    
+    return (
+      <section className="analysis-section expandable">
+        <div className="section-header expandable-header" onClick={() => toggleSection(sectionKey)}>
+          <div className="section-title">
+            <Icon className="section-icon" />
+            <h2>{title}</h2>
+          </div>
+          {isExpanded ? <ChevronUp className="expand-icon" /> : <ChevronDown className="expand-icon" />}
+        </div>
+        {isExpanded && (
+          <div className="section-content">
+            {children}
+          </div>
+        )}
+      </section>
+    );
   };
 
   return (
@@ -178,14 +174,12 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
           <div className="analysis-content">
             
             {/* Overview Section */}
-            <section className="analysis-section overview-section">
-              <div className="section-header">
-                <div className="section-title">
-                  <Target className="section-icon" />
-                  <h2>Analysis Overview</h2>
-                </div>
-              </div>
-              
+            <ExpandableSection 
+              title="Analysis Overview" 
+              sectionKey="overview" 
+              icon={Target}
+              defaultExpanded={true}
+            >
               <div className="overview-grid">
                 <div className="overview-card primary">
                   <div className="card-value">{getScore()}</div>
@@ -209,9 +203,10 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
                 </div>
               </div>
 
-              <div className="summary-box">
-                <h3>AI Analysis Summary</h3>
-                <p>{getOverallRecommendation()}</p>
+              {/* AI Summary */}
+              <div className="ai-summary-section">
+                <h3>🤖 AI Analysis Summary</h3>
+                <p className="summary-text">{getOverallRecommendation()}</p>
                 
                 {analysis.overall_fit_summary && (
                   <div className="fit-summary">
@@ -220,810 +215,516 @@ const ComprehensiveAnalysisModal: React.FC<ComprehensiveAnalysisModalProps> = ({
                   </div>
                 )}
               </div>
-            </section>
 
-            {/* Two Column Layout for Main Content */}
-            <div className="main-content-grid">
-              
-              {/* Left Column */}
-              <div className="left-column">
-                
-                {/* Candidate Information */}
-                {analysis.resume_analysis_report?.candidate_information ? (
-                  <section className="analysis-section">
-                    <div className="section-header">
-                      <div className="section-title">
-                        <User className="section-icon" />
-                        <h2>Candidate Profile</h2>
-                      </div>
+              {/* Candidate Information */}
+              {analysis.resume_analysis_report?.candidate_information && (
+                <div className="candidate-info">
+                  <h3><User className="inline-icon" /> Candidate Profile</h3>
+                  <div className="candidate-grid">
+                    <div className="candidate-item">
+                      <span className="label">Name:</span>
+                      <span className="value">{analysis.resume_analysis_report.candidate_information.name}</span>
                     </div>
-                    <div className="candidate-grid">
-                      <div className="candidate-item">
-                        <Briefcase size={16} />
-                        <div>
-                          <strong>Name:</strong>
-                          <span>{analysis.resume_analysis_report.candidate_information.name}</span>
-                        </div>
-                      </div>
-                      <div className="candidate-item">
-                        <Target size={16} />
-                        <div>
-                          <strong>Position:</strong>
-                          <span>{analysis.resume_analysis_report.candidate_information.position_applied}</span>
-                        </div>
-                      </div>
-                      <div className="candidate-item">
-                        <Award size={16} />
-                        <div>
-                          <strong>Experience:</strong>
-                          <span>{analysis.resume_analysis_report.candidate_information.experience_level}</span>
-                        </div>
-                      </div>
-                      <div className="candidate-item">
-                        <CheckCircle size={16} />
-                        <div>
-                          <strong>Status:</strong>
-                          <span>{analysis.resume_analysis_report.candidate_information.current_status}</span>
-                        </div>
-                      </div>
+                    <div className="candidate-item">
+                      <span className="label">Position:</span>
+                      <span className="value">{analysis.resume_analysis_report.candidate_information.position_applied}</span>
                     </div>
-                  </section>
-                ) : (
-                  <section className="analysis-section">
-                    <div className="section-header">
-                      <div className="section-title">
-                        <FileText className="section-icon" />
-                        <h2>Analysis Summary</h2>
-                      </div>
+                    <div className="candidate-item">
+                      <span className="label">Experience:</span>
+                      <span className="value">{analysis.resume_analysis_report.candidate_information.experience_level}</span>
                     </div>
-                    <div className="analysis-meta">
-                      <div className="meta-item">
-                        <strong>Job Title:</strong> {getJobTitle()}
-                      </div>
-                      <div className="meta-item">
-                        <strong>Industry:</strong> {getIndustry()}
-                      </div>
-                      <div className="meta-item">
-                        <strong>Confidence:</strong> {(analysis as any).confidence || 85}%
-                      </div>
-                      {(analysis as any).processingTime && (
-                        <div className="meta-item">
-                          <strong>Processing Time:</strong> {(analysis as any).processingTime}ms
-                        </div>
-                      )}
+                    <div className="candidate-item">
+                      <span className="label">Status:</span>
+                      <span className="value">{analysis.resume_analysis_report.candidate_information.current_status}</span>
                     </div>
-                  </section>
-                )}
-
-                {/* Strengths */}
-                <section className="analysis-section strengths-section">
-                  <div className="section-header">
-                    <div className="section-title">
-                      <Star className="section-icon success" />
-                      <h2>Key Strengths</h2>
-                    </div>
-                  </div>
-                  
-                  <div className="strengths-content">
-                    <div className="strength-group">
-                      <h3><CheckCircle size={18} /> Identified Strengths</h3>
-                      <div className="item-list">
-                        {getCandidateStrengths().map((strength: string, index: number) => (
-                          <div key={index} className="list-item success">
-                            <CheckCircle size={16} />
-                            <span>{strength}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Technical Skills from Legacy Format */}
-                    {getSkillsAnalysis() && getSkillsAnalysis().technical.present.length > 0 && (
-                      <div className="strength-group">
-                        <h3><Settings size={18} /> Technical Skills Found</h3>
-                        <div className="item-list">
-                          {getSkillsAnalysis().technical.present.map((skill: string, index: number) => (
-                            <div key={index} className="list-item success">
-                              <Settings size={16} />
-                              <span>{skill}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Keyword Matches */}
-                    {getKeywordMatch() && getKeywordMatch().matched.length > 0 && (
-                      <div className="strength-group">
-                        <h3><Target size={18} /> Matched Keywords</h3>
-                        <div className="item-list">
-                          {getKeywordMatch().matched.map((keyword: string, index: number) => (
-                            <div key={index} className="list-item success">
-                              <Target size={16} />
-                              <span>{keyword}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                {/* AI Insights */}
-                {getAIInsights().length > 0 && (
-                  <section className="analysis-section insights-section">
-                    <div className="section-header">
-                      <div className="section-title">
-                        <Brain className="section-icon info" />
-                        <h2>AI Insights</h2>
-                      </div>
-                    </div>
-                    
-                    <div className="insights-content">
-                      <div className="insight-group">
-                        <div className="item-list">
-                          {getAIInsights().map((insight: string, index: number) => (
-                            <div key={index} className="list-item info">
-                              <Brain size={16} />
-                              <span>{insight}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Industry Insights from Detailed Feedback */}
-                      {getDetailedFeedback() && getDetailedFeedback().industryInsights && getDetailedFeedback().industryInsights.length > 0 && (
-                        <div className="insight-group">
-                          <h3><Briefcase size={18} /> Industry Insights</h3>
-                          <div className="item-list">
-                            {getDetailedFeedback().industryInsights.map((insight: string, index: number) => (
-                              <div key={index} className="list-item info">
-                                <Briefcase size={16} />
-                                <span>{insight}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                )}
-
-                {/* Improvement Plan from Legacy Format */}
-                {getImprovementPlan() && (
-                  <section className="analysis-section recommendations-section">
-                    <div className="section-header">
-                      <div className="section-title">
-                        <Lightbulb className="section-icon warning" />
-                        <h2>Improvement Plan</h2>
-                      </div>
-                    </div>
-                    
-                    <div className="recommendations-content">
-                      {getImprovementPlan().immediate && getImprovementPlan().immediate.length > 0 && (
-                        <div className="recommendation-group immediate">
-                          <h3><Zap size={18} /> Immediate Actions</h3>
-                          <div className="item-list">
-                            {getImprovementPlan().immediate.map((item: { actions?: string[]; estimatedImpact: string }, index: number) => (
-                              <div key={index} className="list-item immediate">
-                                <AlertCircle size={16} />
-                                <span>{item.actions?.join(', ') || 'Action needed'} (Impact: {item.estimatedImpact})</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {getImprovementPlan().shortTerm && getImprovementPlan().shortTerm.length > 0 && (
-                        <div className="recommendation-group short-term">
-                          <h3><TrendingUp size={18} /> Short-term Goals</h3>
-                          <div className="item-list">
-                            {getImprovementPlan().shortTerm.map((item: { actions?: string[]; estimatedImpact: string }, index: number) => (
-                              <div key={index} className="list-item short-term">
-                                <TrendingUp size={16} />
-                                <span>{item.actions?.join(', ') || 'Goal to achieve'} (Impact: {item.estimatedImpact})</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {getImprovementPlan().longTerm && getImprovementPlan().longTerm.length > 0 && (
-                        <div className="recommendation-group long-term">
-                          <h3><Award size={18} /> Long-term Objectives</h3>
-                          <div className="item-list">
-                            {getImprovementPlan().longTerm.map((item: { actions?: string[]; estimatedImpact: string }, index: number) => (
-                              <div key={index} className="list-item long-term">
-                                <Award size={16} />
-                                <span>{item.actions?.join(', ') || 'Long-term goal'} (Impact: {item.estimatedImpact})</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                )}
-              </div>
-
-              {/* Right Column */}
-              <div className="right-column">
-                
-                {/* Areas for Improvement */}
-                <section className="analysis-section weaknesses-section">
-                  <div className="section-header">
-                    <div className="section-title">
-                      <TrendingDown className="section-icon error" />
-                      <h2>Areas for Improvement</h2>
-                    </div>
-                  </div>
-                  
-                  <div className="weaknesses-content">
-                    {/* Priority Improvements */}
-                    {analysis.resume_improvement_priority?.length > 0 && (
-                      <div className="weakness-group">
-                        <h3><AlertCircle size={18} /> Priority Improvements</h3>
-                        <div className="item-list">
-                          {analysis.resume_improvement_priority.map((improvement: string, index: number) => (
-                            <div key={index} className="list-item warning">
-                              <AlertCircle size={16} />
-                              <span>{improvement}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Detailed Weaknesses Analysis */}
-                    {analysis.resume_analysis_report?.weaknesses_analysis && (
-                      <>
-                        {/* Critical Gaps */}
-                        {analysis.resume_analysis_report.weaknesses_analysis.critical_gaps_against_job_description?.length > 0 && (
-                          <div className="weakness-group">
-                            <h3><Target size={18} /> Critical Gaps Against Job Description</h3>
-                            <div className="item-list">
-                              {analysis.resume_analysis_report.weaknesses_analysis.critical_gaps_against_job_description.map((gap: string, index: number) => (
-                                <div key={index} className="list-item error">
-                                  <Target size={16} />
-                                  <span>{gap}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Technical Deficiencies */}
-                        {analysis.resume_analysis_report.weaknesses_analysis.technical_deficiencies?.length > 0 && (
-                          <div className="weakness-group">
-                            <h3><Settings size={18} /> Technical Deficiencies</h3>
-                            <div className="item-list">
-                              {analysis.resume_analysis_report.weaknesses_analysis.technical_deficiencies.map((deficiency: string, index: number) => (
-                                <div key={index} className="list-item error">
-                                  <Settings size={16} />
-                                  <span>{deficiency}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Resume Presentation Issues */}
-                        {analysis.resume_analysis_report.weaknesses_analysis.resume_presentation_issues?.length > 0 && (
-                          <div className="weakness-group">
-                            <h3><FileText size={18} /> Resume Presentation Issues</h3>
-                            <div className="item-list">
-                              {analysis.resume_analysis_report.weaknesses_analysis.resume_presentation_issues.map((issue: string, index: number) => (
-                                <div key={index} className="list-item warning">
-                                  <FileText size={16} />
-                                  <span>{issue}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Soft Skills Gaps */}
-                        {analysis.resume_analysis_report.weaknesses_analysis.soft_skills_gaps?.length > 0 && (
-                          <div className="weakness-group">
-                            <h3><Users size={18} /> Soft Skills Gaps</h3>
-                            <div className="item-list">
-                              {analysis.resume_analysis_report.weaknesses_analysis.soft_skills_gaps.map((gap: string, index: number) => (
-                                <div key={index} className="list-item warning">
-                                  <Users size={16} />
-                                  <span>{gap}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Missing Essential Elements */}
-                        {analysis.resume_analysis_report.weaknesses_analysis.missing_essential_elements?.length > 0 && (
-                          <div className="weakness-group">
-                            <h3><AlertCircle size={18} /> Missing Essential Elements</h3>
-                            <div className="item-list">
-                              {analysis.resume_analysis_report.weaknesses_analysis.missing_essential_elements.map((element: string, index: number) => (
-                                <div key={index} className="list-item error">
-                                  <AlertCircle size={16} />
-                                  <span>{element}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Legacy Development Areas */}
-                    {!analysis.resume_improvement_priority && getDevelopmentAreas().length > 0 && (
-                      <div className="weakness-group">
-                        <h3><AlertCircle size={18} /> Development Areas</h3>
-                        <div className="item-list">
-                          {getDevelopmentAreas().map((area: string, index: number) => (
-                            <div key={index} className="list-item warning">
-                              <AlertCircle size={16} />
-                              <span>{area}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Missing Keywords */}
-                    {getKeywordMatch() && getKeywordMatch().missing.length > 0 && (
-                      <div className="weakness-group">
-                        <h3><Target size={18} /> Missing Keywords</h3>
-                        <div className="item-list">
-                          {getKeywordMatch().missing.map((keyword: string, index: number) => (
-                            <div key={index} className="list-item error">
-                              <Target size={16} />
-                              <span>{keyword}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Quick Wins from Detailed Feedback */}
-                    {getDetailedFeedback() && getDetailedFeedback().quickWins && getDetailedFeedback().quickWins.length > 0 && (
-                      <div className="weakness-group">
-                        <h3><Zap size={18} /> Quick Wins</h3>
-                        <div className="item-list">
-                          {getDetailedFeedback().quickWins.map((win: string, index: number) => (
-                            <div key={index} className="list-item warning">
-                              <Zap size={16} />
-                              <span>{win}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                {/* Resume Quality Assessment */}
-                {getResumeQuality() && (
-                  <section className="analysis-section quality-section">
-                    <div className="section-header">
-                      <div className="section-title">
-                        <BarChart3 className="section-icon info" />
-                        <h2>Resume Quality Assessment</h2>
-                      </div>
-                    </div>
-                    
-                    <div className="quality-content">
-                      <div className="quality-scores">
-                        <div className="quality-item">
-                          <strong>Content Score:</strong> {getResumeQuality().content.score}/100
-                        </div>
-                        <div className="quality-item">
-                          <strong>Formatting Score:</strong> {getResumeQuality().formatting.score}/100
-                        </div>
-                        <div className="quality-item">
-                          <strong>Structure Score:</strong> {getResumeQuality().structure.score}/100
-                        </div>
-                        <div className="quality-item">
-                          <strong>Length Score:</strong> {getResumeQuality().length.score}/100
-                        </div>
-                      </div>
-
-                      {getResumeQuality().content.suggestions.length > 0 && (
-                        <div className="quality-group">
-                          <h3><FileText size={18} /> Content Suggestions</h3>
-                          <div className="item-list">
-                            {getResumeQuality().content.suggestions.map((suggestion: string, index: number) => (
-                              <div key={index} className="list-item info">
-                                <FileText size={16} />
-                                <span>{suggestion}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                )}
-
-                {/* Competitive Analysis */}
-                {getCompetitiveAnalysis() && (
-                  <section className="analysis-section competitive-section">
-                    <div className="section-header">
-                      <div className="section-title">
-                        <Award className="section-icon primary" />
-                        <h2>Competitive Analysis</h2>
-                      </div>
-                    </div>
-                    
-                    <div className="competitive-content">
-                      <div className="competitive-overview">
-                        <div className="competitive-item">
-                          <strong>Positioning Strength:</strong> {getCompetitiveAnalysis().positioningStrength}/100
-                        </div>
-                        <div className="competitive-item">
-                          <strong>Market Position:</strong> {getCompetitiveAnalysis().marketPosition}
-                        </div>
-                      </div>
-
-                      {getCompetitiveAnalysis().differentiators.length > 0 && (
-                        <div className="competitive-group">
-                          <h3><Star size={18} /> Key Differentiators</h3>
-                          <div className="item-list">
-                            {getCompetitiveAnalysis().differentiators.map((diff: string, index: number) => (
-                              <div key={index} className="list-item success">
-                                <Star size={16} />
-                                <span>{diff}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {getCompetitiveAnalysis().competitorComparison.length > 0 && (
-                        <div className="competitive-group">
-                          <h3><BarChart3 size={18} /> Competitor Comparison</h3>
-                          <div className="item-list">
-                            {getCompetitiveAnalysis().competitorComparison.map((comparison: string, index: number) => (
-                              <div key={index} className="list-item info">
-                                <BarChart3 size={16} />
-                                <span>{comparison}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Improvement Impact */}
-                      {getCompetitiveAnalysis().improvementImpact && getCompetitiveAnalysis().improvementImpact.length > 0 && (
-                        <div className="competitive-group">
-                          <h3><TrendingUp size={18} /> Improvement Impact</h3>
-                          <div className="item-list">
-                            {getCompetitiveAnalysis().improvementImpact.map((impact: string, index: number) => (
-                              <div key={index} className="list-item warning">
-                                <TrendingUp size={16} />
-                                <span>{impact}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                )}
-              </div>
-            </div>
-
-            {/* Section-wise Detailed Feedback */}
-            {analysis.resume_analysis_report?.section_wise_detailed_feedback && (
-              <section className="analysis-section feedback-section">
-                <div className="section-header">
-                  <div className="section-title">
-                    <ClipboardList className="section-icon" />
-                    <h2>Section-wise Detailed Feedback</h2>
                   </div>
                 </div>
-                
-                <div className="feedback-content">
+              )}
+
+              {/* Priority Improvements */}
+              {analysis.resume_improvement_priority?.length > 0 && (
+                <div className="priority-improvements">
+                  <h3><AlertTriangle className="inline-icon" /> Priority Improvements</h3>
+                  <div className="priority-items">
+                    {analysis.resume_improvement_priority.map((improvement: string, index: number) => (
+                      <div key={index} className="priority-item">
+                        <span className="priority-number">{index + 1}</span>
+                        <span className="priority-text">{improvement}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </ExpandableSection>
+
+            {/* Strengths Analysis */}
+            <ExpandableSection 
+              title="Comprehensive Strengths Analysis" 
+              sectionKey="strengths" 
+              icon={Award}
+              defaultExpanded={true}
+            >
+              {analysis.resume_analysis_report?.strengths_analysis && (
+                <div className="strengths-detailed">
+                  {/* Technical Skills */}
+                  {analysis.resume_analysis_report.strengths_analysis.technical_skills?.length > 0 && (
+                    <div className="strength-category">
+                      <h4><Code className="inline-icon" /> Technical Skills</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.strengths_analysis.technical_skills.map((skill: string, index: number) => (
+                          <li key={index}>{skill}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Project Portfolio */}
+                  {analysis.resume_analysis_report.strengths_analysis.project_portfolio?.length > 0 && (
+                    <div className="strength-category">
+                      <h4><Briefcase className="inline-icon" /> Project Portfolio</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.strengths_analysis.project_portfolio.map((project: string, index: number) => (
+                          <li key={index}>{project}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Educational Background */}
+                  {analysis.resume_analysis_report.strengths_analysis.educational_background?.length > 0 && (
+                    <div className="strength-category">
+                      <h4><BookOpen className="inline-icon" /> Educational Background</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.strengths_analysis.educational_background.map((edu: string, index: number) => (
+                          <li key={index}>{edu}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </ExpandableSection>
+
+            {/* Weaknesses Analysis */}
+            <ExpandableSection 
+              title="Comprehensive Weaknesses Analysis" 
+              sectionKey="weaknesses" 
+              icon={AlertTriangle}
+              defaultExpanded={true}
+            >
+              {analysis.resume_analysis_report?.weaknesses_analysis && (
+                <div className="weaknesses-detailed">
+                  {/* Critical Gaps */}
+                  {analysis.resume_analysis_report.weaknesses_analysis.critical_gaps_against_job_description?.length > 0 && (
+                    <div className="weakness-category critical">
+                      <h4><AlertTriangle className="inline-icon" /> Critical Gaps Against Job Description</h4>
+                      <ul className="detailed-list critical-gaps">
+                        {analysis.resume_analysis_report.weaknesses_analysis.critical_gaps_against_job_description.map((gap: string, index: number) => (
+                          <li key={index}>{gap}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Technical Deficiencies */}
+                  {analysis.resume_analysis_report.weaknesses_analysis.technical_deficiencies?.length > 0 && (
+                    <div className="weakness-category">
+                      <h4><Code className="inline-icon" /> Technical Deficiencies</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.weaknesses_analysis.technical_deficiencies.map((deficiency: string, index: number) => (
+                          <li key={index}>{deficiency}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Resume Presentation Issues */}
+                  {analysis.resume_analysis_report.weaknesses_analysis.resume_presentation_issues?.length > 0 && (
+                    <div className="weakness-category">
+                      <h4><FileText className="inline-icon" /> Resume Presentation Issues</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.weaknesses_analysis.resume_presentation_issues.map((issue: string, index: number) => (
+                          <li key={index}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Soft Skills Gaps */}
+                  {analysis.resume_analysis_report.weaknesses_analysis.soft_skills_gaps?.length > 0 && (
+                    <div className="weakness-category">
+                      <h4><Users className="inline-icon" /> Soft Skills Gaps</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.weaknesses_analysis.soft_skills_gaps.map((gap: string, index: number) => (
+                          <li key={index}>{gap}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Missing Essential Elements */}
+                  {analysis.resume_analysis_report.weaknesses_analysis.missing_essential_elements?.length > 0 && (
+                    <div className="weakness-category">
+                      <h4><CheckCircle className="inline-icon" /> Missing Essential Elements</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.weaknesses_analysis.missing_essential_elements.map((element: string, index: number) => (
+                          <li key={index}>{element}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </ExpandableSection>
+
+            {/* Section-wise Detailed Feedback */}
+            <ExpandableSection 
+              title="Section-wise Detailed Feedback" 
+              sectionKey="sectionFeedback" 
+              icon={FileText}
+            >
+              {analysis.resume_analysis_report?.section_wise_detailed_feedback && (
+                <div className="section-feedback">
                   {/* Contact Information */}
                   {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information && (
-                    <div className="feedback-group">
-                      <h3>📞 Contact Information</h3>
-                      <div className="feedback-status">{analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.current_state}</div>
-                      {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.strengths?.length > 0 && (
-                        <div className="feedback-subsection">
-                          <h4>Strengths:</h4>
+                    <div className="feedback-section">
+                      <h4>📞 Contact Information</h4>
+                      <div className="feedback-content">
+                        <div className="current-state">
+                          <strong>Current State:</strong> {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.current_state}
+                        </div>
+                        <div className="strengths">
+                          <strong>Strengths:</strong>
                           <ul>
-                            {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.strengths.map((strength: string, idx: number) => (
-                              <li key={idx}>{strength}</li>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.strengths.map((strength: string, index: number) => (
+                              <li key={index}>{strength}</li>
                             ))}
                           </ul>
                         </div>
-                      )}
-                      {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.improvements?.length > 0 && (
-                        <div className="feedback-subsection">
-                          <h4>Improvements:</h4>
+                        <div className="improvements">
+                          <strong>Improvements:</strong>
                           <ul>
-                            {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.improvements.map((improvement: string, idx: number) => (
-                              <li key={idx}>{improvement}</li>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.contact_information.improvements.map((improvement: string, index: number) => (
+                              <li key={index}>{improvement}</li>
                             ))}
                           </ul>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
 
                   {/* Profile Summary */}
                   {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary && (
-                    <div className="feedback-group">
-                      <h3>👤 Profile Summary</h3>
-                      <div className="feedback-status">{analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.current_state}</div>
-                      {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.strengths?.length > 0 && (
-                        <div className="feedback-subsection">
-                          <h4>Strengths:</h4>
+                    <div className="feedback-section">
+                      <h4>📝 Profile Summary</h4>
+                      <div className="feedback-content">
+                        <div className="current-state">
+                          <strong>Current State:</strong> {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.current_state}
+                        </div>
+                        <div className="strengths">
+                          <strong>Strengths:</strong>
                           <ul>
-                            {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.strengths.map((strength: string, idx: number) => (
-                              <li key={idx}>{strength}</li>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.strengths.map((strength: string, index: number) => (
+                              <li key={index}>{strength}</li>
                             ))}
                           </ul>
                         </div>
-                      )}
-                      {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.improvements?.length > 0 && (
-                        <div className="feedback-subsection">
-                          <h4>Improvements:</h4>
+                        <div className="improvements">
+                          <strong>Improvements:</strong>
                           <ul>
-                            {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.improvements.map((improvement: string, idx: number) => (
-                              <li key={idx}>{improvement}</li>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.profile_summary.improvements.map((improvement: string, index: number) => (
+                              <li key={index}>{improvement}</li>
                             ))}
                           </ul>
                         </div>
-                      )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {analysis.resume_analysis_report.section_wise_detailed_feedback.education && (
+                    <div className="feedback-section">
+                      <h4>🎓 Education</h4>
+                      <div className="feedback-content">
+                        <div className="current-state">
+                          <strong>Current State:</strong> {analysis.resume_analysis_report.section_wise_detailed_feedback.education.current_state}
+                        </div>
+                        <div className="strengths">
+                          <strong>Strengths:</strong>
+                          <ul>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.education.strengths.map((strength: string, index: number) => (
+                              <li key={index}>{strength}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="improvements">
+                          <strong>Improvements:</strong>
+                          <ul>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.education.improvements.map((improvement: string, index: number) => (
+                              <li key={index}>{improvement}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {analysis.resume_analysis_report.section_wise_detailed_feedback.skills && (
+                    <div className="feedback-section">
+                      <h4>🛠️ Skills</h4>
+                      <div className="feedback-content">
+                        <div className="current-state">
+                          <strong>Current State:</strong> {analysis.resume_analysis_report.section_wise_detailed_feedback.skills.current_state}
+                        </div>
+                        <div className="strengths">
+                          <strong>Strengths:</strong>
+                          <ul>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.skills.strengths.map((strength: string, index: number) => (
+                              <li key={index}>{strength}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="improvements">
+                          <strong>Improvements:</strong>
+                          <ul>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.skills.improvements.map((improvement: string, index: number) => (
+                              <li key={index}>{improvement}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projects */}
+                  {analysis.resume_analysis_report.section_wise_detailed_feedback.projects && (
+                    <div className="feedback-section">
+                      <h4>💼 Projects</h4>
+                      <div className="feedback-content">
+                        <div className="current-state">
+                          <strong>Current State:</strong> {analysis.resume_analysis_report.section_wise_detailed_feedback.projects.current_state}
+                        </div>
+                        <div className="strengths">
+                          <strong>Strengths:</strong>
+                          <ul>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.projects.strengths.map((strength: string, index: number) => (
+                              <li key={index}>{strength}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="improvements">
+                          <strong>Improvements:</strong>
+                          <ul>
+                            {analysis.resume_analysis_report.section_wise_detailed_feedback.projects.improvements.map((improvement: string, index: number) => (
+                              <li key={index}>{improvement}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {/* Missing Sections */}
-                  {analysis.resume_analysis_report.section_wise_detailed_feedback.missing_sections && 
-                    Object.keys(analysis.resume_analysis_report.section_wise_detailed_feedback.missing_sections).length > 0 && (
-                    <div className="feedback-group missing-sections">
-                      <h3>⚠️ Missing Sections</h3>
-                      <div className="missing-sections-list">
-                        {Object.entries(analysis.resume_analysis_report.section_wise_detailed_feedback.missing_sections).map(([section, description]) => (
-                          <div key={section} className="missing-section-item">
-                            <h4>{section.charAt(0).toUpperCase() + section.slice(1).replace(/_/g, ' ')}</h4>
-                            <p>{description as string}</p>
+                  {analysis.resume_analysis_report.section_wise_detailed_feedback.missing_sections && (
+                    <div className="feedback-section missing-sections">
+                      <h4>❌ Missing Sections</h4>
+                      <div className="missing-sections-content">
+                        {Object.entries(analysis.resume_analysis_report.section_wise_detailed_feedback.missing_sections).map(([key, value]) => (
+                          <div key={key} className="missing-section-item">
+                            <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value as string}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
-              </section>
-            )}
+              )}
+            </ExpandableSection>
 
             {/* Improvement Recommendations */}
-            {analysis.resume_analysis_report?.improvement_recommendations && (
-              <section className="analysis-section recommendations-section">
-                <div className="section-header">
-                  <div className="section-title">
-                    <Lightbulb className="section-icon warning" />
-                    <h2>Comprehensive Improvement Roadmap</h2>
-                  </div>
-                </div>
-                
-                <div className="recommendations-content">
+            <ExpandableSection 
+              title="Comprehensive Improvement Roadmap" 
+              sectionKey="improvements" 
+              icon={TrendingUp}
+              defaultExpanded={true}
+            >
+              {analysis.resume_analysis_report?.improvement_recommendations && (
+                <div className="improvements-detailed">
                   {/* Immediate Resume Additions */}
                   {analysis.resume_analysis_report.improvement_recommendations.immediate_resume_additions?.length > 0 && (
-                    <div className="recommendation-group immediate">
-                      <h3><Zap size={18} /> Immediate Resume Additions</h3>
-                      <div className="item-list">
-                        {analysis.resume_analysis_report.improvement_recommendations.immediate_resume_additions.map((addition: string, index: number) => (
-                          <div key={index} className="list-item immediate">
-                            <Zap size={16} />
-                            <span>{addition}</span>
-                          </div>
+                    <div className="improvement-category immediate">
+                      <h4><AlertTriangle className="inline-icon" /> Immediate Resume Updates</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.improvement_recommendations.immediate_resume_additions.map((action: string, index: number) => (
+                          <li key={index}>{action}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
                   {/* Immediate Priority Actions */}
                   {analysis.resume_analysis_report.improvement_recommendations.immediate_priority_actions?.length > 0 && (
-                    <div className="recommendation-group immediate">
-                      <h3><Target size={18} /> Immediate Priority Actions</h3>
-                      <div className="item-list">
+                    <div className="improvement-category priority">
+                      <h4><Target className="inline-icon" /> Immediate Priority Actions</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.improvement_recommendations.immediate_priority_actions.map((action: string, index: number) => (
-                          <div key={index} className="list-item immediate">
-                            <Target size={16} />
-                            <span>{action}</span>
-                          </div>
+                          <li key={index}>{action}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
-                  {/* Short-term Development Goals */}
+                  {/* Short Term Goals */}
                   {analysis.resume_analysis_report.improvement_recommendations.short_term_development_goals?.length > 0 && (
-                    <div className="recommendation-group short-term">
-                      <h3><TrendingUp size={18} /> Short-term Development Goals (1-3 months)</h3>
-                      <div className="item-list">
+                    <div className="improvement-category short-term">
+                      <h4><Calendar className="inline-icon" /> Short-term Goals (1-3 months)</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.improvement_recommendations.short_term_development_goals.map((goal: string, index: number) => (
-                          <div key={index} className="list-item short-term">
-                            <TrendingUp size={16} />
-                            <span>{goal}</span>
-                          </div>
+                          <li key={index}>{goal}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
-                  {/* Medium-term Objectives */}
+                  {/* Medium Term Objectives */}
                   {analysis.resume_analysis_report.improvement_recommendations.medium_term_objectives?.length > 0 && (
-                    <div className="recommendation-group long-term">
-                      <h3><Award size={18} /> Medium-term Objectives (3-6 months)</h3>
-                      <div className="item-list">
+                    <div className="improvement-category medium-term">
+                      <h4><Star className="inline-icon" /> Medium-term Objectives (3-6 months)</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.improvement_recommendations.medium_term_objectives.map((objective: string, index: number) => (
-                          <div key={index} className="list-item long-term">
-                            <Award size={16} />
-                            <span>{objective}</span>
-                          </div>
+                          <li key={index}>{objective}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
                 </div>
-              </section>
-            )}
+              )}
+            </ExpandableSection>
 
-            {/* Soft Skills Enhancement Suggestions */}
-            {analysis.resume_analysis_report?.soft_skills_enhancement_suggestions && (
-              <section className="analysis-section soft-skills-section">
-                <div className="section-header">
-                  <div className="section-title">
-                    <Users className="section-icon info" />
-                    <h2>Soft Skills Enhancement</h2>
-                  </div>
-                </div>
-                
-                <div className="soft-skills-content">
+            {/* Soft Skills Enhancement */}
+            <ExpandableSection 
+              title="Soft Skills Enhancement Suggestions" 
+              sectionKey="softSkills" 
+              icon={Users}
+            >
+              {analysis.resume_analysis_report?.soft_skills_enhancement_suggestions && (
+                <div className="soft-skills-detailed">
                   {/* Communication Skills */}
                   {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.communication_skills?.length > 0 && (
-                    <div className="skill-group">
-                      <h3>💬 Communication Skills</h3>
-                      <div className="item-list">
+                    <div className="soft-skill-category">
+                      <h4><Users className="inline-icon" /> Communication Skills</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.communication_skills.map((skill: string, index: number) => (
-                          <div key={index} className="list-item info">
-                            <Brain size={16} />
-                            <span>{skill}</span>
-                          </div>
+                          <li key={index}>{skill}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
                   {/* Teamwork and Collaboration */}
                   {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.teamwork_and_collaboration?.length > 0 && (
-                    <div className="skill-group">
-                      <h3>🤝 Teamwork and Collaboration</h3>
-                      <div className="item-list">
+                    <div className="soft-skill-category">
+                      <h4><Users className="inline-icon" /> Teamwork and Collaboration</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.teamwork_and_collaboration.map((skill: string, index: number) => (
-                          <div key={index} className="list-item info">
-                            <Users size={16} />
-                            <span>{skill}</span>
-                          </div>
+                          <li key={index}>{skill}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
                   {/* Leadership and Initiative */}
                   {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.leadership_and_initiative?.length > 0 && (
-                    <div className="skill-group">
-                      <h3>🚀 Leadership and Initiative</h3>
-                      <div className="item-list">
+                    <div className="soft-skill-category">
+                      <h4><Award className="inline-icon" /> Leadership and Initiative</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.leadership_and_initiative.map((skill: string, index: number) => (
-                          <div key={index} className="list-item info">
-                            <Award size={16} />
-                            <span>{skill}</span>
-                          </div>
+                          <li key={index}>{skill}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
                   {/* Problem Solving Approach */}
                   {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.problem_solving_approach?.length > 0 && (
-                    <div className="skill-group">
-                      <h3>🧩 Problem Solving Approach</h3>
-                      <div className="item-list">
-                        {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.problem_solving_approach.map((approach: string, index: number) => (
-                          <div key={index} className="list-item info">
-                            <Lightbulb size={16} />
-                            <span>{approach}</span>
-                          </div>
+                    <div className="soft-skill-category">
+                      <h4><Lightbulb className="inline-icon" /> Problem Solving Approach</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.soft_skills_enhancement_suggestions.problem_solving_approach.map((skill: string, index: number) => (
+                          <li key={index}>{skill}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
                 </div>
-              </section>
-            )}
+              )}
+            </ExpandableSection>
 
             {/* Final Assessment */}
-            {analysis.resume_analysis_report?.final_assessment && (
-              <section className="analysis-section final-assessment-section">
-                <div className="section-header">
-                  <div className="section-title">
-                    <Target className="section-icon" />
-                    <h2>Final Assessment & Recommendations</h2>
-                  </div>
-                </div>
-                
-                <div className="assessment-content">
-                  <div className="assessment-overview">
-                    <div className="assessment-item">
-                      <strong>Eligibility Status:</strong>
-                      <span className={`status ${analysis.resume_analysis_report.final_assessment.eligibility_status.toLowerCase().includes('qualified') ? 'qualified' : 'needs-work'}`}>
-                        {analysis.resume_analysis_report.final_assessment.eligibility_status}
-                      </span>
-                    </div>
+            <ExpandableSection 
+              title="Final Assessment & Recommendations" 
+              sectionKey="finalAssessment" 
+              icon={CheckCircle}
+              defaultExpanded={true}
+            >
+              {analysis.resume_analysis_report?.final_assessment && (
+                <div className="final-assessment-detailed">
+                  <div className="assessment-status">
+                    <span className="status-label">Eligibility Status:</span>
+                    <span className={`status-value ${analysis.resume_analysis_report.final_assessment.eligibility_status.includes('Qualified') ? 'qualified' : 'needs-work'}`}>
+                      {analysis.resume_analysis_report.final_assessment.eligibility_status}
+                    </span>
                   </div>
 
-                  {/* Hiring Recommendation */}
                   {analysis.resume_analysis_report.final_assessment.hiring_recommendation && (
-                    <div className="assessment-group">
-                      <h3>💼 Hiring Recommendation</h3>
+                    <div className="hiring-recommendation">
+                      <h4><Briefcase className="inline-icon" /> Hiring Recommendation</h4>
                       <p>{analysis.resume_analysis_report.final_assessment.hiring_recommendation}</p>
                     </div>
                   )}
 
-                  {/* Key Interview Areas */}
                   {analysis.resume_analysis_report.final_assessment.key_interview_areas?.length > 0 && (
-                    <div className="assessment-group">
-                      <h3>🎤 Key Interview Focus Areas</h3>
-                      <div className="item-list">
+                    <div className="interview-areas">
+                      <h4><Users className="inline-icon" /> Key Interview Focus Areas</h4>
+                      <ul className="detailed-list">
                         {analysis.resume_analysis_report.final_assessment.key_interview_areas.map((area: string, index: number) => (
-                          <div key={index} className="list-item primary">
-                            <Target size={16} />
-                            <span>{area}</span>
-                          </div>
+                          <li key={index}>{area}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
-                  {/* Onboarding Requirements */}
                   {analysis.resume_analysis_report.final_assessment.onboarding_requirements?.length > 0 && (
-                    <div className="assessment-group">
-                      <h3>📋 Onboarding Requirements</h3>
-                      <div className="item-list">
-                        {analysis.resume_analysis_report.final_assessment.onboarding_requirements.map((req: string, index: number) => (
-                          <div key={index} className="list-item info">
-                            <BookOpen size={16} />
-                            <span>{req}</span>
-                          </div>
+                    <div className="onboarding-requirements">
+                      <h4><BookOpen className="inline-icon" /> Onboarding Requirements</h4>
+                      <ul className="detailed-list">
+                        {analysis.resume_analysis_report.final_assessment.onboarding_requirements.map((requirement: string, index: number) => (
+                          <li key={index}>{requirement}</li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
                   )}
 
-                  {/* Long-term Potential */}
                   {analysis.resume_analysis_report.final_assessment.long_term_potential && (
-                    <div className="assessment-group">
-                      <h3>🚀 Long-term Potential</h3>
-                      <p className="potential-text">{analysis.resume_analysis_report.final_assessment.long_term_potential}</p>
+                    <div className="long-term-potential">
+                      <h4><Star className="inline-icon" /> Long-term Potential</h4>
+                      <p>{analysis.resume_analysis_report.final_assessment.long_term_potential}</p>
                     </div>
                   )}
                 </div>
-              </section>
+              )}
+            </ExpandableSection>
+
+            {/* Export Error Display */}
+            {exportError && (
+              <div className="export-error">
+                <AlertCircle className="error-icon" />
+                <span>{exportError}</span>
+              </div>
             )}
           </div>
         </div>
-
-        {/* Export Error */}
-        {exportError && (
-          <div className="export-error">
-            <AlertCircle size={16} />
-            {exportError}
-          </div>
-        )}
       </div>
     </div>
   );

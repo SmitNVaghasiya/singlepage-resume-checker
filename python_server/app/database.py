@@ -1,6 +1,7 @@
 import motor.motor_asyncio
 from typing import Optional
 from loguru import logger
+from urllib.parse import quote_plus
 from .config import settings
 from .models import AnalysisDocument
 
@@ -16,12 +17,34 @@ db = Database()
 async def connect_to_mongo():
     """Create database connection"""
     try:
-        db.client = motor.motor_asyncio.AsyncIOMotorClient(settings.mongodb_url)
-        db.database = db.client[settings.mongodb_database]
+        # Handle MongoDB URL with proper encoding
+        mongodb_url = settings.mongodb_url
+        
+        # For MongoDB Atlas, use the database name from settings
+        database_name = settings.mongodb_database
+        
+        # If the URL contains username/password, ensure they are properly encoded
+        # (Commented out to avoid double-encoding since the .env already has encoded values)
+        # if '@' in mongodb_url and '://' in mongodb_url:
+        #     protocol_part = mongodb_url.split('://')[0] + '://'
+        #     rest_part = mongodb_url.split('://')[1]
+        #     if '@' in rest_part:
+        #         auth_part = rest_part.split('@')[0]
+        #         host_part = rest_part.split('@')[1]
+        #         if ':' in auth_part:
+        #             username, password = auth_part.split(':', 1)
+        #             encoded_username = quote_plus(username)
+        #             encoded_password = quote_plus(password)
+        #             mongodb_url = f"{protocol_part}{encoded_username}:{encoded_password}@{host_part}"
+        
+        logger.info(f"Connecting to MongoDB with URL: {mongodb_url.split('@')[0]}@*** (database: {database_name})")
+        
+        db.client = motor.motor_asyncio.AsyncIOMotorClient(mongodb_url)
+        db.database = db.client[database_name]
         
         # Test the connection
         await db.client.admin.command('ping')
-        logger.info(f"Connected to MongoDB: {settings.mongodb_database}")
+        logger.info(f"Connected to MongoDB: {database_name}")
         
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {e}")

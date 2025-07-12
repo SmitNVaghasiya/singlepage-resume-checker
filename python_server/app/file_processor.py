@@ -1,16 +1,11 @@
 import os
 import io
-import tempfile
 from typing import Optional, Tuple
 import logging
 from docx import Document
 import PyPDF2
 import pdfplumber
 import filetype
-from fastapi import UploadFile, HTTPException
-from loguru import logger
-import aiofiles
-from .config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -201,174 +196,17 @@ class FileProcessor:
         return True, "Valid content"
 
 
-# Legacy functions for backward compatibility
-async def process_files(resume_file_content: bytes, resume_filename: str, 
-                       job_desc_file_content: bytes = None, job_desc_filename: str = None) -> tuple:
-    """Legacy function for backward compatibility"""
-    # Process resume
-    resume_text, resume_success, resume_type = FileProcessor.process_file(resume_file_content, resume_filename)
-    
-    # Process job description if provided
-    job_desc_text = ""
-    if job_desc_file_content and job_desc_filename:
-        job_desc_text, job_desc_success, job_desc_type = FileProcessor.process_file(job_desc_file_content, job_desc_filename)
-        if not job_desc_success:
-            job_desc_text = ""
-    
-    return resume_text, job_desc_text
-
-
-async def extract_text_from_file(file_content: bytes, filename: str) -> str:
-    """Legacy function for backward compatibility"""
-    text, success, file_type = FileProcessor.process_file(file_content, filename)
-    if not success:
-        raise Exception(text)  # Return error as exception for legacy compatibility
-    return text
-
-
-async def validate_file(file: UploadFile) -> None:
-    """Validate uploaded file"""
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No filename provided")
-    
-    # Check file extension
-    file_ext = file.filename.split('.')[-1].lower()
-    if file_ext not in settings.allowed_extensions:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"File type '{file_ext}' not allowed. Allowed types: {', '.join(settings.allowed_extensions)}"
-        )
-    
-    # Check file size
-    if hasattr(file, 'size') and file.size > settings.max_file_size:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"File size exceeds maximum allowed size of {settings.max_file_size} bytes"
-        )
-
-
-async def save_temp_file(file: UploadFile) -> str:
-    """Save uploaded file to temporary location"""
+# Async wrapper for FastAPI compatibility
+async def extract_text_from_file(file: "UploadFile") -> str:
+    """Async wrapper for file text extraction"""
     try:
-        # Create temporary file
-        suffix = f".{file.filename.split('.')[-1].lower()}"
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-        temp_path = temp_file.name
-        temp_file.close()
+        content = await file.read()
+        text, success, file_type = FileProcessor.process_file(content, file.filename or "unknown")
         
-        # Write file content
-        async with aiofiles.open(temp_path, 'wb') as f:
-            content = await file.read()
-            await f.write(content)
-        
-        return temp_path
-    except Exception as e:
-        logger.error(f"Error saving temporary file: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save uploaded file")
-
-
-# Async file processing functions for the new endpoint
-async def extract_text_from_pdf(file_path: str) -> str:
-    """Extract text from PDF file path"""
-    try:
-        with open(file_path, 'rb') as f:
-            content = f.read()
-        text, success = FileProcessor.extract_text_from_pdf(content)
         if not success:
-            raise Exception(text)
-        return text
-    except Exception as e:
-        raise Exception(f"Failed to extract text from PDF: {str(e)}")
-
-
-async def extract_text_from_docx(file_path: str) -> str:
-    """Extract text from DOCX file path"""
-    try:
-        with open(file_path, 'rb') as f:
-            content = f.read()
-        text, success = FileProcessor.extract_text_from_docx(content)
-        if not success:
-            raise Exception(text)
-        return text
-    except Exception as e:
-        raise Exception(f"Failed to extract text from DOCX: {str(e)}")
-
-
-async def extract_text_from_doc(file_path: str) -> str:
-    """Extract text from DOC file path (legacy format)"""
-    try:
-        # For DOC files, we'll try to extract as text since python-docx doesn't support .doc
-        with open(file_path, 'rb') as f:
-            content = f.read()
-        text, success = FileProcessor.extract_text_from_txt(content)
-        if not success:
-            raise Exception(text)
-        return text
-    except Exception as e:
-        raise Exception(f"Failed to extract text from DOC: {str(e)}")
-
-
-async def extract_text_from_txt(file_path: str) -> str:
-    """Extract text from TXT file path"""
-    try:
-        with open(file_path, 'rb') as f:
-            content = f.read()
-        text, success = FileProcessor.extract_text_from_txt(content)
-        if not success:
-            raise Exception(text)
-        return text
-    except Exception as e:
-        raise Exception(f"Failed to extract text from TXT: {str(e)}")
-
-
-async def extract_text_from_file(file: UploadFile) -> str:
-    """Extract text from uploaded file based on its type"""
-    await validate_file(file)
-    
-    # Save file temporarily
-    temp_path = await save_temp_file(file)
-    
-    try:
-        # Get file extension
-        file_ext = file.filename.split('.')[-1].lower()
-        
-        # Extract text based on file type
-        if file_ext == 'pdf':
-            text = await extract_text_from_pdf(temp_path)
-        elif file_ext == 'docx':
-            text = await extract_text_from_docx(temp_path)
-        elif file_ext == 'doc':
-            text = await extract_text_from_doc(temp_path)
-        elif file_ext == 'txt':
-            text = await extract_text_from_txt(temp_path)
-        else:
-            raise HTTPException(status_code=400, detail=f"Unsupported file type: {file_ext}")
-        
-        if not text.strip():
-            raise HTTPException(status_code=400, detail="No text content found in the file")
+            raise ValueError(text)
         
         return text
-    
-    finally:
-        # Clean up temporary file
-        try:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-        except Exception as e:
-            logger.warning(f"Failed to delete temporary file {temp_path}: {e}")
-
-
-async def process_files(resume_file: UploadFile, job_description_file: UploadFile) -> Tuple[str, str]:
-    """Process both resume and job description files"""
-    try:
-        # Extract text from both files concurrently
-        resume_text = await extract_text_from_file(resume_file)
-        job_description_text = await extract_text_from_file(job_description_file)
-        
-        logger.info(f"Successfully processed files: {resume_file.filename}, {job_description_file.filename}")
-        
-        return resume_text, job_description_text
-    
     except Exception as e:
-        logger.error(f"Error processing files: {e}")
-        raise 
+        logger.error(f"File extraction failed: {str(e)}")
+        raise ValueError(f"Failed to extract text from file: {str(e)}")

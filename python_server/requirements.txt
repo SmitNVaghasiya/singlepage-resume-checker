@@ -6,7 +6,6 @@ python-docx
 motor
 pymongo
 groq
-pydanticcls
 pydantic-settings
 httpx
 python-dotenv
@@ -15,3 +14,6 @@ filetype
 aiofiles
 loguru
 nltk
+typing-extensions
+magic-python
+pydantic

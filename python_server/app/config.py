@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     mongodb_database: str = "resume_analyzer"
     mongodb_collection: str = "analyses"
     
+    # Only use MONGODB_URL from environment
+    @field_validator("mongodb_url", mode="before")
+    @classmethod
+    def _validate_mongodb_url(cls, v):
+        mongodb_url = os.getenv("MONGODB_URL")
+        if mongodb_url:
+            return mongodb_url
+        return v
+    
     # Groq AI Configuration
     groq_api_key: str = ""
     groq_model: str = "llama3-8b-8192"

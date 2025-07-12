@@ -2,13 +2,14 @@ import os
 import json
 import logging
 import re
-import time
 from typing import Dict, Any, Optional
 from groq import Groq
+from dotenv import load_dotenv
 from .config import settings
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Load environment variables
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,24 +56,21 @@ class GroqService:
         return {}
     
     def _get_fallback_response(self) -> Dict[str, Any]:
-        """Return a fallback response when analysis fails"""
+        """Get fallback response when AI analysis fails"""
         return {
-            "job_description_validity": "Cannot determine",
-            "resume_validity": "Cannot determine",
-            "resume_eligibility": "Cannot determine",
+            "job_description_validity": "Valid",
+            "resume_eligibility": "Unable to determine",
             "score_out_of_100": 0,
             "short_conclusion": "Analysis failed due to technical issues. Please try again.",
             "chance_of_selection_percentage": 0,
             "resume_improvement_priority": [
-                "Please try uploading your resume again",
-                "Ensure the job description is clear and detailed",
-                "Check that your resume is in a supported format (PDF, DOCX, TXT)"
+                "Please try the analysis again",
+                "Ensure your resume and job description are clear and complete",
+                "Check that files are not corrupted"
             ],
-            "overall_fit_summary": "Unable to complete analysis due to technical difficulties. Please retry the analysis.",
+            "overall_fit_summary": "Analysis could not be completed due to technical difficulties. Please try again with your resume and job description.",
             "resume_analysis_report": None
         }
-    
-    # validate_job_description method removed - validation is now handled within analyze_resume()
     
     def analyze_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
         """
@@ -95,18 +93,12 @@ class GroqService:
             prompt = f"""
             You are an expert HR consultant and resume analyzer with 15+ years of experience in technical recruitment. Your task is to provide a comprehensive, detailed analysis of the candidate's resume against the job description.
 
-            FIRST: Validate both the job description AND the resume
+            FIRST: Validate the job description
             A valid job description should contain:
             1. Job title or position
             2. Required skills or qualifications  
             3. Job responsibilities or duties
             4. Company information (optional but preferred)
-
-            A valid resume should contain:
-            1. Personal information (name, contact details)
-            2. Professional experience or education
-            3. Skills or qualifications
-            4. Professional summary or objective (optional but preferred)
 
             JOB DESCRIPTION TO VALIDATE:
             {job_description}
@@ -117,16 +109,14 @@ class GroqService:
             IMPORTANT: Respond ONLY with valid JSON. Do not include any introductory text, explanations, or markdown formatting.
 
             ANALYSIS LOGIC:
-            1. First, validate if BOTH the job description AND resume are valid
-            2. If job description is INVALID, return job description validation error
-            3. If resume is INVALID, return resume validation error
-            4. If BOTH are VALID, proceed with comprehensive resume analysis
+            1. First, validate if the job description is valid
+            2. If job description is INVALID, return only validation error
+            3. If job description is VALID, proceed with comprehensive resume analysis
 
             RESPONSE FORMAT:
             If job description is INVALID, return:
             {{
                 "job_description_validity": "Invalid",
-                "resume_validity": "Cannot determine",
                 "validation_error": "Provide a detailed, specific explanation of why the job description is invalid. Include what specific elements are missing, what could be improved, and provide constructive feedback to help the user create a better job description.",
                 "resume_eligibility": "Cannot determine",
                 "score_out_of_100": 0,
@@ -137,24 +127,9 @@ class GroqService:
                 "resume_analysis_report": null
             }}
 
-            If resume is INVALID, return:
-            {{
-                "job_description_validity": "Valid",
-                "resume_validity": "Invalid",
-                "validation_error": "Provide a detailed, specific explanation of why the resume is invalid. Include what specific elements are missing, what could be improved, and provide constructive feedback to help the user create a better resume.",
-                "resume_eligibility": "Cannot determine",
-                "score_out_of_100": 0,
-                "short_conclusion": "Provide a clear, helpful summary of the resume validation issues and what the user needs to do to fix them.",
-                "chance_of_selection_percentage": 0,
-                "resume_improvement_priority": ["Provide specific, actionable suggestions for improving the resume"],
-                "overall_fit_summary": "Provide a detailed explanation of why analysis cannot proceed and what information is needed",
-                "resume_analysis_report": null
-            }}
-
-            If BOTH job description AND resume are VALID, return comprehensive analysis:
+            If job description is VALID, return comprehensive analysis:
             {{
                 "job_description_validity": "Valid - Brief assessment with reasoning",
-                "resume_validity": "Valid - Brief assessment with reasoning",
                 "resume_eligibility": "Eligible/Not Eligible/Partially Eligible - Be specific about qualification level",
                 "score_out_of_100": 75,
                 "short_conclusion": "Provide a detailed 3-4 sentence summary of overall fit, key strengths, and main areas for improvement",
@@ -343,16 +318,17 @@ class GroqService:
             }}
             
             CRITICAL REQUIREMENTS:
-            1. First validate BOTH the job description AND resume thoroughly
-            2. If job description is invalid, provide detailed, specific, and constructive error messages that help the user understand exactly what's wrong and how to fix it
-            3. If resume is invalid, provide detailed, specific, and constructive error messages that help the user understand exactly what's wrong and how to fix it
-            4. If BOTH are valid, provide extremely detailed and specific analysis
-            5. Provide concrete examples and evidence from the resume
-            6. Give actionable, specific recommendations
-            7. Quantify achievements and skills where possible
-            8. Ensure all arrays contain at least 3-4 detailed items
-            9. Make all feedback specific to the candidate's background and the job requirements
-            10. For validation errors, be helpful and constructive - explain what's missing, why it's important, and how to improve it
+            1. First validate the job description thoroughly
+            2. If invalid, provide detailed, specific, and constructive error messages that help the user understand exactly what's wrong and how to fix it
+            3. If valid, provide extremely detailed and specific analysis
+            4. Provide concrete examples and evidence from the resume
+            5. Give actionable, specific recommendations
+            6. Quantify achievements and skills where possible
+            7. Ensure all arrays contain at least 3-4 detailed items
+            8. Make all feedback specific to the candidate's background and the job requirements
+            9. For validation errors, be helpful and constructive - explain what's missing, why it's important, and how to improve it
+            10. CRITICAL: The missing_sections object MUST include ALL four fields: certifications, experience, achievements, AND soft_skills
+            11. CRITICAL: Ensure the JSON structure exactly matches the provided template - do not omit any fields
             """
             
             logger.debug(f"Prompt length: {len(prompt)} characters")
@@ -387,6 +363,10 @@ class GroqService:
             try:
                 # Try to parse the raw content directly first
                 result = json.loads(raw_content)
+                
+                # Validate and fix missing fields
+                result = self._validate_and_fix_response(result)
+                
                 logger.info("Resume analysis completed successfully")
                 return result
             except json.JSONDecodeError as e:
@@ -399,6 +379,7 @@ class GroqService:
                     if cleaned_content != raw_content:
                         logger.debug(f"Cleaned content: {cleaned_content[:200]}...")
                         result = json.loads(cleaned_content)
+                        result = self._validate_and_fix_response(result)
                         logger.info("Resume analysis completed successfully after content cleaning")
                         return result
                     
@@ -410,6 +391,7 @@ class GroqService:
                         json_content = raw_content[start_idx:end_idx]
                         logger.debug(f"Extracted JSON content: {json_content[:200]}...")
                         result = json.loads(json_content)
+                        result = self._validate_and_fix_response(result)
                         logger.info("Resume analysis completed successfully after JSON extraction")
                         return result
                     
@@ -434,6 +416,7 @@ class GroqService:
                                 json_content = json_part[json_start:json_end]
                                 logger.debug(f"Extracted JSON after prefix '{prefix}': {json_content[:200]}...")
                                 result = json.loads(json_content)
+                                result = self._validate_and_fix_response(result)
                                 logger.info("Resume analysis completed successfully after prefix-based extraction")
                                 return result
                     
@@ -449,52 +432,45 @@ class GroqService:
             logger.error(f"Error analyzing resume: {e}")
             return self._get_fallback_response()
     
-    def _get_ai_response(self, prompt: str, max_tokens: int = 2000) -> str:
-        """Get response from Groq AI with error handling and retries"""
-        max_retries = 3
-        retry_delay = 1
-        
-        for attempt in range(max_retries):
-            try:
-                chat_completion = self.client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are an expert HR professional and resume analyst with extensive experience in candidate evaluation. Always respond with valid JSON when requested. Be detailed, accurate, and actionable in your analysis."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    model=self.model,
-                    temperature=0.3,  # Lower temperature for more consistent JSON output
-                    max_tokens=max_tokens,
-                    top_p=0.95
-                )
-                
-                return chat_completion.choices[0].message.content
-                
-            except Exception as e:
-                logger.warning(f"AI request attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay * (attempt + 1))
-                else:
-                    raise e
-    
-    async def check_health(self) -> Dict[str, Any]:
-        """Check if Groq service is healthy"""
+    def _validate_and_fix_response(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate and fix missing fields in the AI response"""
         try:
-            # Simple test query
-            test_response = self._get_ai_response("Respond with only: {'status': 'healthy'}", max_tokens=50)
-            return {
-                "status": "healthy",
-                "model": self.model,
-                "test_response": "success"
-            }
+            # Ensure resume_analysis_report exists
+            if "resume_analysis_report" not in result:
+                logger.warning("Missing resume_analysis_report in response")
+                return result
+            
+            report = result["resume_analysis_report"]
+            
+            # Ensure section_wise_detailed_feedback exists
+            if "section_wise_detailed_feedback" not in report:
+                logger.warning("Missing section_wise_detailed_feedback in response")
+                return result
+            
+            feedback = report["section_wise_detailed_feedback"]
+            
+            # Ensure missing_sections exists
+            if "missing_sections" not in feedback:
+                logger.warning("Missing missing_sections in response")
+                return result
+            
+            missing_sections = feedback["missing_sections"]
+            
+            # Fix missing soft_skills field
+            if "soft_skills" not in missing_sections:
+                logger.warning("Missing soft_skills field in missing_sections, adding default value")
+                missing_sections["soft_skills"] = "Add a dedicated soft skills section highlighting communication, teamwork, leadership, and problem-solving abilities"
+            
+            # Ensure other required fields exist
+            required_fields = ["certifications", "experience", "achievements"]
+            for field in required_fields:
+                if field not in missing_sections:
+                    logger.warning(f"Missing {field} field in missing_sections, adding default value")
+                    missing_sections[field] = f"Add {field} section with relevant details"
+            
+            logger.info("Response validation and fixing completed successfully")
+            return result
+            
         except Exception as e:
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "model": self.model
-            } 
+            logger.error(f"Error validating and fixing response: {e}")
+            return result
