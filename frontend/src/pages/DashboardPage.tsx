@@ -58,7 +58,7 @@ const DashboardPage: React.FC = () => {
     return (
       <div className="dashboard-page">
         <div className="dashboard-loading">
-          <Loader className="loading-spinner" />
+          <Loader className="loading-spinner2" />
           <p>Loading dashboard...</p>
         </div>
       </div>

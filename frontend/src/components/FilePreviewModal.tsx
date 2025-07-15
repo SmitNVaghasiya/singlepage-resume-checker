@@ -197,7 +197,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     if (isLoading) {
       return (
         <div className="file-preview-loading">
-          <div className="loading-spinner"></div>
+          <div className="loading-spinner2"></div>
           <p className="loading-text">Loading preview...</p>
         </div>
       );

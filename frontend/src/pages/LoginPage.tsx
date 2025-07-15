@@ -204,7 +204,7 @@ const LoginPage: React.FC = () => {
               >
                 {isLoading ? (
                   <>
-                    <div className="loading-spinner" />
+                    <div className="loading-spinner2" />
                     <span>Signing in...</span>
                   </>
                 ) : (
@@ -346,7 +346,7 @@ const LoginPage: React.FC = () => {
                     >
                       {forgotPasswordLoading ? (
                         <>
-                          <div className="loading-spinner" />
+                          <div className="loading-spinner2" />
                           <span>Sending...</span>
                         </>
                       ) : (

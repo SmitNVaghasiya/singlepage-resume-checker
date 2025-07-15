@@ -222,7 +222,7 @@ const ResetPasswordPage: React.FC = () => {
                   >
                     {isLoading ? (
                       <>
-                        <div className="loading-spinner" />
+                        <div className="loading-spinner2" />
                         <span>Resetting Password...</span>
                       </>
                     ) : (

@@ -98,6 +98,7 @@ class ResumeAnalysisReport(BaseModel):
 
 class ResumeAnalysisResponse(BaseModel):
     job_description_validity: str
+    resume_validity: str
     validation_error: Optional[str] = None
     resume_eligibility: str
     score_out_of_100: int
