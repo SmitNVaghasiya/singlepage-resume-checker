@@ -15,8 +15,6 @@
 .auth-container {
   width: 100%;
   max-width: 1200px;
-  height: calc(100vh - 6.5rem); /* Full height minus navbar and padding */
-  max-height: 700px;
   display: flex;
   background: white;
   border-radius: 20px;
@@ -25,6 +23,30 @@
   margin: 1rem;
   overflow: hidden;
   position: relative;
+}
+
+/* Apply height logic only to login page */
+.auth-container.login-page {
+  height: calc(100vh - 6.5rem); /* Full height minus navbar and padding */
+  max-height: 700px;
+}
+
+/* Apply height logic to register page when redirected (has redirect parameter) */
+.auth-container.register-page.redirected {
+  height: calc(100vh - 6.5rem); /* Full height minus navbar and padding */
+  max-height: 700px;
+}
+
+/* Make register page card fullscreen when accessed directly */
+.auth-container.register-page.fullscreen {
+  min-height: calc(
+    100vh - 6.5rem
+  ); /* Minimum height minus navbar and padding */
+  height: auto;
+  max-height: none;
+  margin: 1rem;
+  border-radius: 20px;
+  overflow-y: auto;
 }
 
 /* Dynamic positioning based on page type */
@@ -599,7 +621,7 @@
   transform: scale(1.1);
 }
 
-/* Loading spinner  this is not running correctly for some reason so have to change the name to loading-spinn`*/ 
+/* Loading spinner  this is not running correctly for some reason so have to change the name to loading-spinn`*/
 .loading-spinner {
   width: 1.5rem;
   height: 1.5rem;
@@ -689,8 +711,28 @@
   .auth-container {
     flex-direction: column !important;
     max-width: 500px;
+  }
+
+  /* Apply height logic only to login page on tablet */
+  .auth-container.login-page {
     height: auto;
     max-height: calc(100vh - 6rem);
+  }
+
+  /* Apply height logic to register page when redirected on tablet */
+  .auth-container.register-page.redirected {
+    height: auto;
+    max-height: calc(100vh - 6rem);
+  }
+
+  /* Fullscreen register page card on tablet */
+  .auth-container.register-page.fullscreen {
+    min-height: calc(100vh - 6rem);
+    height: auto;
+    max-height: none;
+    margin: 1rem;
+    border-radius: 20px;
+    overflow-y: auto;
   }
 
   .auth-form-section,
@@ -743,8 +785,28 @@
   .auth-container {
     margin: 0;
     border-radius: 0;
+  }
+
+  /* Apply height logic only to login page on mobile */
+  .auth-container.login-page {
     height: calc(100vh - 4rem);
     max-height: none;
+  }
+
+  /* Apply height logic to register page when redirected on mobile */
+  .auth-container.register-page.redirected {
+    height: calc(100vh - 4rem);
+    max-height: none;
+  }
+
+  /* Fullscreen register page card on mobile */
+  .auth-container.register-page.fullscreen {
+    min-height: calc(100vh - 4rem);
+    height: auto;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    overflow-y: auto;
   }
 
   .auth-form-section {

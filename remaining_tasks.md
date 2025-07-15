@@ -1,9 +1,9 @@
 ------- Important tasks.
 -- My main function of the resume checking is not complete. - Currently dashboard is not able to take all the data from the resumechecker and show in the dashboard. - After making proper resumechecker make dashboard according to that.
-    -- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
-    -- Make sure that analysis result page is showing all the content and also the dashbord page.
+-- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
+-- Make sure that analysis result page is showing all the content and also the dashbord page.
 
--- when error shown increase the size of the sign up card only not the sign in page.
+-- allow to send otp to only valid and original email.
 
 -------- Must complete only after completing above tasks.
 -- Add the Google sign in and sign up inside of my website.

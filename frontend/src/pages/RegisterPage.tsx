@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   User,
-  UserPlus,
   Shield,
   ArrowRight,
   Rocket,
@@ -304,7 +303,11 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="auth-page">
-      <div className="auth-container register-page">
+      <div
+        className={`auth-container register-page ${
+          searchParams.get("redirect") ? "redirected" : "fullscreen"
+        }`}
+      >
         {/* Left side - Form */}
         <div className="auth-form-section">
           <div className="auth-form-content">
