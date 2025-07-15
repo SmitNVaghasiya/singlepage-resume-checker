@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { Upload, FileText, X, CheckCircle, ArrowRight } from 'lucide-react';
-import PasteTip from './PasteTip';
+import React, { useState, useCallback } from "react";
+import { Upload, FileText, X, CheckCircle, ArrowRight } from "lucide-react";
+import PasteTip from "./PasteTip";
 
 interface AnalysisUploadSectionProps {
   file: File | null;
@@ -11,31 +11,39 @@ interface AnalysisUploadSectionProps {
 const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
   file,
   onFileChange,
-  onContinue
+  onContinue,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const isValidFile = useCallback((file: File) => {
-    const validTypes = ['.pdf', '.docx', '.txt'];
+    const validTypes = [".pdf", ".docx"];
     const maxSize = 5 * 1024 * 1024; // 5MB
-    
-    console.log('AnalysisUploadSection: Validating file:', file.name, file.type, file.size);
-    
+
+    console.log(
+      "AnalysisUploadSection: Validating file:",
+      file.name,
+      file.type,
+      file.size
+    );
+
     if (file.size > maxSize) {
-      setUploadError('File size must be less than 5MB');
+      setUploadError("File size must be less than 5MB");
       return false;
     }
-    
-    const isValidType = validTypes.some(type => {
-      if (type === '.pdf') return file.type === 'application/pdf';
-      if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      if (type === '.txt') return file.type === 'text/plain';
+
+    const isValidType = validTypes.some((type) => {
+      if (type === ".pdf") return file.type === "application/pdf";
+      if (type === ".docx")
+        return (
+          file.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
       return false;
     });
 
     if (!isValidType) {
-      setUploadError('Please upload a PDF, DOCX, or TXT file');
+      setUploadError("Please upload a PDF or DOCX file");
       return false;
     }
 
@@ -53,61 +61,80 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (isValidFile(droppedFile)) {
-        onFileChange(droppedFile);
-      }
-    }
-  }, [isValidFile, onFileChange]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    console.log('AnalysisUploadSection: Paste event triggered');
-    const items = e.clipboardData.items;
-    console.log('Clipboard items count:', items.length);
-    
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log('Clipboard item:', item.kind, item.type);
-      
-      if (item.kind === 'file') {
-        const pastedFile = item.getAsFile();
-        console.log('Pasted file:', pastedFile?.name, pastedFile?.type, pastedFile?.size);
-        
-        if (pastedFile && isValidFile(pastedFile)) {
-          console.log('File is valid, calling onFileChange');
-          onFileChange(pastedFile);
-        } else {
-          console.log('File is invalid or null');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const droppedFile = e.dataTransfer.files[0];
+        if (isValidFile(droppedFile)) {
+          onFileChange(droppedFile);
         }
       }
-    }
-  }, [isValidFile, onFileChange]);
+    },
+    [isValidFile, onFileChange]
+  );
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (isValidFile(selectedFile)) {
-        onFileChange(selectedFile);
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      console.log("AnalysisUploadSection: Paste event triggered");
+      const items = e.clipboardData.items;
+      console.log("Clipboard items count:", items.length);
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        console.log("Clipboard item:", item.kind, item.type);
+
+        if (item.kind === "file") {
+          const pastedFile = item.getAsFile();
+          console.log(
+            "Pasted file:",
+            pastedFile?.name,
+            pastedFile?.type,
+            pastedFile?.size
+          );
+
+          if (pastedFile && isValidFile(pastedFile)) {
+            console.log("File is valid, calling onFileChange");
+            onFileChange(pastedFile);
+          } else {
+            console.log("File is invalid or null");
+          }
+        }
       }
-    }
-  }, [isValidFile, onFileChange]);
+    },
+    [isValidFile, onFileChange]
+  );
 
-  const removeFile = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onFileChange(null);
-    setUploadError(null);
-  }, [onFileChange]);
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const selectedFile = e.target.files[0];
+        if (isValidFile(selectedFile)) {
+          onFileChange(selectedFile);
+        }
+      }
+    },
+    [isValidFile, onFileChange]
+  );
+
+  const removeFile = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onFileChange(null);
+      setUploadError(null);
+    },
+    [onFileChange]
+  );
 
   return (
     <div className="analysis-upload-section">
       <div
-        className={`analysis-upload-dropzone ${dragActive ? 'drag-active' : ''} ${file ? 'has-file' : ''} ${uploadError ? 'error' : ''}`}
+        className={`analysis-upload-dropzone ${
+          dragActive ? "drag-active" : ""
+        } ${file ? "has-file" : ""} ${uploadError ? "error" : ""}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -117,12 +144,15 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
       >
         <input
           type="file"
-          accept=".pdf,.docx,.txt"
+          accept=".pdf,.docx"
           onChange={handleFileInput}
           className="analysis-upload-input"
           id="analysis-resume-upload"
         />
-        <label htmlFor="analysis-resume-upload" className="analysis-upload-label">
+        <label
+          htmlFor="analysis-resume-upload"
+          className="analysis-upload-label"
+        >
           {file ? (
             <div className="analysis-upload-success">
               <div className="analysis-file-info">
@@ -132,7 +162,8 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
                 <div className="analysis-file-details">
                   <p className="analysis-file-name">{file.name}</p>
                   <p className="analysis-file-size">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB • Ready for analysis
+                    {(file.size / 1024 / 1024).toFixed(2)} MB • Ready for
+                    analysis
                   </p>
                 </div>
                 <button
@@ -154,7 +185,7 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
                   Drop your resume here or click to browse
                 </p>
                 <p className="analysis-upload-sub-text">
-                  PDF, DOCX, TXT • Max 5MB
+                  PDF, DOCX • Max 5MB
                 </p>
                 <PasteTip />
               </div>
@@ -171,7 +202,10 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
 
       {file && (
         <div className="analysis-upload-actions">
-          <button onClick={onContinue} className="btn btn-primary btn-lg analysis-continue-btn">
+          <button
+            onClick={onContinue}
+            className="btn btn-primary btn-lg analysis-continue-btn"
+          >
             <span>Continue to Job Description</span>
             <ArrowRight className="w-5 h-5" />
           </button>
@@ -181,4 +215,4 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
   );
 };
 
-export default AnalysisUploadSection; 
+export default AnalysisUploadSection;

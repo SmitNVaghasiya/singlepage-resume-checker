@@ -59,6 +59,7 @@ class GroqService:
         """Get fallback response when AI analysis fails"""
         return {
             "job_description_validity": "Valid",
+            "resume_validity": "Valid",
             "resume_eligibility": "Unable to determine",
             "score_out_of_100": 0,
             "short_conclusion": "Analysis failed due to technical issues. Please try again.",
@@ -130,6 +131,7 @@ class GroqService:
             If job description is VALID, return comprehensive analysis:
             {{
                 "job_description_validity": "Valid - Brief assessment with reasoning",
+                "resume_validity": "Valid/Invalid - Assessment of resume format, completeness, and professionalism",
                 "resume_eligibility": "Eligible/Not Eligible/Partially Eligible - Be specific about qualification level",
                 "score_out_of_100": 75,
                 "short_conclusion": "Provide a detailed 3-4 sentence summary of overall fit, key strengths, and main areas for improvement",
@@ -435,6 +437,38 @@ class GroqService:
     def _validate_and_fix_response(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and fix missing fields in the AI response"""
         try:
+            # Ensure required top-level fields exist
+            required_top_level_fields = [
+                "job_description_validity",
+                "resume_validity", 
+                "resume_eligibility",
+                "score_out_of_100",
+                "short_conclusion",
+                "chance_of_selection_percentage",
+                "resume_improvement_priority",
+                "overall_fit_summary"
+            ]
+            
+            for field in required_top_level_fields:
+                if field not in result:
+                    logger.warning(f"Missing {field} field in response, adding default value")
+                    if field == "resume_validity":
+                        result[field] = "Valid"
+                    elif field == "job_description_validity":
+                        result[field] = "Valid"
+                    elif field == "resume_eligibility":
+                        result[field] = "Partially Eligible"
+                    elif field == "score_out_of_100":
+                        result[field] = 50
+                    elif field == "chance_of_selection_percentage":
+                        result[field] = 50
+                    elif field == "short_conclusion":
+                        result[field] = "Resume analysis completed with some areas for improvement."
+                    elif field == "overall_fit_summary":
+                        result[field] = "Resume shows potential but needs enhancement in specific areas."
+                    elif field == "resume_improvement_priority":
+                        result[field] = ["Add missing sections", "Improve formatting", "Enhance technical details"]
+            
             # Ensure resume_analysis_report exists
             if "resume_analysis_report" not in result:
                 logger.warning("Missing resume_analysis_report in response")

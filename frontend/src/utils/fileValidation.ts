@@ -63,4 +63,49 @@ export const readFileAsDataURL = (file: File): Promise<string> => {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+};
+
+// Utility to convert base64 data URL back to File object
+export const base64ToFile = (base64Data: string, filename: string, mimeType: string): File => {
+  try {
+    const arr = base64Data.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || mimeType;
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  } catch (error) {
+    console.error('Error converting base64 to file:', error);
+    // Return a placeholder file if conversion fails
+    return new File([''], filename, { type: mimeType });
+  }
+};
+
+// Utility to save file data for authentication flow
+export const saveFileForAuth = async (file: File): Promise<{
+  name: string;
+  size: number;
+  type: string;
+  data: string;
+}> => {
+  const base64 = await readFileAsDataURL(file);
+  return {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    data: base64
+  };
+};
+
+// Utility to restore file from saved data
+export const restoreFileFromAuth = (fileData: {
+  name: string;
+  size: number;
+  type: string;
+  data: string;
+}): File => {
+  return base64ToFile(fileData.data, fileData.name, fileData.type);
 }; 

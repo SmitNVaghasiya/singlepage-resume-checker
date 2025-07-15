@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Upload, FileText, X } from 'lucide-react';
-import '../styles/fileupload.css';
+import React, { useState } from "react";
+import { Upload, FileText, X } from "lucide-react";
+import "../styles/fileupload.css";
 
 interface FileUploadProps {
   file: File | null;
@@ -19,23 +19,26 @@ const FileUpload: React.FC<FileUploadProps> = ({
   title,
   description,
   dragText,
-  supportText
+  supportText,
 }) => {
   const [dragActive, setDragActive] = useState(false);
 
   const isValidFile = (file: File) => {
-    const validTypes = acceptedTypes.split(',').map(type => type.trim());
+    const validTypes = acceptedTypes.split(",").map((type) => type.trim());
     const maxSize = 5 * 1024 * 1024; // 5MB
-    
+
     if (file.size > maxSize) {
-      alert('File size must be less than 5MB');
+      alert("File size must be less than 5MB");
       return false;
     }
-    
-    return validTypes.some(type => {
-      if (type === '.pdf') return file.type === 'application/pdf';
-      if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      if (type === '.txt') return file.type === 'text/plain';
+
+    return validTypes.some((type) => {
+      if (type === ".pdf") return file.type === "application/pdf";
+      if (type === ".docx")
+        return (
+          file.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
       return false;
     });
   };
@@ -54,7 +57,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (isValidFile(droppedFile)) {
@@ -66,7 +69,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
-      if (items[i].kind === 'file') {
+      if (items[i].kind === "file") {
         const pastedFile = items[i].getAsFile();
         if (pastedFile && isValidFile(pastedFile)) {
           onFileChange(pastedFile);
@@ -97,7 +100,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
       </div>
 
       <div
-        className={`file-drop-zone ${dragActive ? 'drag-active' : ''} ${file ? 'has-file' : ''}`}
+        className={`file-drop-zone ${dragActive ? "drag-active" : ""} ${
+          file ? "has-file" : ""
+        }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -111,19 +116,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
           onChange={handleFileInput}
           className="file-input-hidden"
         />
-        
+
         {file ? (
           <div className="file-info">
             <div className="file-info-row">
               <FileText className="file-icon success" />
               <div className="file-details">
                 <p className="file-name">{file.name}</p>
-                <p className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                <p className="file-size">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </p>
               </div>
-              <button
-                onClick={removeFile}
-                className="file-remove-btn"
-              >
+              <button onClick={removeFile} className="file-remove-btn">
                 <X className="h-5 w-5" />
               </button>
             </div>

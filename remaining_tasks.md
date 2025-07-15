@@ -3,8 +3,6 @@
     -- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
     -- Make sure that analysis result page is showing all the content and also the dashbord page.
 
--- After user returns to the resumechecker page all the data must remain as it is. As right now it is not happening all data is being lost or have re-eneter even though it is not lost.
-
 -- when error shown increase the size of the sign up card only not the sign in page.
 
 -------- Must complete only after completing above tasks.

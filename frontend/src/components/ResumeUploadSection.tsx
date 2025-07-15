@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { Upload, FileText, X, CheckCircle, Eye } from 'lucide-react';
-import PasteTip from './PasteTip';
-import FilePreviewModal from './FilePreviewModal';
+import React, { useState, useCallback, useRef } from "react";
+import { Upload, FileText, X, CheckCircle, Eye } from "lucide-react";
+import PasteTip from "./PasteTip";
+import FilePreviewModal from "./FilePreviewModal";
 
 interface ResumeUploadSectionProps {
   file: File | null;
@@ -12,7 +12,7 @@ interface ResumeUploadSectionProps {
 const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
   file,
   onFileChange,
-  onContinue
+  onContinue,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -20,25 +20,28 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidFile = useCallback((file: File) => {
-    const validTypes = ['.pdf', '.docx', '.txt'];
+    const validTypes = [".pdf", ".docx"];
     const maxSize = 5 * 1024 * 1024; // 5MB
-    
-    console.log('Validating file:', file.name, file.type, file.size);
-    
+
+    console.log("Validating file:", file.name, file.type, file.size);
+
     if (file.size > maxSize) {
-      setUploadError('File size must be less than 5MB');
+      setUploadError("File size must be less than 5MB");
       return false;
     }
-    
-    const isValidType = validTypes.some(type => {
-      if (type === '.pdf') return file.type === 'application/pdf';
-      if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      if (type === '.txt') return file.type === 'text/plain';
+
+    const isValidType = validTypes.some((type) => {
+      if (type === ".pdf") return file.type === "application/pdf";
+      if (type === ".docx")
+        return (
+          file.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
       return false;
     });
 
     if (!isValidType) {
-      setUploadError('Please upload a PDF, DOCX, or TXT file');
+      setUploadError("Please upload a PDF or DOCX file");
       return false;
     }
 
@@ -56,73 +59,93 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (isValidFile(droppedFile)) {
-        onFileChange(droppedFile);
-      }
-    }
-  }, [isValidFile, onFileChange]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    console.log('ResumeUploadSection: Paste event triggered');
-    const items = e.clipboardData.items;
-    console.log('Clipboard items count:', items.length);
-    
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log('Clipboard item:', item.kind, item.type);
-      
-      if (item.kind === 'file') {
-        const pastedFile = item.getAsFile();
-        console.log('Pasted file:', pastedFile?.name, pastedFile?.type, pastedFile?.size);
-        
-        if (pastedFile && isValidFile(pastedFile)) {
-          console.log('File is valid, calling onFileChange');
-          onFileChange(pastedFile);
-        } else {
-          console.log('File is invalid or null');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const droppedFile = e.dataTransfer.files[0];
+        if (isValidFile(droppedFile)) {
+          onFileChange(droppedFile);
         }
       }
-    }
-  }, [isValidFile, onFileChange]);
+    },
+    [isValidFile, onFileChange]
+  );
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (isValidFile(selectedFile)) {
-        onFileChange(selectedFile);
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      console.log("ResumeUploadSection: Paste event triggered");
+      const items = e.clipboardData.items;
+      console.log("Clipboard items count:", items.length);
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        console.log("Clipboard item:", item.kind, item.type);
+
+        if (item.kind === "file") {
+          const pastedFile = item.getAsFile();
+          console.log(
+            "Pasted file:",
+            pastedFile?.name,
+            pastedFile?.type,
+            pastedFile?.size
+          );
+
+          if (pastedFile && isValidFile(pastedFile)) {
+            console.log("File is valid, calling onFileChange");
+            onFileChange(pastedFile);
+          } else {
+            console.log("File is invalid or null");
+          }
+        }
       }
-    }
-    // Reset the input value to allow selecting the same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [isValidFile, onFileChange]);
+    },
+    [isValidFile, onFileChange]
+  );
 
-  const removeFile = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onFileChange(null);
-    setUploadError(null);
-    // Reset the file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [onFileChange]);
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const selectedFile = e.target.files[0];
+        if (isValidFile(selectedFile)) {
+          onFileChange(selectedFile);
+        }
+      }
+      // Reset the input value to allow selecting the same file again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [isValidFile, onFileChange]
+  );
 
-  const handleUploadClick = useCallback((e: React.MouseEvent) => {
-    // Only trigger file input if no file is uploaded
-    if (file) {
+  const removeFile = useCallback(
+    (e: React.MouseEvent) => {
       e.preventDefault();
-      return;
-    }
-  }, [file]);
+      e.stopPropagation();
+      onFileChange(null);
+      setUploadError(null);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [onFileChange]
+  );
+
+  const handleUploadClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only trigger file input if no file is uploaded
+      if (file) {
+        e.preventDefault();
+        return;
+      }
+    },
+    [file]
+  );
 
   return (
     <div className="upload-section">
@@ -136,7 +159,9 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
           </div>
 
           <div
-            className={`upload-dropzone ${dragActive ? 'drag-active' : ''} ${file ? 'has-file' : ''} ${uploadError ? 'error' : ''}`}
+            className={`upload-dropzone ${dragActive ? "drag-active" : ""} ${
+              file ? "has-file" : ""
+            } ${uploadError ? "error" : ""}`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
@@ -147,13 +172,13 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.docx,.txt"
+              accept=".pdf,.docx"
               onChange={handleFileInput}
               className="upload-input-hidden"
               id="resume-upload"
             />
-            <label 
-              htmlFor="resume-upload" 
+            <label
+              htmlFor="resume-upload"
               className="upload-label"
               onClick={handleUploadClick}
             >
@@ -204,9 +229,7 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
                     <p className="upload-main-text">
                       Drop your resume here, paste (Ctrl+V), or click to browse
                     </p>
-                    <p className="upload-sub-text">
-                      PDF, DOCX, TXT • Max 5MB
-                    </p>
+                    <p className="upload-sub-text">PDF, DOCX • Max 5MB</p>
                     <PasteTip />
                   </div>
                 </div>
@@ -242,4 +265,4 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
   );
 };
 
-export default ResumeUploadSection; 
+export default ResumeUploadSection;

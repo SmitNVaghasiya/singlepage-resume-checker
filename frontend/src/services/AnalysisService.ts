@@ -1,4 +1,5 @@
 import { AnalysisResult, JobInputMethod } from '../types';
+import { saveFileForAuth } from '../utils/fileValidation';
 
 interface AnalysisStage {
   id: number;
@@ -107,31 +108,42 @@ export class AnalysisService {
       if (!user) {
         console.log('User not authenticated, saving state and redirecting to login');
         
+        // Validate that we have the minimum required data before saving
+        if (!resumeFile) {
+          throw new Error('Resume file is required. Please upload a resume file and try again.');
+        }
+
+        const hasJobDescription = jobInputMethod === 'text' 
+          ? (jobDescription.trim().length >= 50)
+          : (jobFile !== null);
+
+        if (!hasJobDescription) {
+          throw new Error('Job description is required. Please provide a job description and try again.');
+        }
+        
         // Save current analysis state before redirecting
         const pendingAnalysis = {
           currentStep: currentStep || 'job-description',
           jobDescription: jobDescription || '',
           jobInputMethod: jobInputMethod || 'text',
           // Store file data as base64 for reconstruction after login
-          resumeFile: resumeFile ? {
-            name: resumeFile.name,
-            size: resumeFile.size,
-            type: resumeFile.type,
-            data: await this.fileToBase64(resumeFile)
-          } : null,
-          jobFile: jobFile ? {
-            name: jobFile.name,
-            size: jobFile.size,
-            type: jobFile.type,
-            data: await this.fileToBase64(jobFile)
-          } : null
+          resumeFile: resumeFile ? await saveFileForAuth(resumeFile) : null,
+          jobFile: jobFile ? await saveFileForAuth(jobFile) : null,
+          timestamp: Date.now() // Add timestamp for debugging
         };
+        
         console.log('Saving pending analysis:', {
           ...pendingAnalysis,
           jobDescriptionLength: pendingAnalysis.jobDescription.length,
-          jobDescriptionPreview: pendingAnalysis.jobDescription.substring(0, 100) + '...'
+          jobDescriptionPreview: pendingAnalysis.jobDescription.substring(0, 100) + '...',
+          resumeFileSize: pendingAnalysis.resumeFile?.size,
+          jobFileSize: pendingAnalysis.jobFile?.size
         });
+        
         localStorage.setItem('pendingAnalysis', JSON.stringify(pendingAnalysis));
+        
+        // Set flag to indicate we have pending analysis
+        localStorage.setItem('hasPendingAnalysis', 'true');
         
         // Redirect to login page
         window.location.href = '/login?redirect=/resumechecker';
@@ -255,6 +267,7 @@ export class AnalysisService {
 
       // Clear any pending analysis from localStorage
       localStorage.removeItem('pendingAnalysis');
+      localStorage.removeItem('hasPendingAnalysis');
       setRequiresAuth(false);
 
     } catch (error) {
@@ -277,18 +290,7 @@ export class AnalysisService {
     }
   }
 
-  private async fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        resolve(reader.result as string);
-      };
-      reader.onerror = (error) => {
-        reject(error);
-      };
-    });
-  }
+
 
   private extractJobTitle(result: any, jobDescription: string, jobFile: File | null, jobInputMethod: JobInputMethod): string {
     const extractJobTitleFromText = (text: string): string => {
