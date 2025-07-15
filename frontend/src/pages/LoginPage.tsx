@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, LogIn, ArrowRight, CheckCircle, X, Shield } from 'lucide-react';
-import { apiService } from '../services/api';
-import { useAppContext } from '../contexts/AppContext';
-import '../styles/pages/AuthPages.css';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  ArrowRight,
+  CheckCircle,
+  X,
+  Shield,
+} from "lucide-react";
+import { apiService } from "../services/api";
+import { useAppContext } from "../contexts/AppContext";
+import "../styles/pages/AuthPages.css";
 
 interface LoginForm {
   emailOrUsername: string;
@@ -13,62 +23,102 @@ interface LoginForm {
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setUser } = useAppContext();
+  const { setUser, user, isAuthLoading } = useAppContext();
   const [loginForm, setLoginForm] = useState<LoginForm>({
-    emailOrUsername: '',
-    password: ''
+    emailOrUsername: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginForm>>({});
-  const [serverError, setServerError] = useState('');
+  const [serverError, setServerError] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
-  const [forgotPasswordError, setForgotPasswordError] = useState('');
-  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState('');
+  const [forgotPasswordError, setForgotPasswordError] = useState("");
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState("");
+
+  // Authentication guard - redirect if already logged in
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      // Check for redirect parameter
+      const redirectTo = searchParams.get("redirect");
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [user, isAuthLoading, navigate, searchParams]);
+
+  // Don't render the form if still loading auth state
+  if (isAuthLoading) {
+    return (
+      <div className="auth-page">
+        <div className="auth-container login-page">
+          <div className="auth-form-section">
+            <div className="auth-form-content">
+              <div className="auth-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if user is already authenticated (will be redirected)
+  if (user) {
+    return null;
+  }
 
   const validateForm = () => {
     const newErrors: Partial<LoginForm> = {};
-    
+
     if (!loginForm.emailOrUsername.trim()) {
-      newErrors.emailOrUsername = 'Email or username is required';
+      newErrors.emailOrUsername = "Email or username is required";
     }
-    
+
     if (!loginForm.password.trim()) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (loginForm.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setServerError('');
-    
+    setServerError("");
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const response = await apiService.login(loginForm);
       setUser(response.user);
-      localStorage.setItem('authToken', response.token);
-      
+      localStorage.setItem("authToken", response.token);
+
       // Check for redirect parameter
-      const redirectTo = searchParams.get('redirect');
+      const redirectTo = searchParams.get("redirect");
       if (redirectTo) {
         navigate(redirectTo);
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (error) {
-      setServerError(error instanceof Error ? error.message : 'Login failed. Please try again.');
+      setServerError(
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -76,49 +126,51 @@ const LoginPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setLoginForm(prev => ({
+    setLoginForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name as keyof LoginForm]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: undefined
+        [name]: undefined,
       }));
     }
-    
+
     // Clear server error
     if (serverError) {
-      setServerError('');
+      setServerError("");
     }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotPasswordError('');
-    setForgotPasswordSuccess('');
-    
+    setForgotPasswordError("");
+    setForgotPasswordSuccess("");
+
     if (!forgotPasswordEmail.trim()) {
-      setForgotPasswordError('Email is required');
+      setForgotPasswordError("Email is required");
       return;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(forgotPasswordEmail)) {
-      setForgotPasswordError('Please enter a valid email address');
+      setForgotPasswordError("Please enter a valid email address");
       return;
     }
-    
+
     setForgotPasswordLoading(true);
-    
+
     try {
       const response = await apiService.forgotPassword(forgotPasswordEmail);
       setForgotPasswordSuccess(response.message);
-      setForgotPasswordEmail('');
+      setForgotPasswordEmail("");
     } catch (error) {
-      setForgotPasswordError(error instanceof Error ? error.message : 'Failed to send reset email');
+      setForgotPasswordError(
+        error instanceof Error ? error.message : "Failed to send reset email"
+      );
     } finally {
       setForgotPasswordLoading(false);
     }
@@ -126,9 +178,9 @@ const LoginPage: React.FC = () => {
 
   const closeForgotPasswordModal = () => {
     setShowForgotPassword(false);
-    setForgotPasswordEmail('');
-    setForgotPasswordError('');
-    setForgotPasswordSuccess('');
+    setForgotPasswordEmail("");
+    setForgotPasswordError("");
+    setForgotPasswordSuccess("");
   };
 
   return (
@@ -160,7 +212,9 @@ const LoginPage: React.FC = () => {
                     name="emailOrUsername"
                     value={loginForm.emailOrUsername}
                     onChange={handleInputChange}
-                    className={`input-field ${errors.emailOrUsername ? 'error' : ''}`}
+                    className={`input-field ${
+                      errors.emailOrUsername ? "error" : ""
+                    }`}
                     placeholder="john@example.com"
                     disabled={isLoading}
                   />
@@ -175,11 +229,11 @@ const LoginPage: React.FC = () => {
                 <div className="input-wrapper">
                   <Lock className="input-icon" size={18} />
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={loginForm.password}
                     onChange={handleInputChange}
-                    className={`input-field ${errors.password ? 'error' : ''}`}
+                    className={`input-field ${errors.password ? "error" : ""}`}
                     placeholder="••••••••"
                     disabled={isLoading}
                   />
@@ -229,7 +283,7 @@ const LoginPage: React.FC = () => {
 
             <div className="auth-footer">
               <p>
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <Link to="/register" className="auth-link">
                   Sign up for free
                 </Link>
@@ -242,13 +296,12 @@ const LoginPage: React.FC = () => {
         <div className="auth-image-section">
           <div className="auth-image-overlay">
             <div className="auth-image-content">
-              <h2 className="auth-image-title">
-                Analyze Your Resume with AI
-              </h2>
+              <h2 className="auth-image-title">Analyze Your Resume with AI</h2>
               <p className="auth-image-subtitle">
-                Get instant feedback on your resume and improve your chances of landing your dream job
+                Get instant feedback on your resume and improve your chances of
+                landing your dream job
               </p>
-              
+
               <div className="auth-features">
                 <div className="auth-feature">
                   <CheckCircle className="auth-feature-icon" />
@@ -279,7 +332,7 @@ const LoginPage: React.FC = () => {
                 </div>
                 <h3>Reset Your Password</h3>
               </div>
-              <button 
+              <button
                 className="modal-close"
                 onClick={closeForgotPasswordModal}
                 disabled={forgotPasswordLoading}
@@ -287,7 +340,7 @@ const LoginPage: React.FC = () => {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="modal-body">
               {forgotPasswordSuccess ? (
                 <div className="success-message">
@@ -295,7 +348,7 @@ const LoginPage: React.FC = () => {
                     <CheckCircle size={24} />
                   </div>
                   <p>{forgotPasswordSuccess}</p>
-                  <button 
+                  <button
                     className="btn-primary modal-button"
                     onClick={closeForgotPasswordModal}
                   >
@@ -305,15 +358,16 @@ const LoginPage: React.FC = () => {
               ) : (
                 <form onSubmit={handleForgotPassword}>
                   <p className="modal-description">
-                    Enter your email address and we'll send you a link to reset your password.
+                    Enter your email address and we'll send you a link to reset
+                    your password.
                   </p>
-                  
+
                   {forgotPasswordError && (
                     <div className="error-banner">
                       <p>{forgotPasswordError}</p>
                     </div>
                   )}
-                  
+
                   <div className="input-group">
                     <label className="input-label">Email Address</label>
                     <div className="input-wrapper">
@@ -329,7 +383,7 @@ const LoginPage: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="modal-actions">
                     <button
                       type="button"
@@ -367,4 +421,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;

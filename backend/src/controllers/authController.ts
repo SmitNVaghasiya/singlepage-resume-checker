@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 
 import { User, IUser } from '../models/User';
 import { emailService } from '../services/emailService';
+import { emailValidationService } from '../services/emailValidationService';
 import { logger } from '../utils/logger';
 
 // In-memory OTP storage (in production, use Redis)
@@ -16,9 +17,9 @@ const generateOTP = (): string => {
 
 // Generate JWT token
 const generateToken = (userId: string): string => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback-secret', {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-  });
+  const secret: Secret = process.env.JWT_SECRET || 'fallback-secret';
+  const options: SignOptions = { expiresIn: process.env.JWT_EXPIRES_IN as any || '7d' };
+  return jwt.sign({ userId }, secret, options);
 };
 
 // Send OTP for email verification
@@ -33,12 +34,12 @@ export const sendOTP = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Comprehensive email validation
+    const emailValidation = await emailValidationService.validateEmail(email);
+    if (!emailValidation.isValid) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid email address'
+        message: emailValidation.message
       });
     }
 
@@ -125,11 +126,11 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const emailValidation = await emailValidationService.validateEmail(email);
+    if (!emailValidation.isValid) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid email address'
+        message: emailValidation.message
       });
     }
 
@@ -201,7 +202,7 @@ export const register = async (req: Request, res: Response) => {
     otpStore.delete(email.toLowerCase());
 
     // Generate JWT token
-    const token = generateToken(user._id.toString());
+    const token = generateToken(String(user._id));
 
     // Send welcome email
     await emailService.sendWelcomeEmail(user.email, user.username);
@@ -276,7 +277,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = generateToken(user._id.toString());
+    const token = generateToken(String(user._id));
 
     logger.info(`User logged in: ${user.email}`);
 
@@ -392,11 +393,11 @@ export const updateProfile = async (req: Request, res: Response) => {
     }
 
     // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const emailValidation = await emailValidationService.validateEmail(email);
+    if (!emailValidation.isValid) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid email address'
+        message: emailValidation.message
       });
     }
 
@@ -545,7 +546,7 @@ export const updatePassword = async (req: Request, res: Response) => {
 export const updateNotificationSettings = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { analysisNotifications, accountActivityNotifications, marketingEmails } = req.body;
+    // const { analysisNotifications, accountActivityNotifications, marketingEmails } = req.body; // Removed unused variables
 
     // For now, we'll just acknowledge the settings update
     // In a real implementation, you'd store these preferences in the user model or a separate settings collection

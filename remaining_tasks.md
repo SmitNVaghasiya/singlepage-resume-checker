@@ -4,6 +4,7 @@
 -- Make sure that analysis result page is showing all the content and also the dashbord page.
 
 -- allow to send otp to only valid and original email.
+-- add option so that i can fill both the password and email, save in the browser itself.
 
 -------- Must complete only after completing above tasks.
 -- Add the Google sign in and sign up inside of my website.

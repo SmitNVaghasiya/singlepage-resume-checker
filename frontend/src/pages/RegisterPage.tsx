@@ -29,7 +29,7 @@ type RegisterStep = "details" | "verification";
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setUser } = useAppContext();
+  const { setUser, user, isAuthLoading } = useAppContext();
   const [currentStep, setCurrentStep] = useState<RegisterStep>("details");
   const [registerForm, setRegisterForm] = useState<RegisterForm>({
     username: "",
@@ -49,6 +49,42 @@ const RegisterPage: React.FC = () => {
     type: "success" | "warning" | "error";
   } | null>(null);
   const [fieldTouched, setFieldTouched] = useState<Record<string, boolean>>({});
+
+  // Authentication guard - redirect if already logged in
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      // Check for redirect parameter
+      const redirectTo = searchParams.get("redirect");
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [user, isAuthLoading, navigate, searchParams]);
+
+  // Don't render the form if still loading auth state
+  if (isAuthLoading) {
+    return (
+      <div className="auth-page">
+        <div className="auth-container register-page fullscreen">
+          <div className="auth-form-section">
+            <div className="auth-form-content">
+              <div className="auth-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if user is already authenticated (will be redirected)
+  if (user) {
+    return null;
+  }
 
   // Smart username validation - only show critical format errors in real-time
   useEffect(() => {

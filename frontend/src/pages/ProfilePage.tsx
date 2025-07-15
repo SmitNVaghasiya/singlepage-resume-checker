@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Edit3, 
-  Save, 
-  X, 
-  Eye, 
-  EyeOff, 
-  Download, 
-  Trash2, 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Mail,
+  Lock,
+  Edit3,
+  Save,
+  X,
+  Eye,
+  EyeOff,
+  Download,
+  Trash2,
   AlertTriangle,
   CheckCircle,
   Bell,
@@ -18,11 +18,11 @@ import {
   Calendar,
   BarChart3,
   Loader,
-  Shield
-} from 'lucide-react';
-import { useAppContext } from '../contexts/AppContext';
-import { apiService } from '../services/api';
-import '../styles/pages/ProfilePage.css';
+  Shield,
+} from "lucide-react";
+import { useAppContext } from "../contexts/AppContext";
+import { apiService } from "../services/api";
+import "../styles/pages/ProfilePage.css";
 
 interface UserProfileData {
   username: string;
@@ -41,13 +41,13 @@ interface NotificationSettings {
   marketingEmails: boolean;
 }
 
-type TabType = 'profile' | 'settings';
+type TabType = "profile" | "settings";
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, setUser, logout } = useAppContext();
-  
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const { user, setUser, logout, isAuthLoading } = useAppContext();
+
+  const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,35 +55,62 @@ const ProfilePage: React.FC = () => {
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   });
 
   const [profileData, setProfileData] = useState<UserProfileData>({
-    username: user?.username || '',
-    email: user?.email || ''
+    username: user?.username || "",
+    email: user?.email || "",
   });
 
   const [passwordData, setPasswordData] = useState<PasswordData>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    analysisNotifications: true,
-    accountActivityNotifications: true,
-    marketingEmails: false
-  });
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>({
+      analysisNotifications: true,
+      accountActivityNotifications: true,
+      marketingEmails: false,
+    });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Authentication guard - redirect if not logged in
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      navigate("/login?redirect=/profile");
+    }
+  }, [user, isAuthLoading, navigate]);
+
+  // Don't render the page if still loading auth state
+  if (isAuthLoading) {
+    return (
+      <div className="profile-page">
+        <div className="profile-container">
+          <div className="profile-loading">
+            <div className="loading-spinner"></div>
+            <p>Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if user is not authenticated (will be redirected)
+  if (!user) {
+    return null;
+  }
 
   // Initialize profile data
   useEffect(() => {
     if (user) {
-      setProfileData(prev => ({
-        username: user.username || prev.username || '',
-        email: user.email || prev.email || ''
+      setProfileData((prev) => ({
+        username: user.username || prev.username || "",
+        email: user.email || prev.email || "",
       }));
     }
   }, [user]);
@@ -92,26 +119,27 @@ const ProfilePage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setErrors({});
-    setSuccessMessage('');
+    setSuccessMessage("");
 
     try {
       // Validate form
       const newErrors: Record<string, string> = {};
-      
+
       if (!profileData.username.trim()) {
-        newErrors.username = 'Username is required';
+        newErrors.username = "Username is required";
       } else if (profileData.username.length < 3) {
-        newErrors.username = 'Username must be at least 3 characters';
+        newErrors.username = "Username must be at least 3 characters";
       } else if (!/^[a-zA-Z0-9_]+$/.test(profileData.username)) {
-        newErrors.username = 'Username can only contain letters, numbers, and underscores';
+        newErrors.username =
+          "Username can only contain letters, numbers, and underscores";
       }
-      
+
       if (!profileData.email.trim()) {
-        newErrors.email = 'Email is required';
+        newErrors.email = "Email is required";
       } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(profileData.email)) {
-          newErrors.email = 'Invalid email format';
+          newErrors.email = "Invalid email format";
         }
       }
 
@@ -123,11 +151,13 @@ const ProfilePage: React.FC = () => {
       // Update profile
       const updatedUser = await apiService.updateProfile(profileData);
       setUser(updatedUser);
-      setSuccessMessage('Profile updated successfully!');
+      setSuccessMessage("Profile updated successfully!");
       setIsEditingProfile(false);
-
     } catch (error) {
-      setErrors({ general: error instanceof Error ? error.message : 'Failed to update profile' });
+      setErrors({
+        general:
+          error instanceof Error ? error.message : "Failed to update profile",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -137,28 +167,29 @@ const ProfilePage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setErrors({});
-    setSuccessMessage('');
+    setSuccessMessage("");
 
     try {
       const newErrors: Record<string, string> = {};
-      
+
       if (!passwordData.currentPassword) {
-        newErrors.currentPassword = 'Current password is required';
+        newErrors.currentPassword = "Current password is required";
       }
-      
+
       if (!passwordData.newPassword) {
-        newErrors.newPassword = 'New password is required';
+        newErrors.newPassword = "New password is required";
       } else if (passwordData.newPassword.length < 6) {
-        newErrors.newPassword = 'Password must be at least 6 characters';
+        newErrors.newPassword = "Password must be at least 6 characters";
       }
-      
+
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
+        newErrors.confirmPassword = "Passwords do not match";
       }
 
       // Check if new password is the same as current password
       if (passwordData.newPassword === passwordData.currentPassword) {
-        newErrors.newPassword = 'You cannot use your current password as the new password. Please choose a different password.';
+        newErrors.newPassword =
+          "You cannot use your current password as the new password. Please choose a different password.";
       }
 
       if (Object.keys(newErrors).length > 0) {
@@ -167,42 +198,50 @@ const ProfilePage: React.FC = () => {
       }
 
       await apiService.updatePassword(passwordData);
-      
-      setSuccessMessage('Password updated successfully!');
+
+      setSuccessMessage("Password updated successfully!");
       setIsChangingPassword(false);
       setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
-
     } catch (error) {
-      setErrors({ general: error instanceof Error ? error.message : 'Failed to update password' });
+      setErrors({
+        general:
+          error instanceof Error ? error.message : "Failed to update password",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleNotificationUpdate = async (setting: keyof NotificationSettings, value: boolean) => {
+  const handleNotificationUpdate = async (
+    setting: keyof NotificationSettings,
+    value: boolean
+  ) => {
     try {
       const updatedSettings = { ...notificationSettings, [setting]: value };
       await apiService.updateNotificationSettings(updatedSettings);
       setNotificationSettings(updatedSettings);
-      setSuccessMessage('Notification settings updated!');
+      setSuccessMessage("Notification settings updated!");
     } catch (error) {
-      setErrors({ general: 'Failed to update notification settings' });
+      setErrors({ general: "Failed to update notification settings" });
     }
   };
 
   const handleDeleteAccount = async () => {
     setIsLoading(true);
-    
+
     try {
       await apiService.deleteAccount();
       await logout();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      setErrors({ general: error instanceof Error ? error.message : 'Failed to delete account' });
+      setErrors({
+        general:
+          error instanceof Error ? error.message : "Failed to delete account",
+      });
       setIsLoading(false);
     }
   };
@@ -211,38 +250,37 @@ const ProfilePage: React.FC = () => {
     try {
       setIsLoading(true);
       const userData = await apiService.exportUserData();
-      
+
       // Create and download file
-      const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(userData, null, 2)], {
+        type: "application/json",
+      });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `resume-analyzer-data-${user!.username}-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `resume-analyzer-data-${user!.username}-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
-      setSuccessMessage('Data exported successfully!');
+
+      setSuccessMessage("Data exported successfully!");
     } catch (error) {
-      setErrors({ general: 'Failed to export data. Please try again.' });
+      setErrors({ general: "Failed to export data. Please try again." });
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
 
   return (
     <div className="profile-page">
@@ -257,7 +295,10 @@ const ProfilePage: React.FC = () => {
             <p className="profile-email">{user.email}</p>
             <div className="profile-joined">
               <Calendar className="w-4 h-4" />
-              <span>Member since {formatDate(user.createdAt || new Date().toISOString())}</span>
+              <span>
+                Member since{" "}
+                {formatDate(user.createdAt || new Date().toISOString())}
+              </span>
             </div>
           </div>
         </div>
@@ -267,12 +308,15 @@ const ProfilePage: React.FC = () => {
           <div className="message success">
             <CheckCircle className="w-5 h-5" />
             <span>{successMessage}</span>
-            <button onClick={() => setSuccessMessage('')} className="message-close">
+            <button
+              onClick={() => setSuccessMessage("")}
+              className="message-close"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
-        
+
         {errors.general && (
           <div className="message error">
             <AlertTriangle className="w-5 h-5" />
@@ -286,15 +330,15 @@ const ProfilePage: React.FC = () => {
         {/* Tab Navigation */}
         <div className="profile-tabs">
           <button
-            onClick={() => setActiveTab('profile')}
-            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab("profile")}
+            className={`tab-btn ${activeTab === "profile" ? "active" : ""}`}
           >
             <User className="w-4 h-4" />
             Profile
           </button>
           <button
-            onClick={() => setActiveTab('settings')}
-            className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab("settings")}
+            className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
           >
             <Settings className="w-4 h-4" />
             Settings
@@ -303,19 +347,26 @@ const ProfilePage: React.FC = () => {
 
         {/* Tab Content */}
         <div className="tab-content">
-          {activeTab === 'profile' && (
+          {activeTab === "profile" && (
             <>
               {/* Profile Information */}
               <div className="content-section">
                 <div className="section-header-compact">
-                  <h3><User className="w-4 h-4" />Profile Information</h3>
+                  <h3>
+                    <User className="w-4 h-4" />
+                    Profile Information
+                  </h3>
                   <button
                     onClick={() => setIsEditingProfile(!isEditingProfile)}
                     className="btn-secondary-small"
                     disabled={isLoading}
                   >
-                    {isEditingProfile ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                    {isEditingProfile ? 'Cancel' : 'Edit'}
+                    {isEditingProfile ? (
+                      <X className="w-4 h-4" />
+                    ) : (
+                      <Edit3 className="w-4 h-4" />
+                    )}
+                    {isEditingProfile ? "Cancel" : "Edit"}
                   </button>
                 </div>
 
@@ -328,13 +379,22 @@ const ProfilePage: React.FC = () => {
                         <input
                           type="text"
                           value={profileData.username}
-                          onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                          className={`input-field-compact ${errors.username ? 'error' : ''}`}
+                          onChange={(e) =>
+                            setProfileData({
+                              ...profileData,
+                              username: e.target.value,
+                            })
+                          }
+                          className={`input-field-compact ${
+                            errors.username ? "error" : ""
+                          }`}
                           disabled={!isEditingProfile || isLoading}
-                          placeholder={user?.username || 'Enter username'}
+                          placeholder={user?.username || "Enter username"}
                         />
                       </div>
-                      {errors.username && <p className="input-error-compact">{errors.username}</p>}
+                      {errors.username && (
+                        <p className="input-error-compact">{errors.username}</p>
+                      )}
                     </div>
 
                     <div className="input-group-compact">
@@ -344,13 +404,22 @@ const ProfilePage: React.FC = () => {
                         <input
                           type="email"
                           value={profileData.email}
-                          onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                          className={`input-field-compact ${errors.email ? 'error' : ''}`}
+                          onChange={(e) =>
+                            setProfileData({
+                              ...profileData,
+                              email: e.target.value,
+                            })
+                          }
+                          className={`input-field-compact ${
+                            errors.email ? "error" : ""
+                          }`}
                           disabled={!isEditingProfile || isLoading}
-                          placeholder={user?.email || 'Enter email'}
+                          placeholder={user?.email || "Enter email"}
                         />
                       </div>
-                      {errors.email && <p className="input-error-compact">{errors.email}</p>}
+                      {errors.email && (
+                        <p className="input-error-compact">{errors.email}</p>
+                      )}
                     </div>
                   </div>
 
@@ -361,7 +430,11 @@ const ProfilePage: React.FC = () => {
                         className="btn-primary-small"
                         disabled={isLoading}
                       >
-                        {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isLoading ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
                         Save Changes
                       </button>
                     </div>
@@ -372,7 +445,10 @@ const ProfilePage: React.FC = () => {
               {/* Security */}
               <div className="content-section">
                 <div className="section-header-compact">
-                  <h3><Shield className="w-4 h-4" />Security</h3>
+                  <h3>
+                    <Shield className="w-4 h-4" />
+                    Security
+                  </h3>
                   <button
                     onClick={() => setIsChangingPassword(!isChangingPassword)}
                     className="btn-secondary-small"
@@ -387,98 +463,170 @@ const ProfilePage: React.FC = () => {
                   <div className="security-info">
                     <p className="security-note">
                       <Shield className="w-4 h-4" />
-                      You can change your password here or use the "Forgot Password" feature on the login page if you need to reset it. Note: You cannot use your current password as the new password for security reasons.
+                      You can change your password here or use the "Forgot
+                      Password" feature on the login page if you need to reset
+                      it. Note: You cannot use your current password as the new
+                      password for security reasons.
                     </p>
                   </div>
                 )}
 
                 {isChangingPassword && (
-                  <form onSubmit={handlePasswordUpdate} className="compact-form">
+                  <form
+                    onSubmit={handlePasswordUpdate}
+                    className="compact-form"
+                  >
                     <div className="input-group-compact">
-                      <label className="input-label-compact">Current Password</label>
+                      <label className="input-label-compact">
+                        Current Password
+                      </label>
                       <div className="input-wrapper-compact">
                         <Lock className="input-icon-compact" />
                         <input
-                          type={showPasswords.current ? 'text' : 'password'}
+                          type={showPasswords.current ? "text" : "password"}
                           value={passwordData.currentPassword}
-                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                          className={`input-field-compact ${errors.currentPassword ? 'error' : ''}`}
+                          onChange={(e) =>
+                            setPasswordData({
+                              ...passwordData,
+                              currentPassword: e.target.value,
+                            })
+                          }
+                          className={`input-field-compact ${
+                            errors.currentPassword ? "error" : ""
+                          }`}
                           disabled={isLoading}
                         />
                         <button
                           type="button"
                           className="password-toggle-compact"
-                          onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                          onClick={() =>
+                            setShowPasswords({
+                              ...showPasswords,
+                              current: !showPasswords.current,
+                            })
+                          }
                         >
-                          {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showPasswords.current ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
-                      {errors.currentPassword && <p className="input-error-compact">{errors.currentPassword}</p>}
+                      {errors.currentPassword && (
+                        <p className="input-error-compact">
+                          {errors.currentPassword}
+                        </p>
+                      )}
                     </div>
 
                     <div className="form-grid-compact">
                       <div className="input-group-compact">
-                        <label className="input-label-compact">New Password</label>
-                        <div className="input-wrapper-compact">
-                          <Lock className="input-icon-compact" />
-                                                  <input
-                          type={showPasswords.new ? 'text' : 'password'}
-                          value={passwordData.newPassword}
-                          onChange={(e) => {
-                            const newPassword = e.target.value;
-                            setPasswordData({ ...passwordData, newPassword });
-                            
-                            // Clear error when user starts typing
-                            if (errors.newPassword) {
-                              setErrors(prev => {
-                                const newErrors = { ...prev };
-                                delete newErrors.newPassword;
-                                return newErrors;
-                              });
-                            }
-                            
-                            // Real-time validation to check if new password matches current password
-                            if (newPassword && passwordData.currentPassword && newPassword === passwordData.currentPassword) {
-                              setErrors(prev => ({ 
-                                ...prev, 
-                                newPassword: 'You cannot use your current password as the new password. Please choose a different password.' 
-                              }));
-                            }
-                          }}
-                          className={`input-field-compact ${errors.newPassword ? 'error' : ''}`}
-                          disabled={isLoading}
-                        />
-                          <button
-                            type="button"
-                            className="password-toggle-compact"
-                            onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                          >
-                            {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                        {errors.newPassword && <p className="input-error-compact">{errors.newPassword}</p>}
-                      </div>
-
-                      <div className="input-group-compact">
-                        <label className="input-label-compact">Confirm Password</label>
+                        <label className="input-label-compact">
+                          New Password
+                        </label>
                         <div className="input-wrapper-compact">
                           <Lock className="input-icon-compact" />
                           <input
-                            type={showPasswords.confirm ? 'text' : 'password'}
-                            value={passwordData.confirmPassword}
-                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                            className={`input-field-compact ${errors.confirmPassword ? 'error' : ''}`}
+                            type={showPasswords.new ? "text" : "password"}
+                            value={passwordData.newPassword}
+                            onChange={(e) => {
+                              const newPassword = e.target.value;
+                              setPasswordData({ ...passwordData, newPassword });
+
+                              // Clear error when user starts typing
+                              if (errors.newPassword) {
+                                setErrors((prev) => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.newPassword;
+                                  return newErrors;
+                                });
+                              }
+
+                              // Real-time validation to check if new password matches current password
+                              if (
+                                newPassword &&
+                                passwordData.currentPassword &&
+                                newPassword === passwordData.currentPassword
+                              ) {
+                                setErrors((prev) => ({
+                                  ...prev,
+                                  newPassword:
+                                    "You cannot use your current password as the new password. Please choose a different password.",
+                                }));
+                              }
+                            }}
+                            className={`input-field-compact ${
+                              errors.newPassword ? "error" : ""
+                            }`}
                             disabled={isLoading}
                           />
                           <button
                             type="button"
                             className="password-toggle-compact"
-                            onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                            onClick={() =>
+                              setShowPasswords({
+                                ...showPasswords,
+                                new: !showPasswords.new,
+                              })
+                            }
                           >
-                            {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showPasswords.new ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
                           </button>
                         </div>
-                        {errors.confirmPassword && <p className="input-error-compact">{errors.confirmPassword}</p>}
+                        {errors.newPassword && (
+                          <p className="input-error-compact">
+                            {errors.newPassword}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="input-group-compact">
+                        <label className="input-label-compact">
+                          Confirm Password
+                        </label>
+                        <div className="input-wrapper-compact">
+                          <Lock className="input-icon-compact" />
+                          <input
+                            type={showPasswords.confirm ? "text" : "password"}
+                            value={passwordData.confirmPassword}
+                            onChange={(e) =>
+                              setPasswordData({
+                                ...passwordData,
+                                confirmPassword: e.target.value,
+                              })
+                            }
+                            className={`input-field-compact ${
+                              errors.confirmPassword ? "error" : ""
+                            }`}
+                            disabled={isLoading}
+                          />
+                          <button
+                            type="button"
+                            className="password-toggle-compact"
+                            onClick={() =>
+                              setShowPasswords({
+                                ...showPasswords,
+                                confirm: !showPasswords.confirm,
+                              })
+                            }
+                          >
+                            {showPasswords.confirm ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        {errors.confirmPassword && (
+                          <p className="input-error-compact">
+                            {errors.confirmPassword}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -487,7 +635,11 @@ const ProfilePage: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setIsChangingPassword(false);
-                          setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                          setPasswordData({
+                            currentPassword: "",
+                            newPassword: "",
+                            confirmPassword: "",
+                          });
                           setErrors({});
                         }}
                         className="btn-secondary-small"
@@ -500,7 +652,11 @@ const ProfilePage: React.FC = () => {
                         className="btn-primary-small"
                         disabled={isLoading}
                       >
-                        {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isLoading ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
                         Update Password
                       </button>
                     </div>
@@ -511,20 +667,29 @@ const ProfilePage: React.FC = () => {
               {/* Data Export */}
               <div className="content-section">
                 <div className="section-header-compact">
-                  <h3><BarChart3 className="w-4 h-4" />Data Export</h3>
+                  <h3>
+                    <BarChart3 className="w-4 h-4" />
+                    Data Export
+                  </h3>
                 </div>
 
                 <div className="export-compact">
                   <div className="export-info-compact">
                     <span className="export-title">Download Your Data</span>
-                    <small>Export profile and analysis data in JSON format</small>
+                    <small>
+                      Export profile and analysis data in JSON format
+                    </small>
                   </div>
                   <button
                     onClick={handleExportData}
                     className="btn-secondary-small"
                     disabled={isLoading}
                   >
-                    {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {isLoading ? (
+                      <Loader className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
                     Export Data
                   </button>
                 </div>
@@ -532,12 +697,15 @@ const ProfilePage: React.FC = () => {
             </>
           )}
 
-          {activeTab === 'settings' && (
+          {activeTab === "settings" && (
             <>
               {/* Notification Settings */}
               <div className="content-section">
                 <div className="section-header-compact">
-                  <h3><Bell className="w-4 h-4" />Notifications</h3>
+                  <h3>
+                    <Bell className="w-4 h-4" />
+                    Notifications
+                  </h3>
                 </div>
 
                 <div className="settings-grid">
@@ -550,7 +718,12 @@ const ProfilePage: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={notificationSettings.analysisNotifications}
-                        onChange={(e) => handleNotificationUpdate('analysisNotifications', e.target.checked)}
+                        onChange={(e) =>
+                          handleNotificationUpdate(
+                            "analysisNotifications",
+                            e.target.checked
+                          )
+                        }
                       />
                       <span className="toggle-slider-compact"></span>
                     </label>
@@ -564,8 +737,15 @@ const ProfilePage: React.FC = () => {
                     <label className="toggle-switch-compact">
                       <input
                         type="checkbox"
-                        checked={notificationSettings.accountActivityNotifications}
-                        onChange={(e) => handleNotificationUpdate('accountActivityNotifications', e.target.checked)}
+                        checked={
+                          notificationSettings.accountActivityNotifications
+                        }
+                        onChange={(e) =>
+                          handleNotificationUpdate(
+                            "accountActivityNotifications",
+                            e.target.checked
+                          )
+                        }
                       />
                       <span className="toggle-slider-compact"></span>
                     </label>
@@ -580,7 +760,12 @@ const ProfilePage: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={notificationSettings.marketingEmails}
-                        onChange={(e) => handleNotificationUpdate('marketingEmails', e.target.checked)}
+                        onChange={(e) =>
+                          handleNotificationUpdate(
+                            "marketingEmails",
+                            e.target.checked
+                          )
+                        }
                       />
                       <span className="toggle-slider-compact"></span>
                     </label>
@@ -588,12 +773,13 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
 
-
-
               {/* Danger Zone */}
               <div className="content-section danger-zone-compact">
                 <div className="section-header-compact">
-                  <h3><AlertTriangle className="w-4 h-4" />Danger Zone</h3>
+                  <h3>
+                    <AlertTriangle className="w-4 h-4" />
+                    Danger Zone
+                  </h3>
                 </div>
 
                 <div className="danger-content-compact">
@@ -622,7 +808,10 @@ const ProfilePage: React.FC = () => {
           <div className="modal delete-modal">
             <div className="modal-header">
               <h3>Delete Account</h3>
-              <button onClick={() => setShowDeleteModal(false)} className="modal-close">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="modal-close"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -630,7 +819,8 @@ const ProfilePage: React.FC = () => {
               <div className="warning-content">
                 <AlertTriangle className="warning-icon" />
                 <p>
-                  Are you sure you want to delete your account? This will permanently remove:
+                  Are you sure you want to delete your account? This will
+                  permanently remove:
                 </p>
                 <ul>
                   <li>Your profile information</li>
@@ -656,7 +846,11 @@ const ProfilePage: React.FC = () => {
                 className="btn-danger"
                 disabled={isLoading}
               >
-                {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isLoading ? (
+                  <Loader className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
                 Delete Account
               </button>
             </div>
@@ -667,4 +861,4 @@ const ProfilePage: React.FC = () => {
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;
