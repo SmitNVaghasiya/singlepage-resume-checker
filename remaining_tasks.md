@@ -1,17 +1,15 @@
 ------- Important tasks.
 -- My main function of the resume checking is not complete. - Currently dashboard is not able to take all the data from the resumechecker and show in the dashboard. - After making proper resumechecker make dashboard according to that.
-    -- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
-    -- Make sure that analysis result page is showing all the content and also the dashbord page.
+-- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
+-- Make sure that analysis result page is showing all the content and also the dashbord page.
 
 -- After user returns to the resumechecker page all the data must remain as it is. As right now it is not happening all data is being lost or have re-eneter even though it is not lost.
 
--- Sign in button is becoming bigger when pressed so remove that transition.
 -- when error shown increase the size of the sign up card only not the sign in page.
--- footer contact info must be corrected and also remove all the fake info from the site.
 
 -------- Must complete only after completing above tasks.
 -- Add the Google sign in and sign up inside of my website.
--- "How We Compare" make sure that this feature is correct.
+-- "How We Compare" make sure that this feature is correct. ---For now this is correct.
 -- Cheking the Delete Account feature and also all the features inside of the settings.
 
 -------- Future add on.

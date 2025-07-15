@@ -1,33 +1,74 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Briefcase, Mail, Phone, MapPin, Github, Linkedin, Twitter, ExternalLink } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  Briefcase,
+  Mail,
+  Phone,
+  MapPin,
+  Github,
+  Linkedin,
+  Twitter,
+  ExternalLink,
+} from "lucide-react";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     product: [
-      { name: 'Resume Analysis', path: '/resumechecker' },
-      { name: 'Dashboard', path: '/dashboard' },
-      { name: 'Contact', path: '/contact' },
+      { name: "Resume Analysis", path: "/resumechecker", disabled: false },
+      { name: "Dashboard", path: "/dashboard", disabled: false },
+      { name: "Contact", path: "/contact", disabled: false },
     ],
     company: [
-      { name: 'About Us', path: '/about' },
-      { name: 'Privacy Policy', path: '/privacy' },
-      { name: 'Terms of Service', path: '/terms' },
+      { name: "About Us", path: "/about", disabled: true },
+      { name: "Privacy Policy", path: "/privacy", disabled: true },
+      { name: "Terms of Service", path: "/terms", disabled: true },
     ],
     resources: [
-      { name: 'Blog', path: '/blog' },
-      { name: 'Help Center', path: '/help' },
-      { name: 'Career Tips', path: '/tips' },
-    ]
+      { name: "Blog", path: "/blog", disabled: true },
+      { name: "Help Center", path: "/help", disabled: true },
+      { name: "Career Tips", path: "/tips", disabled: true },
+    ],
   };
 
   const socialLinks = [
-    { icon: Github, href: 'https://github.com', label: 'GitHub' },
-    { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
+    {
+      icon: Github,
+      href: "https://github.com/SmitNVaghasiya",
+      label: "GitHub",
+    },
+    {
+      icon: Linkedin,
+      href: "https://www.linkedin.com/in/smit-vaghasiya2004/",
+      label: "LinkedIn",
+    },
+    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
   ];
+
+  const renderFooterLink = (
+    link: { name: string; path: string; disabled: boolean },
+    index: number
+  ) => {
+    if (link.disabled) {
+      return (
+        <li key={index}>
+          <span className="footer-link disabled">
+            <span>{link.name}</span>
+          </span>
+        </li>
+      );
+    }
+
+    return (
+      <li key={index}>
+        <Link to={link.path} className="footer-link">
+          <span>{link.name}</span>
+          <ExternalLink className="footer-link-icon" />
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <footer className="footer">
@@ -43,7 +84,8 @@ const Footer: React.FC = () => {
               <span className="footer-brand-text">AI Resume Checker</span>
             </Link>
             <p className="footer-description">
-              Perfect your resume with AI-powered analysis. Get instant feedback and actionable insights.
+              Perfect your resume with AI-powered analysis. Get instant feedback
+              and actionable insights.
             </p>
             <div className="footer-social">
               {socialLinks.map((social, index) => {
@@ -68,14 +110,7 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="footer-section-title">Product</h3>
             <ul className="footer-links">
-              {footerLinks.product.map((link, index) => (
-                <li key={index}>
-                  <Link to={link.path} className="footer-link">
-                    <span>{link.name}</span>
-                    <ExternalLink className="footer-link-icon" />
-                  </Link>
-                </li>
-              ))}
+              {footerLinks.product.map(renderFooterLink)}
             </ul>
           </div>
 
@@ -83,14 +118,7 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="footer-section-title">Company</h3>
             <ul className="footer-links">
-              {footerLinks.company.map((link, index) => (
-                <li key={index}>
-                  <Link to={link.path} className="footer-link">
-                    <span>{link.name}</span>
-                    <ExternalLink className="footer-link-icon" />
-                  </Link>
-                </li>
-              ))}
+              {footerLinks.company.map(renderFooterLink)}
             </ul>
           </div>
 
@@ -98,14 +126,7 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="footer-section-title">Resources</h3>
             <ul className="footer-links">
-              {footerLinks.resources.map((link, index) => (
-                <li key={index}>
-                  <Link to={link.path} className="footer-link">
-                    <span>{link.name}</span>
-                    <ExternalLink className="footer-link-icon" />
-                  </Link>
-                </li>
-              ))}
+              {footerLinks.resources.map(renderFooterLink)}
             </ul>
           </div>
 
@@ -115,19 +136,22 @@ const Footer: React.FC = () => {
             <div className="footer-contact-list">
               <div className="footer-contact-item">
                 <Mail className="footer-contact-icon blue" />
-                <a href="mailto:support@airesumechecker.com" className="footer-contact-link">
-                  support@airesumechecker.com
+                <a
+                  href="mailto:smitvaghasiya11280@gmail.com"
+                  className="footer-contact-link"
+                >
+                  smitvaghasiya11280@gmail.com
                 </a>
               </div>
               <div className="footer-contact-item">
                 <Phone className="footer-contact-icon green" />
-                <a href="tel:+1234567890" className="footer-contact-link">
-                  +1 (234) 567-8900
+                <a href="tel:+9193130230990" className="footer-contact-link">
+                  +91 93130230990
                 </a>
               </div>
               <div className="footer-contact-item">
                 <MapPin className="footer-contact-icon red" />
-                <span>San Francisco, CA</span>
+                <span>Surat, Gujarat</span>
               </div>
             </div>
           </div>
@@ -139,15 +163,11 @@ const Footer: React.FC = () => {
             © {currentYear} AI Resume Checker. All rights reserved.
           </div>
           <div className="footer-bottom-links">
-            <Link to="/privacy" className="footer-bottom-link">
-              Privacy Policy
-            </Link>
-            <Link to="/terms" className="footer-bottom-link">
+            <span className="footer-bottom-link disabled">Privacy Policy</span>
+            <span className="footer-bottom-link disabled">
               Terms of Service
-            </Link>
-            <Link to="/cookies" className="footer-bottom-link">
-              Cookie Policy
-            </Link>
+            </span>
+            <span className="footer-bottom-link disabled">Cookie Policy</span>
           </div>
         </div>
       </div>

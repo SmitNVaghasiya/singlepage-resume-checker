@@ -152,6 +152,27 @@
   opacity: 1;
 }
 
+/* Disabled Footer Links */
+.footer-link.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.footer-link.disabled:hover {
+  color: #94a3b8;
+  padding-left: 0;
+  cursor: not-allowed;
+}
+
+.footer-link.disabled .footer-link-icon {
+  display: none;
+}
+
 /* Contact Info */
 .footer-contact-list {
   display: flex;
@@ -229,4 +250,19 @@
 
 .footer-bottom-link:hover {
   color: white;
+}
+
+/* Disabled Bottom Links */
+.footer-bottom-link.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-bottom-link.disabled:hover {
+  color: #94a3b8;
+  cursor: not-allowed;
 }

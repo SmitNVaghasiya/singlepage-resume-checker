@@ -1,65 +1,69 @@
-import React from 'react';
-import { Brain, FileSearch, Target, Zap, CheckCircle, X } from 'lucide-react';
+import React from "react";
+import { Brain, FileSearch, Target, Zap, CheckCircle, X } from "lucide-react";
 
 const WhyChooseUs: React.FC = () => {
   const comparisons = [
     {
-      feature: 'Job Description Analysis',
+      feature: "Job Description Analysis",
       us: true,
       others: false,
-      description: 'Analyzes your resume against specific job requirements'
+      description: "Analyzes your resume against specific job requirements",
     },
     {
-      feature: 'Context-Aware Matching',
+      feature: "Context-Aware Matching",
       us: true,
       others: false,
-      description: 'Understands the context, not just keywords'
+      description: "Understands the context, not just keywords",
     },
     {
-      feature: 'Actionable Recommendations',
+      feature: "Actionable Recommendations",
       us: true,
       others: true,
-      description: 'Provides specific improvement suggestions'
+      description: "Provides specific improvement suggestions",
     },
     {
-      feature: 'ATS Compatibility Check',
-      us: true,
-      others: true,
-      description: 'Ensures your resume passes ATS systems'
-    },
-    {
-      feature: 'Real-time Analysis',
+      feature: "Section-wise Feedback",
       us: true,
       others: false,
-      description: 'Instant results without waiting'
-    }
+      description: "Detailed analysis of each resume section",
+    },
+    {
+      feature: "Real-time Analysis",
+      us: true,
+      others: false,
+      description: "Instant results without waiting",
+    },
   ];
 
   const advantages = [
     {
       icon: Brain,
-      title: 'Smart AI Analysis',
-      description: 'Our AI doesn\'t just look for keywords - it understands the context and meaning behind job requirements.',
-      color: 'bg-blue-500'
+      title: "Smart AI Analysis",
+      description:
+        "Our AI doesn't just look for keywords - it understands the context and meaning behind job requirements.",
+      color: "bg-blue-500",
     },
     {
       icon: Target,
-      title: 'Job-Specific Matching',
-      description: 'Unlike generic ATS checkers, we analyze your resume against the actual job description you\'re applying for.',
-      color: 'bg-emerald-500'
+      title: "Job-Specific Matching",
+      description:
+        "Unlike generic ATS checkers, we analyze your resume against the actual job description you're applying for.",
+      color: "bg-emerald-500",
     },
     {
       icon: FileSearch,
-      title: 'Comprehensive Analysis',
-      description: 'We evaluate skills, experience, education, and achievements in relation to job requirements.',
-      color: 'bg-purple-500'
+      title: "Comprehensive Analysis",
+      description:
+        "We evaluate skills, experience, education, and achievements in relation to job requirements.",
+      color: "bg-purple-500",
     },
     {
       icon: Zap,
-      title: 'Instant Results',
-      description: 'Get detailed analysis and recommendations in seconds, not minutes or hours.',
-      color: 'bg-orange-500'
-    }
+      title: "Instant Results",
+      description:
+        "Get detailed analysis and recommendations in seconds, not minutes or hours.",
+      color: "bg-orange-500",
+    },
   ];
 
   return (
@@ -68,8 +72,9 @@ const WhyChooseUs: React.FC = () => {
         <div className="section-header">
           <h2 className="section-title">Why Choose Our Resume Analyzer?</h2>
           <p className="section-subtitle">
-            Unlike traditional ATS checkers that only scan for keywords, our AI-powered analyzer 
-            provides comprehensive, job-specific insights to truly optimize your resume.
+            Unlike traditional ATS checkers that only scan for keywords, our
+            AI-powered analyzer provides comprehensive, job-specific insights to
+            truly optimize your resume.
           </p>
         </div>
 
@@ -125,4 +130,4 @@ const WhyChooseUs: React.FC = () => {
   );
 };
 
-export default WhyChooseUs; 
+export default WhyChooseUs;
