@@ -6,10 +6,7 @@ interface AnalysisStage {
   completed: boolean;
 }
 
-interface TempFiles {
-  resume?: { tempId: string; filename: string };
-  jobDescription?: { tempId: string; filename: string };
-}
+// TempFiles interface removed - no longer needed
 
 interface AnalysisServiceProps {
   user: any;
@@ -17,8 +14,7 @@ interface AnalysisServiceProps {
   jobDescription: string;
   jobFile: File | null;
   jobInputMethod: JobInputMethod;
-  tempFiles: TempFiles;
-  setTempFiles: (files: TempFiles) => void;
+  currentStep: string;
   setRequiresAuth: (requires: boolean) => void;
   setAnalysisResult: (result: AnalysisResult) => void;
   addAnalysisToHistory: (result: AnalysisResult) => void;
@@ -27,10 +23,20 @@ interface AnalysisServiceProps {
   setCurrentStageIndex: (index: number) => void;
   setShowAuthModal: (show: boolean) => void;
   setCurrentStep: (step: string) => void;
+  // Add getter functions to get latest state
+  getLatestState: () => {
+    user: any;
+    resumeFile: File | null;
+    jobDescription: string;
+    jobFile: File | null;
+    jobInputMethod: JobInputMethod;
+    currentStep: string;
+  };
 }
 
 export class AnalysisService {
   private props: AnalysisServiceProps;
+  private isAnalysisRunning: boolean = false;
 
   constructor(props: AnalysisServiceProps) {
     this.props = props;
@@ -46,14 +52,26 @@ export class AnalysisService {
   ];
 
   public async startAnalysis(): Promise<void> {
+    // Prevent multiple simultaneous analysis attempts
+    if (this.isAnalysisRunning) {
+      console.log('Analysis already running, skipping...');
+      return;
+    }
+    
+    this.isAnalysisRunning = true;
+    
+    // Get the latest state instead of using constructor props
+    const latestState = this.props.getLatestState();
     const {
       user,
       resumeFile,
       jobDescription,
       jobFile,
       jobInputMethod,
-      tempFiles,
-      setTempFiles,
+      currentStep
+    } = latestState;
+
+    const {
       setRequiresAuth,
       setAnalysisResult,
       addAnalysisToHistory,
@@ -64,44 +82,67 @@ export class AnalysisService {
       setCurrentStep
     } = this.props;
 
-    // Check if user is authenticated
-    if (!user) {
-      // Upload files temporarily if not already done
-      const needsResumeUpload = resumeFile && !tempFiles.resume;
-      const needsJobUpload = jobFile && !tempFiles.jobDescription;
-      
-      if (needsResumeUpload || needsJobUpload) {
-        try {
-          const { apiService } = await import('./api');
-          const tempUploadResponse = await apiService.uploadTempFiles(
-            needsResumeUpload ? resumeFile : undefined,
-            needsJobUpload ? jobFile : undefined
-          );
-          
-          // Merge with existing temp files
-          setTempFiles({
-            ...tempFiles,
-            ...tempUploadResponse.tempFiles
-          });
-          setRequiresAuth(true);
-        } catch (error) {
-          console.error('Failed to upload temporary files:', error);
-          alert('Failed to upload files. Please try again.');
-          return;
-        }
-      }
-      
-      // Show authentication modal
-      setShowAuthModal(true);
-      return;
-    }
-
-    setCurrentStep('analyze');
-    setIsAnalyzing(true);
-    setAnalysisProgress(0);
-    setCurrentStageIndex(0);
-
     try {
+      // Validate that we have the required data
+      console.log('Starting analysis with state:', {
+        hasUser: !!user,
+        hasResumeFile: !!resumeFile,
+        hasJobFile: !!jobFile,
+        hasJobDescription: !!jobDescription,
+        jobInputMethod,
+        currentStep,
+        resumeFileName: resumeFile?.name,
+        jobFileName: jobFile?.name
+      });
+
+      // Additional validation logging
+      if (!resumeFile) {
+        console.error('CRITICAL: No resume file found!', {
+          resumeFile: resumeFile,
+          localStoragePendingAnalysis: localStorage.getItem('pendingAnalysis')
+        });
+      }
+
+      // Check if user is authenticated
+      if (!user) {
+        console.log('User not authenticated, saving state and redirecting to login');
+        
+        // Save current analysis state before redirecting
+        const pendingAnalysis = {
+          currentStep: currentStep || 'job-description',
+          jobDescription: jobDescription || '',
+          jobInputMethod: jobInputMethod || 'text',
+          // Store file data as base64 for reconstruction after login
+          resumeFile: resumeFile ? {
+            name: resumeFile.name,
+            size: resumeFile.size,
+            type: resumeFile.type,
+            data: await this.fileToBase64(resumeFile)
+          } : null,
+          jobFile: jobFile ? {
+            name: jobFile.name,
+            size: jobFile.size,
+            type: jobFile.type,
+            data: await this.fileToBase64(jobFile)
+          } : null
+        };
+        console.log('Saving pending analysis:', {
+          ...pendingAnalysis,
+          jobDescriptionLength: pendingAnalysis.jobDescription.length,
+          jobDescriptionPreview: pendingAnalysis.jobDescription.substring(0, 100) + '...'
+        });
+        localStorage.setItem('pendingAnalysis', JSON.stringify(pendingAnalysis));
+        
+        // Redirect to login page
+        window.location.href = '/login?redirect=/resumechecker';
+        return;
+      }
+
+      setCurrentStep('analyze');
+      setIsAnalyzing(true);
+      setAnalysisProgress(0);
+      setCurrentStageIndex(0);
+
       // Import the API service
       const { apiService } = await import('./api');
 
@@ -116,19 +157,33 @@ export class AnalysisService {
 
       let analysisResponse;
 
-      // Use temporary files if available, otherwise use current files
-      if (tempFiles.resume || tempFiles.jobDescription) {
-        analysisResponse = await apiService.analyzeResumeWithTempFiles(
-          tempFiles.resume?.tempId,
-          tempFiles.jobDescription?.tempId,
-          jobInputMethod === 'text' ? jobDescription : undefined,
-          resumeFile || undefined,
-          jobFile || undefined
-        );
-      } else {
+      // Use current files for analysis (no temp files needed)
+      console.log('Analysis: Using current files:', {
+        hasResumeFile: !!resumeFile,
+        hasJobFile: !!jobFile,
+        jobInputMethod,
+        resumeFileName: resumeFile?.name,
+        jobFileName: jobFile?.name
+      });
+      
+      // Validate that we have a resume file
+      if (!resumeFile) {
+        console.error('No resume file available for analysis');
+        throw new Error('Resume file is required. Please upload a resume file and try again.');
+      }
+      
+      // Add a small delay to ensure state is fully synchronized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (resumeFile) {
+        console.log('Using current files for analysis:', {
+          resumeFileName: resumeFile.name,
+          jobFileName: jobFile?.name,
+          jobDescriptionText: jobInputMethod === 'text' ? jobDescription : undefined
+        });
         // Prepare analysis request with current files
         const analysisRequest = {
-          resumeFile: resumeFile!,
+          resumeFile: resumeFile,
           ...(jobInputMethod === 'text' 
             ? { jobDescriptionText: jobDescription }
             : { jobDescriptionFile: jobFile! }
@@ -137,6 +192,9 @@ export class AnalysisService {
 
         // Start analysis
         analysisResponse = await apiService.analyzeResume(analysisRequest);
+      } else {
+        // This should never happen due to the validation above, but just in case
+        throw new Error('Resume file is required. Please upload a resume file and try again.');
       }
       
       // Stage 3: Processing with AI
@@ -172,8 +230,8 @@ export class AnalysisService {
         // Legacy compatibility fields for existing components
         id: analysisResponse.analysisId,
         analysisId: analysisResponse.analysisId,
-        resumeFilename: resumeFile?.name || tempFiles.resume?.filename || 'Resume',
-        jobDescriptionFilename: jobInputMethod === 'file' ? (jobFile?.name || tempFiles.jobDescription?.filename) : 'Text Input',
+        resumeFilename: resumeFile?.name || 'Resume',
+        jobDescriptionFilename: jobInputMethod === 'file' ? (jobFile?.name || 'Job Description File') : 'Text Input',
         jobTitle: jobTitle,
         industry: result.industry || 'General',
         analyzedAt: new Date(),
@@ -195,8 +253,8 @@ export class AnalysisService {
       addAnalysisToHistory(analysisResult);
       setIsAnalyzing(false);
 
-      // Clear temporary files after successful analysis
-      setTempFiles({});
+      // Clear any pending analysis from localStorage
+      localStorage.removeItem('pendingAnalysis');
       setRequiresAuth(false);
 
     } catch (error) {
@@ -214,7 +272,22 @@ export class AnalysisService {
         // Reset to job description step
         setCurrentStep('job-description');
       }
+    } finally {
+      this.isAnalysisRunning = false;
     }
+  }
+
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = (error) => {
+        reject(error);
+      };
+    });
   }
 
   private extractJobTitle(result: any, jobDescription: string, jobFile: File | null, jobInputMethod: JobInputMethod): string {

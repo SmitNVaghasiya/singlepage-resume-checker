@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, FileText, X, CheckCircle } from 'lucide-react';
+import { Upload, FileText, X, CheckCircle, Eye } from 'lucide-react';
+import PasteTip from './PasteTip';
+import FilePreviewModal from './FilePreviewModal';
 
 interface ResumeUploadSectionProps {
   file: File | null;
@@ -14,11 +16,14 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidFile = useCallback((file: File) => {
-    const validTypes = ['.pdf', '.docx'];
+    const validTypes = ['.pdf', '.docx', '.txt'];
     const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    console.log('Validating file:', file.name, file.type, file.size);
     
     if (file.size > maxSize) {
       setUploadError('File size must be less than 5MB');
@@ -28,11 +33,12 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
     const isValidType = validTypes.some(type => {
       if (type === '.pdf') return file.type === 'application/pdf';
       if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      if (type === '.txt') return file.type === 'text/plain';
       return false;
     });
 
     if (!isValidType) {
-      setUploadError('Please upload a PDF or DOCX file');
+      setUploadError('Please upload a PDF, DOCX, or TXT file');
       return false;
     }
 
@@ -64,12 +70,23 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
   }, [isValidFile, onFileChange]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    console.log('ResumeUploadSection: Paste event triggered');
     const items = e.clipboardData.items;
+    console.log('Clipboard items count:', items.length);
+    
     for (let i = 0; i < items.length; i++) {
-      if (items[i].kind === 'file') {
-        const pastedFile = items[i].getAsFile();
+      const item = items[i];
+      console.log('Clipboard item:', item.kind, item.type);
+      
+      if (item.kind === 'file') {
+        const pastedFile = item.getAsFile();
+        console.log('Pasted file:', pastedFile?.name, pastedFile?.type, pastedFile?.size);
+        
         if (pastedFile && isValidFile(pastedFile)) {
+          console.log('File is valid, calling onFileChange');
           onFileChange(pastedFile);
+        } else {
+          console.log('File is invalid or null');
         }
       }
     }
@@ -130,7 +147,7 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.docx"
+              accept=".pdf,.docx,.txt"
               onChange={handleFileInput}
               className="upload-input-hidden"
               id="resume-upload"
@@ -152,6 +169,18 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
+                    <button
+                      className="upload-view-btn"
+                      type="button"
+                      title="View file"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsPreviewOpen(true);
+                      }}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
                     <button
                       onClick={removeFile}
                       className="upload-remove-btn"
@@ -176,8 +205,9 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
                       Drop your resume here, paste (Ctrl+V), or click to browse
                     </p>
                     <p className="upload-sub-text">
-                      PDF, DOCX • Max 5MB
+                      PDF, DOCX, TXT • Max 5MB
                     </p>
+                    <PasteTip />
                   </div>
                 </div>
               )}
@@ -198,6 +228,14 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
               </button>
             </div>
           )}
+
+          {/* File Preview Modal */}
+          <FilePreviewModal
+            isOpen={isPreviewOpen}
+            onClose={() => setIsPreviewOpen(false)}
+            file={file}
+            title="Resume Preview"
+          />
         </div>
       </div>
     </div>

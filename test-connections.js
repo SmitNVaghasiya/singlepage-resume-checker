@@ -8,6 +8,8 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const FormData = require("form-data");
+const fetch = require("node-fetch");
 
 const SERVICES = {
   frontend: "http://localhost:5173",
@@ -191,9 +193,132 @@ async function checkEnvironmentFiles() {
   return allGood;
 }
 
-async function main() {
-  logHeader("AI Resume Analyzer - Connection Test");
+async function testTempFileUpload() {
+  console.log("Testing temporary file upload functionality...\n");
 
+  try {
+    // Create a test file
+    const testContent = "This is a test job description file content.";
+    const testBuffer = Buffer.from(testContent, "utf-8");
+
+    // Test 1: Upload resume file
+    console.log("1. Testing resume file upload...");
+    const resumeFormData = new FormData();
+    resumeFormData.append("resume", testBuffer, {
+      filename: "test-resume.pdf",
+      contentType: "application/pdf",
+    });
+
+    const resumeResponse = await fetch(
+      `${SERVICES.backend}/resume/upload-temp`,
+      {
+        method: "POST",
+        body: resumeFormData,
+      }
+    );
+
+    if (!resumeResponse.ok) {
+      const errorText = await resumeResponse.text();
+      console.error("Resume upload failed:", resumeResponse.status, errorText);
+      return;
+    }
+
+    const resumeResult = await resumeResponse.json();
+    console.log("Resume upload successful:", {
+      message: resumeResult.message,
+      tempId: resumeResult.tempFiles?.resume?.tempId,
+      requiresAuth: resumeResult.requiresAuth,
+    });
+
+    // Test 2: Upload job description file
+    console.log("\n2. Testing job description file upload...");
+    const jobFormData = new FormData();
+    jobFormData.append("jobDescription", testBuffer, {
+      filename: "test-job.pdf",
+      contentType: "application/pdf",
+    });
+
+    const jobResponse = await fetch(`${SERVICES.backend}/resume/upload-temp`, {
+      method: "POST",
+      body: jobFormData,
+    });
+
+    if (!jobResponse.ok) {
+      const errorText = await jobResponse.text();
+      console.error(
+        "Job description upload failed:",
+        jobResponse.status,
+        errorText
+      );
+      return;
+    }
+
+    const jobResult = await jobResponse.json();
+    console.log("Job description upload successful:", {
+      message: jobResult.message,
+      tempId: jobResult.tempFiles?.jobDescription?.tempId,
+      requiresAuth: jobResult.requiresAuth,
+    });
+
+    // Test 3: Upload both files together
+    console.log("\n3. Testing both files upload together...");
+    const bothFormData = new FormData();
+    bothFormData.append("resume", testBuffer, {
+      filename: "test-resume-both.pdf",
+      contentType: "application/pdf",
+    });
+    bothFormData.append("jobDescription", testBuffer, {
+      filename: "test-job-both.pdf",
+      contentType: "application/pdf",
+    });
+
+    const bothResponse = await fetch(`${SERVICES.backend}/resume/upload-temp`, {
+      method: "POST",
+      body: bothFormData,
+    });
+
+    if (!bothResponse.ok) {
+      const errorText = await bothResponse.text();
+      console.error(
+        "Both files upload failed:",
+        bothResponse.status,
+        errorText
+      );
+      return;
+    }
+
+    const bothResult = await bothResponse.json();
+    console.log("Both files upload successful:", {
+      message: bothResult.message,
+      resumeTempId: bothResult.tempFiles?.resume?.tempId,
+      jobTempId: bothResult.tempFiles?.jobDescription?.tempId,
+      requiresAuth: bothResult.requiresAuth,
+    });
+
+    console.log("\n✅ All temporary file upload tests passed!");
+    console.log("\nNote: To test file retrieval, you would need to:");
+    console.log("1. Get a valid auth token");
+    console.log("2. Use the temp IDs in an analysis request");
+    console.log("3. Check the backend logs for retrieval success/failure");
+  } catch (error) {
+    console.error("❌ Test failed:", error.message);
+  }
+}
+
+async function main() {
+  console.log("🔍 Testing service connections...\n");
+
+  const allGood = await checkEnvironmentFiles();
+
+  if (allGood) {
+    console.log("\n✅ Environment configuration is OK.");
+  } else {
+    console.log(
+      "\n❌ Environment configuration issues detected. Please fix before continuing."
+    );
+  }
+
+  // Test individual services
   // Check environment files first
   const envOk = await checkEnvironmentFiles();
 

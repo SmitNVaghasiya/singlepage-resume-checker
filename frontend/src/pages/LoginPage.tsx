@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, LogIn, ArrowRight, CheckCircle, X, Shield } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAppContext } from '../contexts/AppContext';
@@ -12,6 +12,7 @@ interface LoginForm {
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setUser } = useAppContext();
   const [loginForm, setLoginForm] = useState<LoginForm>({
     emailOrUsername: '',
@@ -58,7 +59,14 @@ const LoginPage: React.FC = () => {
       const response = await apiService.login(loginForm);
       setUser(response.user);
       localStorage.setItem('authToken', response.token);
-      navigate('/dashboard');
+      
+      // Check for redirect parameter
+      const redirectTo = searchParams.get('redirect');
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       setServerError(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {

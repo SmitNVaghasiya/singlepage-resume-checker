@@ -7,14 +7,7 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Temporary file upload endpoint (no auth required) - for preserving files through login
-router.post(
-  '/upload-temp',
-  uploadRateLimiter,
-  uploadFields,
-  handleMulterError,
-  resumeController.uploadTempFiles
-);
+// Temporary file upload endpoint removed - frontend only approach
 
 // Resume analysis endpoint (authentication required)
 router.post(

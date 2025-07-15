@@ -106,6 +106,7 @@ export interface IDetailedFeedback {
 export interface IAnalysisResult {
   overallScore: number;
   matchPercentage: number;
+  chance_of_selection_percentage?: number;
   jobTitle: string;
   industry: string;
   keywordMatch: IKeywordMatch;

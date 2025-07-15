@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FileText, Upload, CheckCircle, AlertCircle, Briefcase, X } from 'lucide-react';
+import { FileText, Upload, CheckCircle, AlertCircle, Briefcase, X, Eye } from 'lucide-react';
+import FilePreviewModal from './FilePreviewModal';
 
 export type JobInputMethod = 'text' | 'file';
 
@@ -27,6 +28,7 @@ const JobDescriptionSection: React.FC<JobDescriptionSectionProps> = ({
   canAnalyze
 }) => {
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   const wordCount = jobDescription.trim().split(/\s+/).filter(word => word.length > 0).length;
   const minWords = 50;
@@ -147,6 +149,18 @@ const JobDescriptionSection: React.FC<JobDescriptionSectionProps> = ({
                     </div>
                   </div>
                   <button
+                    className="job-file-view"
+                    type="button"
+                    title="View file"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsPreviewOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={removeFile}
                     className="job-file-remove"
                     type="button"
@@ -196,6 +210,14 @@ const JobDescriptionSection: React.FC<JobDescriptionSectionProps> = ({
           <div className="btn-sparkle">✨</div>
         </button>
       </div>
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        file={jobFile}
+        title="Job Description Preview"
+      />
     </div>
   );
 };

@@ -1,0 +1,81 @@
+/* Full-width immersive analysis details page */
+.analysis-details-page-full {
+  width: 100vw;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.analysis-details-header-bar {
+  width: 100vw;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 1.5rem 2rem 1rem 2rem;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.back-btn-full {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+  transition: background 0.2s, transform 0.2s;
+  margin-bottom: 0;
+}
+
+.back-btn-full:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 1.2rem;
+  margin: 2rem 0 1rem 0;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .analysis-details-header-bar {
+    padding: 1rem 1rem 0.5rem 1rem;
+  }
+  .back-btn-full {
+    width: 100%;
+    padding: 0.75rem 0;
+    font-size: 1rem;
+  }
+}
+
+.dark .analysis-details-page-full {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+.dark .analysis-details-header-bar {
+  background: #1e293b;
+  box-shadow: 0 2px 8px rgba(30, 41, 59, 0.12);
+}
+
+.dark .back-btn-full {
+  background: linear-gradient(135deg, #334155 0%, #6366f1 100%);
+  color: #f1f5f9;
+}
+
+.dark .back-btn-full:hover {
+  background: linear-gradient(135deg, #6366f1 0%, #334155 100%);
+}
+
+.dark .error-message {
+  color: #f87171;
+}

@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatFileSize } from '../utils/fileValidation';
 import InlineProgressSteps from './InlineProgressSteps';
 import { AnalysisResult, JobInputMethod } from '../types';
 import { useJobDescriptionLogic } from './JobDescriptionLogic';
+import { Eye } from 'lucide-react';
+import FilePreviewModal from './FilePreviewModal';
 import '../styles/components/JobDescriptionStep.css';
 
 interface JobDescriptionStepProps {
@@ -34,6 +36,8 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   onStepChange,
   onStartAnalysis
 }) => {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const {
     jobDescriptionError,
     setJobDescriptionError,
@@ -124,7 +128,7 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
           <div className={`file-upload-area small ${jobFile ? 'has-file' : ''} ${jobFileError ? 'error' : ''}`}>
             <input
               type="file"
-              accept=".pdf,.docx"
+              accept=".pdf,.docx,.txt"
               onChange={handleJobFileInput}
               style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: jobFile ? 'default' : 'pointer', pointerEvents: jobFile ? 'none' : 'auto' }}
               id="job-upload"
@@ -140,6 +144,18 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
                       <div className="upload-file-name">{jobFile.name}</div>
                       <div className="upload-file-size">{formatFileSize(jobFile.size)}</div>
                     </div>
+                    <button
+                      className="upload-view-btn"
+                      type="button"
+                      title="View file"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsPreviewOpen(true);
+                      }}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -164,7 +180,7 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
                   </div>
                   <div className="upload-text">
                     <h4>Upload Job Description</h4>
-                    <p>PDF, DOCX • Max 5MB</p>
+                    <p>PDF, DOCX, TXT • Max 5MB</p>
                   </div>
                 </div>
               )}
@@ -184,6 +200,14 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
         canProceedToAnalysis={canProceedToAnalysis}
         onStepChange={onStepChange}
         onStartAnalysis={onStartAnalysis}
+      />
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        file={jobFile}
+        title="Job Description Preview"
       />
     </div>
   );

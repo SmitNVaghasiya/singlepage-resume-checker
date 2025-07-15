@@ -33,56 +33,10 @@ interface TempFileInfo {
 }
 
 class ResumeController {
-  // Upload temporary files without authentication
-  public uploadTempFiles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const files = req.files as MulterFiles;
-      
-      if (!files.resume?.length && !files.jobDescription?.length) {
-        res.status(400).json({
-          error: 'No files uploaded',
-          message: 'At least one file (resume or job description) is required',
-        });
-        return;
-      }
-
-      const tempFiles: { resume?: TempFileInfo; jobDescription?: TempFileInfo } = {};
-
-      // Process resume file
-      if (files.resume?.length) {
-        const resumeFile = files.resume[0];
-        const resumeTempInfo = await this.storeTempFile(resumeFile, 'resume');
-        tempFiles.resume = resumeTempInfo;
-      }
-
-      // Process job description file
-      if (files.jobDescription?.length) {
-        const jobFile = files.jobDescription[0];
-        const jobTempInfo = await this.storeTempFile(jobFile, 'job-description');
-        tempFiles.jobDescription = jobTempInfo;
-      }
-
-      logger.info('Temporary files uploaded successfully', {
-        resumeUploaded: !!tempFiles.resume,
-        jobDescriptionUploaded: !!tempFiles.jobDescription,
-        tempIds: {
-          resume: tempFiles.resume?.tempId,
-          jobDescription: tempFiles.jobDescription?.tempId,
-        }
-      });
-
-      res.status(200).json({
-        message: 'Files uploaded successfully. Please log in to continue with analysis.',
-        tempFiles,
-        requiresAuth: true,
-        expiresAt: tempFiles.resume?.expiresAt || tempFiles.jobDescription?.expiresAt,
-      });
-
-    } catch (error) {
-      logger.error('Error in uploadTempFiles:', { error: extractErrorMessage(error) });
-      next(error);
-    }
-  };
+  // Upload temporary files without authentication (removed - frontend only approach)
+  // public uploadTempFiles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  //   // This method is no longer needed as we're handling everything on frontend
+  // };
 
   // Analyze resume against job description
   public analyzeResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -90,23 +44,43 @@ class ResumeController {
     
     try {
       const files = req.files as MulterFiles;
-      const { jobDescriptionText, resumeTempId, jobDescriptionTempId } = req.body;
+      const { jobDescriptionText } = req.body;
+      
+      logger.info('Analyze resume request received:', {
+        hasResumeFiles: !!files.resume?.length,
+        hasJobDescriptionFiles: !!files.jobDescription?.length,
+        hasJobDescriptionText: !!jobDescriptionText,
+        resumeFileName: files.resume?.[0]?.originalname,
+        jobDescriptionFileName: files.jobDescription?.[0]?.originalname
+      });
       
       let resumeFile: Express.Multer.File | undefined;
       let jobDescriptionFile: Express.Multer.File | undefined;
+      let finalJobDescriptionText: string | undefined;
 
-      // Handle resume file - either from upload or from temp storage
+      // Handle resume file - only from direct upload
       if (files.resume?.length) {
         resumeFile = files.resume[0];
-      } else if (resumeTempId) {
-        resumeFile = await this.retrieveTempFile(resumeTempId);
+        logger.info('Using uploaded resume file:', {
+          filename: resumeFile.originalname,
+          size: resumeFile.size
+        });
       }
 
-      // Handle job description file - either from upload or from temp storage
+      // Handle job description - only from direct upload or text
       if (files.jobDescription?.length) {
         jobDescriptionFile = files.jobDescription[0];
-      } else if (jobDescriptionTempId) {
-        jobDescriptionFile = await this.retrieveTempFile(jobDescriptionTempId);
+        logger.info('Using uploaded job description file:', {
+          filename: jobDescriptionFile.originalname,
+          size: jobDescriptionFile.size
+        });
+      } else if (jobDescriptionText?.trim()) {
+        // Use provided job description text
+        finalJobDescriptionText = jobDescriptionText.trim();
+        logger.info('Using provided job description text:', {
+          length: finalJobDescriptionText?.length || 0,
+          preview: finalJobDescriptionText?.substring(0, 100) + '...' || ''
+        });
       }
 
       // Validate resume file
@@ -119,7 +93,7 @@ class ResumeController {
       }
 
       // Validate job description input
-      if (!jobDescriptionFile && !jobDescriptionText?.trim()) {
+      if (!jobDescriptionFile && !finalJobDescriptionText?.trim()) {
         res.status(400).json({
           error: 'Missing job description',
           message: 'Either job description file or text is required',
@@ -131,25 +105,15 @@ class ResumeController {
       const analysisId = generateAnalysisId();
 
       // Log analysis request with structured data
-      this.logAnalysisRequest(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
+      this.logAnalysisRequest(analysisId, resumeFile, jobDescriptionFile, finalJobDescriptionText);
 
       // Start async processing (fire and forget)
-      this.processAnalysisAsync(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText, startTime)
+      this.processAnalysisAsync(analysisId, resumeFile, jobDescriptionFile, finalJobDescriptionText, startTime)
         .catch(error => {
           logger.error('Unhandled error in async processing:', { analysisId, error: extractErrorMessage(error) });
         });
 
-      // Clean up temp files after starting analysis
-      if (resumeTempId) {
-        this.cleanupTempFile(resumeTempId).catch(error => {
-          logger.warn('Failed to cleanup temp resume file:', { resumeTempId, error: extractErrorMessage(error) });
-        });
-      }
-      if (jobDescriptionTempId) {
-        this.cleanupTempFile(jobDescriptionTempId).catch(error => {
-          logger.warn('Failed to cleanup temp job description file:', { jobDescriptionTempId, error: extractErrorMessage(error) });
-        });
-      }
+      // No cleanup needed - frontend handles everything
 
       // Return immediate response
       res.status(202).json({
@@ -270,13 +234,31 @@ class ResumeController {
         sortOrder,
       });
 
+      // Transform the analyses to match frontend expectations
+      const transformedAnalyses = analyses.analyses.map(analysis => ({
+        id: String(analysis._id),
+        analysisId: analysis.analysisId,
+        resumeFilename: analysis.resumeFilename,
+        jobDescriptionFilename: analysis.jobDescriptionFilename || 'Text Input',
+        jobTitle: analysis.result?.jobTitle || 'Position Analysis',
+        overallScore: analysis.result?.overallScore || 0,
+        chance_of_selection_percentage: analysis.result?.chance_of_selection_percentage || 0, // Send as-is
+        analyzedAt: analysis.createdAt,
+        status: analysis.status
+      }));
+
       res.json({
-        ...analyses,
+        analyses: transformedAnalyses,
+        totalCount: analyses.totalCount,
+        currentPage: analyses.currentPage,
+        totalPages: analyses.totalPages,
+        hasNextPage: analyses.hasNextPage,
+        hasPrevPage: analyses.hasPrevPage,
         pagination: {
           page,
           limit,
-          hasNextPage: (analyses as any).results?.length === limit,
-          hasPrevPage: page > 1,
+          hasNextPage: analyses.hasNextPage,
+          hasPrevPage: analyses.hasPrevPage,
         },
       });
     } catch (error) {

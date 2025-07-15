@@ -1080,6 +1080,7 @@
   justify-content: center;
   min-height: 60vh;
   padding: 2rem;
+  margin-top: 80px;
 }
 
 .auth-required-content {

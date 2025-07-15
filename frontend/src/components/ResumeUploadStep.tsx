@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { validateFile, formatFileSize } from '../utils/fileValidation';
 import InlineProgressSteps from './InlineProgressSteps';
 import { AnalysisResult } from '../types';
+import { Eye } from 'lucide-react';
+import FilePreviewModal from './FilePreviewModal';
 import '../styles/components/ResumeUploadStep.css';
 
 interface ResumeUploadStepProps {
@@ -30,6 +32,7 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
   // Step 1 - Resume Upload State
   const [dragActive, setDragActive] = useState(false);
   const [resumeError, setResumeError] = useState<string>('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // File validation config
   const fileConfig = {
@@ -128,6 +131,18 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                   <div className="upload-file-size">{formatFileSize(resumeFile.size)}</div>
                 </div>
                 <button
+                  className="upload-view-btn"
+                  type="button"
+                  title="View file"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsPreviewOpen(true);
+                  }}
+                >
+                  <Eye className="w-5 h-5" />
+                </button>
+                <button
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -162,6 +177,14 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
       {resumeError && (
         <div className="error-message">{resumeError}</div>
       )}
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        file={resumeFile}
+        title="Resume Preview"
+      />
 
       <InlineProgressSteps
         currentStep={currentStep}

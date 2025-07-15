@@ -32,7 +32,7 @@ export const useJobDescriptionLogic = (props: JobDescriptionLogicProps) => {
 
   // File validation config
   const fileConfig = {
-    acceptedTypes: ['.pdf', '.docx'],
+    acceptedTypes: ['.pdf', '.docx', '.txt'],
     maxSize: 5 * 1024 * 1024 // 5MB
   };
 
@@ -92,6 +92,7 @@ export const useJobDescriptionLogic = (props: JobDescriptionLogicProps) => {
       setJobFile(file);
       setJobFileError('');
       setJobDescription(''); // Clear text input when file is selected
+      setJobInputMethod('file'); // Ensure jobInputMethod is set to 'file' when file is uploaded
     }
   };
 

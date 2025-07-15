@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, X, CheckCircle, ArrowRight } from 'lucide-react';
+import PasteTip from './PasteTip';
 
 interface AnalysisUploadSectionProps {
   file: File | null;
@@ -16,8 +17,10 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const isValidFile = useCallback((file: File) => {
-    const validTypes = ['.pdf', '.docx'];
+    const validTypes = ['.pdf', '.docx', '.txt'];
     const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    console.log('AnalysisUploadSection: Validating file:', file.name, file.type, file.size);
     
     if (file.size > maxSize) {
       setUploadError('File size must be less than 5MB');
@@ -27,11 +30,12 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
     const isValidType = validTypes.some(type => {
       if (type === '.pdf') return file.type === 'application/pdf';
       if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      if (type === '.txt') return file.type === 'text/plain';
       return false;
     });
 
     if (!isValidType) {
-      setUploadError('Please upload a PDF or DOCX file');
+      setUploadError('Please upload a PDF, DOCX, or TXT file');
       return false;
     }
 
@@ -63,12 +67,23 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
   }, [isValidFile, onFileChange]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    console.log('AnalysisUploadSection: Paste event triggered');
     const items = e.clipboardData.items;
+    console.log('Clipboard items count:', items.length);
+    
     for (let i = 0; i < items.length; i++) {
-      if (items[i].kind === 'file') {
-        const pastedFile = items[i].getAsFile();
+      const item = items[i];
+      console.log('Clipboard item:', item.kind, item.type);
+      
+      if (item.kind === 'file') {
+        const pastedFile = item.getAsFile();
+        console.log('Pasted file:', pastedFile?.name, pastedFile?.type, pastedFile?.size);
+        
         if (pastedFile && isValidFile(pastedFile)) {
+          console.log('File is valid, calling onFileChange');
           onFileChange(pastedFile);
+        } else {
+          console.log('File is invalid or null');
         }
       }
     }
@@ -102,7 +117,7 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
       >
         <input
           type="file"
-          accept=".pdf,.docx"
+          accept=".pdf,.docx,.txt"
           onChange={handleFileInput}
           className="analysis-upload-input"
           id="analysis-resume-upload"
@@ -139,8 +154,9 @@ const AnalysisUploadSection: React.FC<AnalysisUploadSectionProps> = ({
                   Drop your resume here or click to browse
                 </p>
                 <p className="analysis-upload-sub-text">
-                  PDF, DOCX • Max 5MB
+                  PDF, DOCX, TXT • Max 5MB
                 </p>
+                <PasteTip />
               </div>
             </div>
           )}

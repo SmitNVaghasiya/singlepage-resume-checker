@@ -2,14 +2,10 @@
 -- My main function of the resume checking is not complete. - Currently dashboard is not able to take all the data from the resumechecker and show in the dashboard. - After making proper resumechecker make dashboard according to that.
     -- Half of the work is completed but i have to make sure to increase the responded content size i think it is in big size in the resume testing project.
     -- Make sure that analysis result page is showing all the content and also the dashbord page.
-    
--- Check if authentication was mendatory before starting the analysing. 
-    -- Yes but we are not redirecting to the original sign up and sign in page but we have made pop up  special sign in and up page so remove and use original one.
 
 -- Add validation in the python service for the json response we are generating.
 -- Frequently Asked Questions animation make it faster.
 -- Sign in button is becoming bigger when pressed so remove that transition.
-
 
 -------- Must complete only after completing above tasks.
 -- Add the Google sign in and sign up inside of my website.

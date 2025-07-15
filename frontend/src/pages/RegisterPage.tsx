@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, UserPlus, Shield, ArrowRight, Rocket, Target, BarChart3 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAppContext } from '../contexts/AppContext';
@@ -17,6 +17,7 @@ type RegisterStep = 'details' | 'verification';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setUser } = useAppContext();
   const [currentStep, setCurrentStep] = useState<RegisterStep>('details');
   const [registerForm, setRegisterForm] = useState<RegisterForm>({
@@ -195,7 +196,14 @@ const RegisterPage: React.FC = () => {
       const response = await apiService.register(registerForm);
       setUser(response.user);
       localStorage.setItem('authToken', response.token);
-      navigate('/dashboard');
+      
+      // Check for redirect parameter
+      const redirectTo = searchParams.get('redirect');
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       setServerError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
     } finally {

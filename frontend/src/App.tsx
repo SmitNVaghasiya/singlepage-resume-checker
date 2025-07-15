@@ -13,6 +13,7 @@ import RegisterPage from './pages/RegisterPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
+import AnalysisDetailsPage from './pages/AnalysisDetailsPage';
 import './styles/globals.css';
 import './styles/components.css';
 import './styles/layout.css';
@@ -37,6 +38,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/resumechecker" element={<ResumeCheckerPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dashboard/analysis/:id" element={<AnalysisDetailsPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />

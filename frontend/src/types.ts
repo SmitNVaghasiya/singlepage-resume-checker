@@ -260,6 +260,7 @@ export interface AnalysisHistoryItem {
   id: string;
   analysisId: string;
   resumeFilename: string;
+  jobDescriptionFilename?: string;
   jobTitle: string;
   overallScore: number;
   analyzedAt: Date;

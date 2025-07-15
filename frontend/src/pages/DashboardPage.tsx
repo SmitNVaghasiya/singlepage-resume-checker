@@ -22,7 +22,7 @@ import {
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/api';
 import { AnalysisResult } from '../types';
-import ComprehensiveAnalysisModal from '../components/ComprehensiveAnalysisModal';
+import DashboardAnalysisView from '../components/DashboardAnalysisView';
 import AuthModal from '../components/AuthModal';
 import '../styles/pages/DashboardPage.css';
 import '../styles/components/AuthModal.css';
@@ -31,27 +31,25 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthLoading, currentAnalysis, analysisHistory, resetAnalysis, addAnalysisToHistory } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisResult | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  // Remove all state and logic for selectedAnalysis, loadingDetails, and modal rendering
 
   // Check authentication when component mounts
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      setShowAuthModal(true);
+      // setShowAuthModal(true); // This line is removed as per the edit hint
     }
   }, [user, isAuthLoading]);
 
   // Handle successful authentication
   const handleAuthSuccess = () => {
-    setShowAuthModal(false);
+    // setShowAuthModal(false); // This line is removed as per the edit hint
     // Reload the page to fetch user's analysis history
     window.location.reload();
   };
 
   // Handle auth modal close
   const handleAuthModalClose = () => {
-    setShowAuthModal(false);
+    // setShowAuthModal(false); // This line is removed as per the edit hint
     navigate('/'); // Redirect to homepage if user closes auth modal
   };
 
@@ -79,7 +77,9 @@ const DashboardPage: React.FC = () => {
             <h2>Authentication Required</h2>
             <p>Please sign in to view your analysis dashboard and track your resume improvements.</p>
             <button 
-              onClick={() => setShowAuthModal(true)}
+              onClick={() => {
+                navigate('/login?redirect=/dashboard');
+              }}
               className="auth-required-btn"
             >
               Sign In to Continue
@@ -87,13 +87,13 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {showAuthModal && (
-          <AuthModal
-            isOpen={showAuthModal}
-            onAuthSuccess={handleAuthSuccess}
-            onClose={handleAuthModalClose}
-          />
-        )}
+        {/* {showAuthModal && ( // This block is removed as per the edit hint */}
+        {/*   <AuthModal // This block is removed as per the edit hint */}
+        {/*     isOpen={showAuthModal} // This block is removed as per the edit hint */}
+        {/*     onAuthSuccess={handleAuthSuccess} // This block is removed as per the edit hint */}
+        {/*     onClose={handleAuthModalClose} // This block is removed as per the edit hint */}
+        {/*   /> // This block is removed as per the edit hint */}
+        {/* )} // This block is removed as per the edit hint */}
       </div>
     );
   }
@@ -155,21 +155,21 @@ const DashboardPage: React.FC = () => {
   };
 
   const loadFullAnalysisDetails = async (analysisId: string) => {
-    setLoadingDetails(true);
+    // setLoadingDetails(true); // This line is removed as per the edit hint
     try {
       const response = await apiService.getAnalysisResult(analysisId);
       if (response.result) {
-        setSelectedAnalysis(response.result);
+        // setSelectedAnalysis(response.result); // This line is removed as per the edit hint
       }
     } catch (error) {
       console.error('Failed to load analysis details:', error);
       // Still show basic info from history if full details fail to load
       const basicAnalysis = analysisHistory.find(a => a.analysisId === analysisId);
       if (basicAnalysis) {
-        setSelectedAnalysis(basicAnalysis);
+        // setSelectedAnalysis(basicAnalysis); // This line is removed as per the edit hint
       }
     } finally {
-      setLoadingDetails(false);
+      // setLoadingDetails(false); // This line is removed as per the edit hint
     }
   };
 
@@ -296,17 +296,13 @@ const DashboardPage: React.FC = () => {
                             onClick={() => {
                               const analysisId = analysis.analysisId || analysis.id;
                               if (analysisId) {
-                                loadFullAnalysisDetails(analysisId);
+                                navigate(`/dashboard/analysis/${analysisId}`);
                               }
                             }}
-                            disabled={loadingDetails}
+                            // disabled={loadingDetails} // This line is removed as per the edit hint
                           >
-                            {loadingDetails ? (
-                              <Loader className="view-icon animate-spin" />
-                            ) : (
-                              <Eye className="view-icon" />
-                            )}
-                            {loadingDetails ? 'Loading...' : 'View Details'}
+                            <Eye className="view-icon" />
+                            View Details
                           </button>
                         </td>
                       </tr>
@@ -337,13 +333,8 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Comprehensive Analysis Modal */}
-        {selectedAnalysis && (
-          <ComprehensiveAnalysisModal
-            analysis={selectedAnalysis}
-            onClose={() => setSelectedAnalysis(null)}
-          />
-        )}
+        {/* Dashboard Analysis View */}
+        {/* This section is removed as per the edit hint */}
       </div>
     </div>
   );
