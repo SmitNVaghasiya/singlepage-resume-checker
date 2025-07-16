@@ -1,19 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { pythonApiService } from '../services/pythonApiService';
 import { cacheService } from '../services/cacheService';
-import { analysisService } from '../services/analysisService';
+import { analysisService, AnalysisServiceError, AnalysisStatus } from '../services/analysisService';
+import { ResultTransformer } from '../services/resultTransformer';
 import { logger } from '../utils/logger';
 import { generateAnalysisId, extractErrorMessage } from '../utils/helpers';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
+import * as crypto from 'crypto';
 
 interface MulterFiles {
   resume?: Express.Multer.File[];
   jobDescription?: Express.Multer.File[];
 }
 
-interface AnalysisStatus {
+interface AnalysisStatusData {
   status: 'processing' | 'completed' | 'failed';
   progress?: number;
   currentStage?: string;
@@ -23,14 +22,7 @@ interface AnalysisStatus {
   error?: string;
 }
 
-interface TempFileInfo {
-  tempId: string;
-  filename: string;
-  size: number;
-  mimetype: string;
-  uploadedAt: string;
-  expiresAt: string;
-}
+
 
 class ResumeController {
   // Upload temporary files without authentication (removed - frontend only approach)
@@ -176,11 +168,12 @@ class ResumeController {
       }
 
       let result = await cacheService.getAnalysisResult(analysisId);
+      let dbResult: any = null;
 
       // Fallback to database if not in cache
       if (!result) {
         try {
-          const dbResult = await analysisService.getAnalysisByAnalysisId(analysisId);
+          dbResult = await analysisService.getAnalysisByAnalysisId(analysisId);
           if (dbResult?.status === 'completed') {
             result = dbResult.result;
             // Re-cache the result for future requests
@@ -202,10 +195,23 @@ class ResumeController {
         return;
       }
 
+      // Transform result to frontend format if it's in old format
+      let transformedResult: any = result;
+      if (ResultTransformer.isOldFormat(result)) {
+        logger.info('Transforming old format result to frontend format', { analysisId });
+        transformedResult = ResultTransformer.transformToFrontendFormat(result, {
+          analysisId,
+          resumeFilename: dbResult?.resumeFilename,
+          jobDescriptionFilename: dbResult?.jobDescriptionFilename,
+          analyzedAt: dbResult?.createdAt,
+          processingTime: result.processingTime
+        });
+      }
+
       res.json({
         analysisId,
         status: 'completed',
-        result,
+        result: transformedResult,
         retrievedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -230,22 +236,38 @@ class ResumeController {
       const analyses = await analysisService.getAnalysesWithPagination({
         page,
         limit,
-        sortBy,
+        sortBy: sortBy as 'createdAt' | 'score' | 'updatedAt',
         sortOrder,
       });
 
       // Transform the analyses to match frontend expectations
-      const transformedAnalyses = analyses.analyses.map(analysis => ({
-        id: String(analysis._id),
-        analysisId: analysis.analysisId,
-        resumeFilename: analysis.resumeFilename,
-        jobDescriptionFilename: analysis.jobDescriptionFilename || 'Text Input',
-        jobTitle: analysis.result?.jobTitle || 'Position Analysis',
-        overallScore: analysis.result?.overallScore || 0,
-        chance_of_selection_percentage: analysis.result?.chance_of_selection_percentage || 0, // Send as-is
-        analyzedAt: analysis.createdAt,
-        status: analysis.status
-      }));
+      const transformedAnalyses = analyses.analyses.map(analysis => {
+        // Transform result to frontend format if it's in old format
+        let transformedResult: any = analysis.result;
+        if (analysis.result && ResultTransformer.isOldFormat(analysis.result)) {
+          logger.info('Transforming old format result in history', { analysisId: analysis.analysisId });
+          transformedResult = ResultTransformer.transformToFrontendFormat(analysis.result, {
+            analysisId: analysis.analysisId,
+            resumeFilename: analysis.resumeFilename,
+            jobDescriptionFilename: analysis.jobDescriptionFilename,
+            analyzedAt: analysis.createdAt,
+            processingTime: analysis.result.processingTime
+          });
+        }
+
+        return {
+          id: String(analysis._id),
+          analysisId: analysis.analysisId,
+          resumeFilename: analysis.resumeFilename,
+          jobDescriptionFilename: analysis.jobDescriptionFilename || 'Text Input',
+          jobTitle: transformedResult?.jobTitle || analysis.result?.jobTitle || 'Position Analysis',
+          overallScore: transformedResult?.score_out_of_100 || analysis.result?.overallScore || 0,
+          chance_of_selection_percentage: transformedResult?.chance_of_selection_percentage || analysis.result?.chance_of_selection_percentage || 0,
+          analyzedAt: analysis.createdAt,
+          status: analysis.status,
+          result: transformedResult // Include the full transformed result
+        };
+      });
 
       res.json({
         analyses: transformedAnalyses,
@@ -350,7 +372,7 @@ class ResumeController {
     }
   }
 
-  private async updateAnalysisStatus(analysisId: string, status: AnalysisStatus): Promise<void> {
+  private async updateAnalysisStatus(analysisId: string, status: AnalysisStatusData): Promise<void> {
     try {
       await cacheService.setAnalysisStatus(analysisId, status);
     } catch (error) {
@@ -425,8 +447,8 @@ class ResumeController {
 
     logger.info('Comprehensive analysis completed successfully', {
       analysisId,
-      overallScore: result?.overallScore,
-      matchPercentage: result?.matchPercentage,
+      overallScore: result?.score_out_of_100 || result?.overallScore,
+      matchPercentage: result?.chance_of_selection_percentage || result?.matchPercentage,
     });
   }
 
@@ -447,7 +469,7 @@ class ResumeController {
 
     // Update database status
     try {
-      await analysisService.updateAnalysisStatus(analysisId, 'failed', errorMessage);
+      await analysisService.updateAnalysisStatus(analysisId, AnalysisStatus.FAILED, errorMessage);
     } catch (dbError) {
       logger.warn('Failed to update database status:', { 
         analysisId, 
@@ -456,81 +478,7 @@ class ResumeController {
     }
   }
 
-  // Temporary file handling methods
-  private async storeTempFile(file: Express.Multer.File, type: string): Promise<TempFileInfo> {
-    const tempId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
-    
-    const tempFileInfo: TempFileInfo = {
-      tempId,
-      filename: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-      uploadedAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    };
 
-    // Store file info and content in cache (with expiration)
-    await cacheService.setTempFile(tempId, {
-      ...tempFileInfo,
-      buffer: file.buffer,
-    });
-
-    // Schedule cleanup
-    setTimeout(() => {
-      this.cleanupTempFile(tempId).catch((error: unknown) => {
-        logger.warn('Scheduled cleanup failed:', { tempId, error: extractErrorMessage(error) });
-      });
-    }, 30 * 60 * 1000); // 30 minutes
-
-    return tempFileInfo;
-  }
-
-  private async retrieveTempFile(tempId: string): Promise<Express.Multer.File | undefined> {
-    try {
-      const tempFileData = await cacheService.getTempFile(tempId);
-      if (!tempFileData) {
-        logger.warn('Temporary file not found or expired:', { tempId });
-        return undefined;
-      }
-
-      // Check if file has expired
-      const now = new Date();
-      const expiresAt = new Date(tempFileData.expiresAt);
-      if (now > expiresAt) {
-        logger.warn('Temporary file has expired:', { tempId, expiresAt });
-        await this.cleanupTempFile(tempId);
-        return undefined;
-      }
-
-      // Convert back to Multer file format
-      const file: Express.Multer.File = {
-        fieldname: 'temp',
-        originalname: tempFileData.filename,
-        encoding: '7bit',
-        mimetype: tempFileData.mimetype,
-        size: tempFileData.size,
-        buffer: tempFileData.buffer,
-        destination: '',
-        filename: '',
-        path: '',
-        stream: {} as any,
-      };
-
-      return file;
-    } catch (error) {
-      logger.error('Error retrieving temporary file:', { tempId, error: extractErrorMessage(error) });
-      return undefined;
-    }
-  }
-
-  private async cleanupTempFile(tempId: string): Promise<void> {
-    try {
-      await cacheService.deleteTempFile(tempId);
-    } catch (error) {
-      logger.warn('Failed to cleanup temporary file:', { tempId, error: extractErrorMessage(error) });
-    }
-  }
 }
 
 // Export singleton instance

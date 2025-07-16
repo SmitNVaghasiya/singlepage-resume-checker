@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -48,7 +48,7 @@ export const config: Config = {
   redisPassword: process.env.REDIS_PASSWORD,
 
   // MongoDB
-  mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/resume_analyzer',
+  mongoUri: process.env.MONGODB_URL || 'mongodb://localhost:27017/resume_analyzer',
 
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',
@@ -63,6 +63,6 @@ export const config: Config = {
 const requiredConfig = ['pythonApiUrl', 'mongoUri'];
 for (const key of requiredConfig) {
   if (!config[key as keyof Config]) {
-    throw new Error(`Missing required configuration: ${key}`);
+    console.warn(`Missing configuration: ${key} - using default value`);
   }
 } 

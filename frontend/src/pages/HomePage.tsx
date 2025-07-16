@@ -1,11 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
-import HeroSection from "../components/HeroSection";
-import WhyChooseUs from "../components/WhyChooseUs";
-import FAQ from "../components/FAQ";
-import ResumeUploadSection from "../components/ResumeUploadSection";
+import { HeroSection } from "../components/layout";
+import { WhyChooseUs, FAQ } from "../components/ui";
+import { ResumeUploadSection } from "../components/file-upload";
 import { readFileAsDataURL } from "../utils/fileValidation"; // We'll use a utility to convert File to base64
+import "../styles/pages/homepage.css";
 
 const HomePage: React.FC = () => {
   const { setResumeFile } = useAppContext();

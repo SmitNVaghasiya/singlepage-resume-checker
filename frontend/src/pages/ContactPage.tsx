@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, MessageSquare, Send, CheckCircle, MapPin, Phone, Clock, AlertCircle } from 'lucide-react';
-import '../styles/contact.css';
-import { useAppContext } from '../contexts/AppContext';
-import { apiService } from '../services/api';
+import React, { useState, useEffect } from "react";
+import {
+  User,
+  Mail,
+  MessageSquare,
+  Send,
+  CheckCircle,
+  MapPin,
+  Phone,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
+import "../styles/pages/contact.css";
+import { useAppContext } from "../contexts/AppContext";
+import { apiService } from "../services/api";
 
 interface ContactForm {
   name: string;
@@ -14,50 +24,50 @@ interface ContactForm {
 const ContactPage: React.FC = () => {
   const { user, isAuthLoading } = useAppContext();
   const [contactForm, setContactForm] = useState<ContactForm>({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errors, setErrors] = useState<Partial<ContactForm>>({});
-  const [submitError, setSubmitError] = useState<string>('');
+  const [submitError, setSubmitError] = useState<string>("");
 
   // Populate form with user data when logged in
   useEffect(() => {
     if (user && !isAuthLoading) {
-      setContactForm(prev => ({
+      setContactForm((prev) => ({
         ...prev,
         // Don't auto-fill name - let user enter their full name
-        email: user.email
+        email: user.email,
       }));
     }
   }, [user, isAuthLoading]);
 
   const validateForm = () => {
     const newErrors: Partial<ContactForm> = {};
-    
+
     if (!contactForm.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
-    
+
     // Only validate email if user is not logged in
     if (!user) {
       if (!contactForm.email.trim()) {
-        newErrors.email = 'Email is required';
+        newErrors.email = "Email is required";
       } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(contactForm.email)) {
-          newErrors.email = 'Please enter a valid email address';
+          newErrors.email = "Please enter a valid email address";
         }
       }
     }
-    
+
     if (!contactForm.message.trim()) {
-      newErrors.message = 'Message is required';
+      newErrors.message = "Message is required";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -66,51 +76,57 @@ const ContactPage: React.FC = () => {
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    setSubmitError('');
-    
+    setSubmitError("");
+
     try {
       await apiService.submitContactForm({
         name: contactForm.name,
         email: user ? user.email : contactForm.email, // Use logged-in user's email if available
         subject: contactForm.subject,
-        message: contactForm.message
+        message: contactForm.message,
       });
-      
+
       setIsSubmitted(true);
-      
+
       // Reset form after success message
       setTimeout(() => {
-        setContactForm(prev => ({ 
-          ...prev, 
-          name: '', // Reset name field
-          subject: '', 
-          message: '' 
+        setContactForm((prev) => ({
+          ...prev,
+          name: "", // Reset name field
+          subject: "",
+          message: "",
         }));
         setIsSubmitted(false);
         setErrors({});
       }, 3000);
     } catch (error) {
-      console.error('Failed to submit contact form:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
+      console.error("Failed to submit contact form:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to send message. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setContactForm(prev => ({
+    setContactForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name as keyof ContactForm]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: undefined
+        [name]: undefined,
       }));
     }
   };
@@ -118,25 +134,25 @@ const ContactPage: React.FC = () => {
   const contactInfo = [
     {
       icon: Mail,
-      title: 'Email Us',
-      description: 'support@airesumechecker.com',
-      subtext: 'We respond within 24 hours',
-      color: 'contact-info-blue'
+      title: "Email Us",
+      description: "support@airesumechecker.com",
+      subtext: "We respond within 24 hours",
+      color: "contact-info-blue",
     },
     {
       icon: MessageSquare,
-      title: 'Live Chat',
-      description: 'Available 24/7',
-      subtext: 'Instant support',
-      color: 'contact-info-green'
+      title: "Live Chat",
+      description: "Available 24/7",
+      subtext: "Instant support",
+      color: "contact-info-green",
     },
     {
       icon: Clock,
-      title: 'Response Time',
-      description: 'Within 24 hours',
-      subtext: 'Usually much faster',
-      color: 'contact-info-purple'
-    }
+      title: "Response Time",
+      description: "Within 24 hours",
+      subtext: "Usually much faster",
+      color: "contact-info-purple",
+    },
   ];
 
   return (
@@ -146,7 +162,7 @@ const ContactPage: React.FC = () => {
         <div className="contact-hero-content">
           <h1 className="contact-hero-title">Contact Us</h1>
           <p className="contact-hero-description">
-            Have questions about AI Resume Checker? We'd love to hear from you. 
+            Have questions about AI Resume Checker? We'd love to hear from you.
             Send us a message and we'll respond as soon as possible.
           </p>
         </div>
@@ -160,15 +176,20 @@ const ContactPage: React.FC = () => {
               <div className="contact-form-header">
                 <h2 className="contact-form-title">Send us a Message</h2>
                 <p className="contact-form-subtitle">
-                  {user 
-                    ? "We'll use your account email to respond to your message" 
-                    : "Fill out the form below and we'll get back to you within 24 hours"
-                  }
+                  {user
+                    ? "We'll use your account email to respond to your message"
+                    : "Fill out the form below and we'll get back to you within 24 hours"}
                 </p>
                 {!user && (
                   <div className="auth-notice">
                     <AlertCircle className="h-4 w-4" />
-                    <span>For faster support, consider <a href="/login" className="auth-link">logging in</a> first</span>
+                    <span>
+                      For faster support, consider{" "}
+                      <a href="/login" className="auth-link">
+                        logging in
+                      </a>{" "}
+                      first
+                    </span>
                   </div>
                 )}
               </div>
@@ -178,8 +199,12 @@ const ContactPage: React.FC = () => {
                   <div className="contact-success-icon">
                     <CheckCircle className="h-10 w-10" />
                   </div>
-                  <h3 className="contact-success-title">Message Sent Successfully!</h3>
-                  <p className="contact-success-text">Thank you for reaching out. We'll get back to you soon.</p>
+                  <h3 className="contact-success-title">
+                    Message Sent Successfully!
+                  </h3>
+                  <p className="contact-success-text">
+                    Thank you for reaching out. We'll get back to you soon.
+                  </p>
                 </div>
               ) : (
                 <div className="contact-form">
@@ -194,17 +219,23 @@ const ContactPage: React.FC = () => {
                         name="name"
                         value={contactForm.name}
                         onChange={handleInputChange}
-                        className={`contact-input ${errors.name ? 'contact-input-error' : ''}`}
+                        className={`contact-input ${
+                          errors.name ? "contact-input-error" : ""
+                        }`}
                         placeholder="Enter your full name"
                       />
-                      {errors.name && <p className="contact-error-text">{errors.name}</p>}
+                      {errors.name && (
+                        <p className="contact-error-text">{errors.name}</p>
+                      )}
                     </div>
 
                     <div className="contact-input-group">
                       <label className="contact-label">
                         <Mail className="contact-label-icon" />
                         Email Address
-                        {user && <span className="verified-badge">✓ Verified</span>}
+                        {user && (
+                          <span className="verified-badge">✓ Verified</span>
+                        )}
                       </label>
                       <input
                         type="email"
@@ -212,10 +243,18 @@ const ContactPage: React.FC = () => {
                         value={contactForm.email}
                         onChange={handleInputChange}
                         disabled={!!user}
-                        className={`contact-input ${errors.email ? 'contact-input-error' : ''} ${user ? 'contact-input-disabled' : ''}`}
-                        placeholder={user ? "Using your account email" : "Enter your email address"}
+                        className={`contact-input ${
+                          errors.email ? "contact-input-error" : ""
+                        } ${user ? "contact-input-disabled" : ""}`}
+                        placeholder={
+                          user
+                            ? "Using your account email"
+                            : "Enter your email address"
+                        }
                       />
-                      {errors.email && <p className="contact-error-text">{errors.email}</p>}
+                      {errors.email && (
+                        <p className="contact-error-text">{errors.email}</p>
+                      )}
                     </div>
                   </div>
 
@@ -235,18 +274,20 @@ const ContactPage: React.FC = () => {
                   </div>
 
                   <div className="contact-input-group">
-                    <label className="contact-label">
-                      Message
-                    </label>
+                    <label className="contact-label">Message</label>
                     <textarea
                       name="message"
                       value={contactForm.message}
                       onChange={handleInputChange}
                       rows={6}
-                      className={`contact-textarea ${errors.message ? 'contact-input-error' : ''}`}
+                      className={`contact-textarea ${
+                        errors.message ? "contact-input-error" : ""
+                      }`}
                       placeholder="Tell us more about your inquiry..."
                     />
-                    {errors.message && <p className="contact-error-text">{errors.message}</p>}
+                    {errors.message && (
+                      <p className="contact-error-text">{errors.message}</p>
+                    )}
                   </div>
 
                   {submitError && (
@@ -291,8 +332,12 @@ const ContactPage: React.FC = () => {
                         <Icon className="h-6 w-6" />
                       </div>
                       <div className="contact-info-content">
-                        <h4 className="contact-info-item-title">{info.title}</h4>
-                        <p className="contact-info-description">{info.description}</p>
+                        <h4 className="contact-info-item-title">
+                          {info.title}
+                        </h4>
+                        <p className="contact-info-description">
+                          {info.description}
+                        </p>
                         <p className="contact-info-subtext">{info.subtext}</p>
                       </div>
                     </div>

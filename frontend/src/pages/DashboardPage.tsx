@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Download, 
-  FileText, 
-  Calendar, 
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  BarChart3,
+  TrendingUp,
+  Download,
+  FileText,
+  Calendar,
   Search,
   Eye,
   Plus,
@@ -17,20 +17,27 @@ import {
   Star,
   X,
   Loader,
-  Lock
-} from 'lucide-react';
-import { useAppContext } from '../contexts/AppContext';
-import { apiService } from '../services/api';
-import { AnalysisResult } from '../types';
-import DashboardAnalysisView from '../components/DashboardAnalysisView';
-import AuthModal from '../components/AuthModal';
-import '../styles/pages/DashboardPage.css';
-import '../styles/components/AuthModal.css';
+  Lock,
+} from "lucide-react";
+import { useAppContext } from "../contexts/AppContext";
+import { apiService } from "../services/api";
+import { AnalysisResult } from "../types";
+import { DashboardAnalysisView } from "../components/dashboard";
+import { AuthModal } from "../components/auth";
+import "../styles/pages/DashboardPage.css";
+import "../components/auth/AuthModal.css";
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthLoading, currentAnalysis, analysisHistory, resetAnalysis, addAnalysisToHistory } = useAppContext();
-  const [searchTerm, setSearchTerm] = useState('');
+  const {
+    user,
+    isAuthLoading,
+    currentAnalysis,
+    analysisHistory,
+    resetAnalysis,
+    addAnalysisToHistory,
+  } = useAppContext();
+  const [searchTerm, setSearchTerm] = useState("");
   // Remove all state and logic for selectedAnalysis, loadingDetails, and modal rendering
 
   // Check authentication when component mounts
@@ -50,7 +57,7 @@ const DashboardPage: React.FC = () => {
   // Handle auth modal close
   const handleAuthModalClose = () => {
     // setShowAuthModal(false); // This line is removed as per the edit hint
-    navigate('/'); // Redirect to homepage if user closes auth modal
+    navigate("/"); // Redirect to homepage if user closes auth modal
   };
 
   // Don't render content until we know authentication status
@@ -75,10 +82,13 @@ const DashboardPage: React.FC = () => {
               <Lock className="lock-icon" />
             </div>
             <h2>Authentication Required</h2>
-            <p>Please sign in to view your analysis dashboard and track your resume improvements.</p>
-            <button 
+            <p>
+              Please sign in to view your analysis dashboard and track your
+              resume improvements.
+            </p>
+            <button
               onClick={() => {
-                navigate('/login?redirect=/dashboard');
+                navigate("/login?redirect=/dashboard");
               }}
               className="auth-required-btn"
             >
@@ -100,58 +110,86 @@ const DashboardPage: React.FC = () => {
 
   // Helper functions to handle both new and legacy formats
   const getAnalysisScore = (analysis: AnalysisResult): number => {
-    const score = analysis.score_out_of_100 || analysis.overallScore || (analysis as any).score || 0;
-    return typeof score === 'number' ? Math.max(0, Math.min(100, score)) : 0;
+    const score =
+      analysis.score_out_of_100 ||
+      analysis.overallScore ||
+      (analysis as any).score ||
+      0;
+    return typeof score === "number" ? Math.max(0, Math.min(100, score)) : 0;
   };
 
   const getMatchPercentage = (analysis: AnalysisResult): number => {
-    const percentage = analysis.chance_of_selection_percentage || analysis.matchPercentage || 0;
-    return typeof percentage === 'number' ? Math.max(0, Math.min(100, percentage)) : 0;
+    const percentage =
+      analysis.chance_of_selection_percentage || analysis.matchPercentage || 0;
+    return typeof percentage === "number"
+      ? Math.max(0, Math.min(100, percentage))
+      : 0;
   };
 
   const getJobTitle = (analysis: AnalysisResult): string => {
-    return analysis.resume_analysis_report?.candidate_information?.position_applied ||
-           analysis.jobTitle ||
-           'Position Analysis';
+    return (
+      analysis.resume_analysis_report?.candidate_information
+        ?.position_applied ||
+      analysis.jobTitle ||
+      "Position Analysis"
+    );
   };
 
   const getAnalyzedDate = (analysis: AnalysisResult): string => {
     try {
       if (!analysis.analyzedAt) {
-        return 'Recently';
+        return "Recently";
       }
       const date = new Date(analysis.analyzedAt);
       if (isNaN(date.getTime())) {
-        return 'Recently';
+        return "Recently";
       }
       return date.toLocaleDateString();
     } catch {
-      return 'Recently';
+      return "Recently";
     }
   };
 
   // Calculate statistics
   const totalAnalyses = analysisHistory.length;
-  const averageScore = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + getAnalysisScore(analysis), 0) / totalAnalyses)
-    : 0;
-  const bestScore = totalAnalyses > 0 
-    ? Math.max(...analysisHistory.map(analysis => getAnalysisScore(analysis)))
-    : 0;
-  const averageMatchRate = totalAnalyses > 0 
-    ? Math.round(analysisHistory.reduce((sum, analysis) => sum + getMatchPercentage(analysis), 0) / totalAnalyses)
-    : 0;
+  const averageScore =
+    totalAnalyses > 0
+      ? Math.round(
+          analysisHistory.reduce(
+            (sum, analysis) => sum + getAnalysisScore(analysis),
+            0
+          ) / totalAnalyses
+        )
+      : 0;
+  const bestScore =
+    totalAnalyses > 0
+      ? Math.max(
+          ...analysisHistory.map((analysis) => getAnalysisScore(analysis))
+        )
+      : 0;
+  const averageMatchRate =
+    totalAnalyses > 0
+      ? Math.round(
+          analysisHistory.reduce(
+            (sum, analysis) => sum + getMatchPercentage(analysis),
+            0
+          ) / totalAnalyses
+        )
+      : 0;
 
   // Filter analysis history
-  const filteredHistory = analysisHistory.filter(analysis => 
-    (analysis.resumeFilename || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getJobTitle(analysis).toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredHistory = analysisHistory.filter(
+    (analysis) =>
+      (analysis.resumeFilename || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      getJobTitle(analysis).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getScoreBadgeColor = (score: number) => {
-    if (score >= 80) return 'success';
-    if (score >= 60) return 'warning';
-    return 'error';
+    if (score >= 80) return "success";
+    if (score >= 60) return "warning";
+    return "error";
   };
 
   const loadFullAnalysisDetails = async (analysisId: string) => {
@@ -162,9 +200,11 @@ const DashboardPage: React.FC = () => {
         // setSelectedAnalysis(response.result); // This line is removed as per the edit hint
       }
     } catch (error) {
-      console.error('Failed to load analysis details:', error);
+      console.error("Failed to load analysis details:", error);
       // Still show basic info from history if full details fail to load
-      const basicAnalysis = analysisHistory.find(a => a.analysisId === analysisId);
+      const basicAnalysis = analysisHistory.find(
+        (a) => a.analysisId === analysisId
+      );
       if (basicAnalysis) {
         // setSelectedAnalysis(basicAnalysis); // This line is removed as per the edit hint
       }
@@ -180,9 +220,11 @@ const DashboardPage: React.FC = () => {
         <div className="dashboard-header-content">
           <div className="header-text">
             <h1 className="dashboard-title">Analysis Dashboard</h1>
-            <p className="dashboard-subtitle">Track your resume analysis history and improvements</p>
+            <p className="dashboard-subtitle">
+              Track your resume analysis history and improvements
+            </p>
           </div>
-                    <Link
+          <Link
             to="/resumechecker"
             onClick={resetAnalysis}
             className="new-analysis-btn"
@@ -242,7 +284,7 @@ const DashboardPage: React.FC = () => {
           <div className="history-section">
             <div className="history-header">
               <h2 className="section-title">Analysis History</h2>
-              
+
               <div className="search-container">
                 <Search className="search-icon" />
                 <input
@@ -254,7 +296,7 @@ const DashboardPage: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div className="history-table">
               <div className="table-wrapper">
                 <table>
@@ -275,26 +317,35 @@ const DashboardPage: React.FC = () => {
                             <div className="file-icon-wrapper">
                               <FileText className="file-icon" />
                             </div>
-                            <span className="file-name">{analysis.resumeFilename || 'Unknown'}</span>
+                            <span className="file-name">
+                              {analysis.resumeFilename || "Unknown"}
+                            </span>
                           </div>
                         </td>
                         <td className="job-title">{getJobTitle(analysis)}</td>
                         <td>
                           <div className="date-info">
                             <Calendar className="date-icon" />
-                            <span className="date-text">{getAnalyzedDate(analysis)}</span>
+                            <span className="date-text">
+                              {getAnalyzedDate(analysis)}
+                            </span>
                           </div>
                         </td>
                         <td>
-                          <span className={`score-badge ${getScoreBadgeColor(getAnalysisScore(analysis))}`}>
+                          <span
+                            className={`score-badge ${getScoreBadgeColor(
+                              getAnalysisScore(analysis)
+                            )}`}
+                          >
                             {getAnalysisScore(analysis)}/100
                           </span>
                         </td>
                         <td>
-                          <button 
+                          <button
                             className="view-details-btn"
                             onClick={() => {
-                              const analysisId = analysis.analysisId || analysis.id;
+                              const analysisId =
+                                analysis.analysisId || analysis.id;
                               if (analysisId) {
                                 navigate(`/dashboard/analysis/${analysisId}`);
                               }
@@ -321,7 +372,9 @@ const DashboardPage: React.FC = () => {
               <BarChart3 className="empty-icon" />
             </div>
             <h3 className="empty-title">No Analyses Yet</h3>
-            <p className="empty-description">Start by analyzing your first resume to see results here.</p>
+            <p className="empty-description">
+              Start by analyzing your first resume to see results here.
+            </p>
             <Link
               to="/resumechecker"
               onClick={resetAnalysis}

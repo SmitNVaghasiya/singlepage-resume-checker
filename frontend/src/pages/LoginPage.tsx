@@ -196,7 +196,11 @@ const LoginPage: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="auth-form">
+            <form
+              onSubmit={handleSubmit}
+              className="auth-form"
+              autoComplete="on"
+            >
               {serverError && (
                 <div className="error-banner">
                   <p>{serverError}</p>
@@ -217,6 +221,7 @@ const LoginPage: React.FC = () => {
                     }`}
                     placeholder="john@example.com"
                     disabled={isLoading}
+                    autoComplete="username"
                   />
                 </div>
                 {errors.emailOrUsername && (
@@ -236,6 +241,7 @@ const LoginPage: React.FC = () => {
                     className={`input-field ${errors.password ? "error" : ""}`}
                     placeholder="••••••••"
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"

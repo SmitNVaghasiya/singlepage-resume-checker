@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { logger } from '../utils/logger';
+import { database } from '../config/database';
 
 interface JwtPayload {
   userId: string;
@@ -32,11 +33,27 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       return;
     }
 
+    // Check if database is connected
+    if (!database.isConnectionActive()) {
+      logger.warn('Database not connected - authentication unavailable');
+      res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable'
+      });
+      return;
+    }
+
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
     
-    // Check if user still exists
-    const user = await User.findById(decoded.userId);
+    // Check if user still exists with timeout
+    const user = await Promise.race([
+      User.findById(decoded.userId),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timeout')), 5000)
+      )
+    ]);
+
     if (!user) {
       res.status(401).json({
         success: false,
@@ -76,6 +93,16 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       return;
     }
 
+    // Handle database timeout errors
+    if (error instanceof Error && error.message === 'Database operation timeout') {
+      logger.error('Auth middleware database timeout:', error);
+      res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable'
+      });
+      return;
+    }
+
     logger.error('Auth middleware error:', error);
     res.status(500).json({
       success: false,
@@ -95,8 +122,22 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
+    // Check if database is connected
+    if (!database.isConnectionActive()) {
+      logger.warn('Database not connected - skipping optional authentication');
+      next(); // Continue without authentication
+      return;
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
-    const user = await User.findById(decoded.userId);
+    
+    // Use timeout for user lookup
+    const user = await Promise.race([
+      User.findById(decoded.userId),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timeout')), 5000)
+      )
+    ]);
     
     if (user && user.isEmailVerified) {
       req.userId = decoded.userId;
@@ -106,6 +147,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     next();
   } catch (error) {
     // Don't fail on optional auth errors, just continue
+    logger.debug('Optional auth error (continuing):', error);
     next();
   }
 }; 

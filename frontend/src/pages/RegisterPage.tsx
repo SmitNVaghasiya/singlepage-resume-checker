@@ -360,7 +360,7 @@ const RegisterPage: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="auth-form">
+            <form onSubmit={handleSubmit} className="auth-form" autoComplete="on">
               {serverError && (
                 <div className="error-banner">
                   <p>{serverError}</p>
@@ -384,6 +384,7 @@ const RegisterPage: React.FC = () => {
                         }`}
                         placeholder="johndoe"
                         disabled={isLoading}
+                        autoComplete="username"
                       />
                     </div>
                     {/* Show validation errors only when necessary */}
@@ -406,6 +407,7 @@ const RegisterPage: React.FC = () => {
                         className={`input-field ${errors.email ? "error" : ""}`}
                         placeholder="john@example.com"
                         disabled={isLoading}
+                        autoComplete="email"
                       />
                     </div>
                     {errors.email && (
@@ -427,6 +429,7 @@ const RegisterPage: React.FC = () => {
                         }`}
                         placeholder="••••••••"
                         disabled={isLoading}
+                        autoComplete="new-password"
                       />
                       <button
                         type="button"

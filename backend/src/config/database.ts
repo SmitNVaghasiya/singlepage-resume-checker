@@ -5,6 +5,8 @@ import { config } from './config';
 class Database {
   private static instance: Database;
   private isConnected: boolean = false;
+  private connectionAttempts: number = 0;
+  private maxRetries: number = 3;
 
   private constructor() {}
 
@@ -24,15 +26,18 @@ class Database {
     try {
       const mongoUri = config.mongoUri || 'mongodb://localhost:27017/resume_analyzer';
       
+      logger.info(`Attempting to connect to MongoDB: ${mongoUri}`);
+      
       await mongoose.connect(mongoUri, {
-        maxPoolSize: 10, // Maintain up to 10 socket connections
-        serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-        socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-        bufferCommands: true // Enable mongoose buffering for better error handling
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        bufferCommands: true
       });
 
       this.isConnected = true;
-      logger.info(`Connected to MongoDB: ${mongoUri}`);
+      this.connectionAttempts = 0;
+      logger.info(`Successfully connected to MongoDB: ${mongoUri}`);
 
       // Handle connection events
       mongoose.connection.on('error', (error) => {
@@ -51,8 +56,23 @@ class Database {
       });
 
     } catch (error) {
-      logger.error('Failed to connect to MongoDB:', error);
+      this.connectionAttempts++;
+      logger.error(`Failed to connect to MongoDB (attempt ${this.connectionAttempts}/${this.maxRetries}):`, error);
+      
+      if (this.connectionAttempts < this.maxRetries) {
+        logger.info(`Retrying connection in 5 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return this.connect();
+      }
+      
       this.isConnected = false;
+      
+      // In development, allow the app to continue without database
+      if (config.nodeEnv === 'development') {
+        logger.warn('Continuing without database connection - authentication features will be limited');
+        return;
+      }
+      
       throw error;
     }
   }

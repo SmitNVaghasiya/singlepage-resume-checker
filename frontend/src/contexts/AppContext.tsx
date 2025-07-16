@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { AnalysisResult } from "../types";
 import { User, apiService } from "../services/api";
-import { usePasteHandler } from "../hooks/usePasteHandler";
+import { usePasteHandler } from "../hooks/shared/usePasteHandler";
 import { base64ToFile, restoreFileFromAuth } from "../utils/fileValidation";
 
 type AnalysisStep = "upload" | "job-description" | "analyze";

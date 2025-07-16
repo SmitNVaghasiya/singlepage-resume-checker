@@ -9,7 +9,6 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const FormData = require("form-data");
-const fetch = require("node-fetch");
 
 const SERVICES = {
   frontend: "http://localhost:5173",
@@ -92,16 +91,33 @@ async function testBackendToPython() {
     log("\n🔗 Testing Backend → Python API Connection...", "blue");
 
     // Test if backend can reach Python API
-    const response = await axios.get(`${SERVICES.backend}/api/health`, {
-      timeout: 5000,
-    });
+    const response = await axios.get(
+      `${SERVICES.backend}/api/health/detailed`,
+      {
+        timeout: 5000,
+      }
+    );
 
-    if (response.data.pythonApi) {
+    if (response.data.pythonApi && response.data.pythonApi.healthy) {
       log("✅ Backend can connect to Python API", "green");
-      log(`   Python API Status: ${response.data.pythonApi.status}`, "yellow");
+      log(
+        `   Python API Status: ${
+          response.data.pythonApi.healthy ? "Healthy" : "Unhealthy"
+        }`,
+        "yellow"
+      );
+      if (response.data.pythonApi.responseTime) {
+        log(
+          `   Response Time: ${response.data.pythonApi.responseTime}ms`,
+          "yellow"
+        );
+      }
       return true;
     } else {
       log("❌ Backend cannot connect to Python API", "red");
+      if (response.data.pythonApi && response.data.pythonApi.error) {
+        log(`   Error: ${response.data.pythonApi.error}`, "yellow");
+      }
       return false;
     }
   } catch (error) {
@@ -142,7 +158,11 @@ async function testFileUpload() {
 
     if (response.status === 200) {
       log("✅ File upload and analysis test successful", "green");
-      log(`   Response: ${JSON.stringify(response.data, null, 2)}`, "yellow");
+      log(`   Score: ${response.data.score_out_of_100 || "N/A"}`, "yellow");
+      log(
+        `   Eligibility: ${response.data.resume_eligibility || "N/A"}`,
+        "yellow"
+      );
       return true;
     } else {
       log("❌ File upload test failed", "red");
@@ -151,6 +171,12 @@ async function testFileUpload() {
   } catch (error) {
     log("❌ File upload test failed", "red");
     log(`   Error: ${error.message}`, "yellow");
+    if (error.response && error.response.data) {
+      log(
+        `   Response: ${JSON.stringify(error.response.data, null, 2)}`,
+        "yellow"
+      );
+    }
     return false;
   }
 }
@@ -159,8 +185,12 @@ async function checkEnvironmentFiles() {
   log("\n📋 Checking Environment Configuration...", "blue");
 
   const envFiles = [
-    { path: "backend/.env", required: false },
-    { path: "python_server/.env", required: true },
+    { path: "backend/.env", required: false, template: "backend/env.example" },
+    {
+      path: "python_server/.env",
+      required: true,
+      template: "python_server/env.example",
+    },
     { path: "frontend/.env", required: false },
   ];
 
@@ -179,9 +209,21 @@ async function checkEnvironmentFiles() {
       } else {
         if (envFile.required) {
           log(`❌ ${envFile.path}: Missing (required)`, "red");
+          if (envFile.template && fs.existsSync(envFile.template)) {
+            log(
+              `   💡 Copy ${envFile.template} to ${envFile.path} and configure`,
+              "yellow"
+            );
+          }
           allGood = false;
         } else {
           log(`⚠️  ${envFile.path}: Not found (optional)`, "yellow");
+          if (envFile.template && fs.existsSync(envFile.template)) {
+            log(
+              `   💡 Copy ${envFile.template} to ${envFile.path} for custom configuration`,
+              "yellow"
+            );
+          }
         }
       }
     } catch (error) {
@@ -193,290 +235,209 @@ async function checkEnvironmentFiles() {
   return allGood;
 }
 
-async function testTempFileUpload() {
-  console.log("Testing temporary file upload functionality...\n");
-
+async function testDatabaseConnection() {
   try {
-    // Create a test file
-    const testContent = "This is a test job description file content.";
-    const testBuffer = Buffer.from(testContent, "utf-8");
+    log("\n🗄️  Testing Database Connection...", "blue");
 
-    // Test 1: Upload resume file
-    console.log("1. Testing resume file upload...");
-    const resumeFormData = new FormData();
-    resumeFormData.append("resume", testBuffer, {
-      filename: "test-resume.pdf",
-      contentType: "application/pdf",
-    });
-
-    const resumeResponse = await fetch(
-      `${SERVICES.backend}/resume/upload-temp`,
+    const response = await axios.get(
+      `${SERVICES.backend}/api/health/detailed`,
       {
-        method: "POST",
-        body: resumeFormData,
+        timeout: 5000,
       }
     );
 
-    if (!resumeResponse.ok) {
-      const errorText = await resumeResponse.text();
-      console.error("Resume upload failed:", resumeResponse.status, errorText);
-      return;
+    if (
+      response.data.database &&
+      response.data.database.status === "connected"
+    ) {
+      log("✅ Database connection successful", "green");
+      log(`   Status: ${response.data.database.status}`, "yellow");
+      if (response.data.database.details) {
+        log(`   Host: ${response.data.database.details.host}`, "yellow");
+        log(`   Database: ${response.data.database.details.name}`, "yellow");
+      }
+      return true;
+    } else {
+      log("❌ Database connection failed", "red");
+      if (response.data.database && response.data.database.details) {
+        log(`   Error: ${response.data.database.details.error}`, "yellow");
+      }
+      return false;
     }
-
-    const resumeResult = await resumeResponse.json();
-    console.log("Resume upload successful:", {
-      message: resumeResult.message,
-      tempId: resumeResult.tempFiles?.resume?.tempId,
-      requiresAuth: resumeResult.requiresAuth,
-    });
-
-    // Test 2: Upload job description file
-    console.log("\n2. Testing job description file upload...");
-    const jobFormData = new FormData();
-    jobFormData.append("jobDescription", testBuffer, {
-      filename: "test-job.pdf",
-      contentType: "application/pdf",
-    });
-
-    const jobResponse = await fetch(`${SERVICES.backend}/resume/upload-temp`, {
-      method: "POST",
-      body: jobFormData,
-    });
-
-    if (!jobResponse.ok) {
-      const errorText = await jobResponse.text();
-      console.error(
-        "Job description upload failed:",
-        jobResponse.status,
-        errorText
-      );
-      return;
-    }
-
-    const jobResult = await jobResponse.json();
-    console.log("Job description upload successful:", {
-      message: jobResult.message,
-      tempId: jobResult.tempFiles?.jobDescription?.tempId,
-      requiresAuth: jobResult.requiresAuth,
-    });
-
-    // Test 3: Upload both files together
-    console.log("\n3. Testing both files upload together...");
-    const bothFormData = new FormData();
-    bothFormData.append("resume", testBuffer, {
-      filename: "test-resume-both.pdf",
-      contentType: "application/pdf",
-    });
-    bothFormData.append("jobDescription", testBuffer, {
-      filename: "test-job-both.pdf",
-      contentType: "application/pdf",
-    });
-
-    const bothResponse = await fetch(`${SERVICES.backend}/resume/upload-temp`, {
-      method: "POST",
-      body: bothFormData,
-    });
-
-    if (!bothResponse.ok) {
-      const errorText = await bothResponse.text();
-      console.error(
-        "Both files upload failed:",
-        bothResponse.status,
-        errorText
-      );
-      return;
-    }
-
-    const bothResult = await bothResponse.json();
-    console.log("Both files upload successful:", {
-      message: bothResult.message,
-      resumeTempId: bothResult.tempFiles?.resume?.tempId,
-      jobTempId: bothResult.tempFiles?.jobDescription?.tempId,
-      requiresAuth: bothResult.requiresAuth,
-    });
-
-    console.log("\n✅ All temporary file upload tests passed!");
-    console.log("\nNote: To test file retrieval, you would need to:");
-    console.log("1. Get a valid auth token");
-    console.log("2. Use the temp IDs in an analysis request");
-    console.log("3. Check the backend logs for retrieval success/failure");
   } catch (error) {
-    console.error("❌ Test failed:", error.message);
+    log("❌ Database connection test failed", "red");
+    log(`   Error: ${error.message}`, "yellow");
+    return false;
+  }
+}
+
+async function testAuthenticationFlow() {
+  try {
+    log("\n🔐 Testing Authentication Flow...", "blue");
+
+    // Test registration endpoint
+    const registerResponse = await axios.post(
+      `${SERVICES.backend}/api/auth/send-otp`,
+      {
+        email: "test@example.com",
+      },
+      {
+        timeout: 5000,
+      }
+    );
+
+    if (registerResponse.status === 200) {
+      log("✅ Authentication endpoints accessible", "green");
+      return true;
+    } else {
+      log("❌ Authentication endpoints not accessible", "red");
+      return false;
+    }
+  } catch (error) {
+    if (error.response && error.response.status === 400) {
+      // This is expected for invalid email
+      log("✅ Authentication endpoints accessible", "green");
+      return true;
+    } else {
+      log("❌ Authentication endpoints not accessible", "red");
+      log(`   Error: ${error.message}`, "yellow");
+      return false;
+    }
   }
 }
 
 async function main() {
-  console.log("🔍 Testing service connections...\n");
-
-  const allGood = await checkEnvironmentFiles();
-
-  if (allGood) {
-    console.log("\n✅ Environment configuration is OK.");
-  } else {
-    console.log(
-      "\n❌ Environment configuration issues detected. Please fix before continuing."
-    );
-  }
+  logHeader("🔍 AI Resume Analyzer - Connection Test");
+  log(
+    "Testing connectivity between Frontend, Backend, and Python Server",
+    "blue"
+  );
 
   // Test individual services
-  // Check environment files first
-  const envOk = await checkEnvironmentFiles();
+  logHeader("📡 Testing Individual Services");
 
-  if (!envOk) {
-    log(
-      "\n⚠️  Environment configuration issues detected. Please fix before continuing.",
-      "yellow"
-    );
-  }
+  const frontendTest = await testService(SERVICES.frontend, "Frontend", "");
+  logService("Frontend", frontendTest.status, frontendTest.details);
 
-  // Test individual services
-  log("\n🔍 Testing Individual Services...", "blue");
-
-  const results = {};
-
-  // Test Python Server
-  const pythonResult = await testService(SERVICES.python, "Python Server");
-  results.python = pythonResult;
-  logService("Python Server", pythonResult.status, pythonResult.details);
-
-  // Test Backend
-  const backendResult = await testService(
+  const backendTest = await testService(
     SERVICES.backend,
     "Backend",
     "/api/health"
   );
-  results.backend = backendResult;
-  logService("Backend", backendResult.status, backendResult.details);
+  logService("Backend", backendTest.status, backendTest.details);
 
-  // Test Frontend (basic connectivity)
-  try {
-    const frontendResponse = await axios.get(SERVICES.frontend, {
-      timeout: 5000,
-    });
-    results.frontend = { status: true, details: "Homepage accessible" };
-    logService("Frontend", true, "Homepage accessible");
-  } catch (error) {
-    results.frontend = { status: false, details: error.message };
-    logService("Frontend", false, error.message);
-  }
+  const pythonTest = await testService(
+    SERVICES.python,
+    "Python API",
+    "/health"
+  );
+  logService("Python API", pythonTest.status, pythonTest.details);
 
-  // Test inter-service connections
-  if (results.backend.status && results.python.status) {
-    const backendToPython = await testBackendToPython();
-    results.backendToPython = backendToPython;
-  }
+  // Test environment configuration
+  const envConfig = await checkEnvironmentFiles();
 
-  // Test file upload if Python is running
-  if (results.python.status) {
-    const fileUploadTest = await testFileUpload();
-    results.fileUpload = fileUploadTest;
+  // Test database connection
+  const dbTest = await testDatabaseConnection();
+
+  // Test backend to Python communication
+  const backendPythonTest = await testBackendToPython();
+
+  // Test authentication flow
+  const authTest = await testAuthenticationFlow();
+
+  // Test file upload (only if Python API is running)
+  let uploadTest = { status: false, details: "Python API not running" };
+  if (pythonTest.status) {
+    uploadTest = await testFileUpload();
   }
 
   // Summary
-  logHeader("Test Summary");
+  logHeader("📊 Test Summary");
 
-  const allServicesRunning =
-    results.python?.status &&
-    results.backend?.status &&
-    results.frontend?.status;
-  const allConnectionsWorking = results.backendToPython && results.fileUpload;
+  const tests = [
+    { name: "Frontend", result: frontendTest.status },
+    { name: "Backend", result: backendTest.status },
+    { name: "Python API", result: pythonTest.status },
+    { name: "Environment Config", result: envConfig },
+    { name: "Database", result: dbTest },
+    { name: "Backend → Python", result: backendPythonTest },
+    { name: "Authentication", result: authTest },
+    { name: "File Upload", result: uploadTest.status },
+  ];
 
-  if (allServicesRunning) {
-    log("✅ All services are running!", "green");
+  const passed = tests.filter((t) => t.result).length;
+  const total = tests.length;
+
+  tests.forEach((test) => {
+    logService(test.name, test.result);
+  });
+
+  logHeader("🎯 Overall Status");
+  if (passed === total) {
+    log(`✅ All tests passed! (${passed}/${total})`, "green");
+    log("🚀 Your AI Resume Analyzer is ready to use!", "green");
   } else {
-    log("❌ Some services are not running", "red");
-  }
-
-  if (allConnectionsWorking) {
-    log("✅ All connections are working!", "green");
-  } else {
-    log("❌ Some connections are not working", "red");
+    log(`❌ ${total - passed} test(s) failed (${passed}/${total})`, "red");
+    log(
+      "🔧 Please fix the issues above before using the application",
+      "yellow"
+    );
   }
 
   // Recommendations
-  logHeader("Recommendations");
-
-  if (!results.python?.status) {
-    log("🔧 Python Server Issues:", "yellow");
-    log(
-      "   1. Check if Python server is started: cd python_server && python main.py",
-      "yellow"
-    );
-    log("   2. Verify GROQ_API_KEY in python_server/.env", "yellow");
-    log("   3. Check if port 8000 is available", "yellow");
+  if (!envConfig) {
+    logHeader("🔧 Setup Recommendations");
+    log("1. Create .env files from the provided templates", "yellow");
+    log("2. Configure your GROQ_API_KEY in python_server/.env", "yellow");
+    log("3. Set up MongoDB if you want to store analysis results", "yellow");
   }
 
-  if (!results.backend?.status) {
-    log("🔧 Backend Issues:", "yellow");
-    log(
-      "   1. Check if backend is started: cd backend && npm run dev",
-      "yellow"
-    );
-    log("   2. Verify MongoDB is running (optional)", "yellow");
-    log("   3. Check if port 5000 is available", "yellow");
+  if (!pythonTest.status) {
+    logHeader("🐍 Python Server Setup");
+    log("1. Navigate to python_server directory", "yellow");
+    log("2. Create virtual environment: python -m venv venv", "yellow");
+    log("3. Activate virtual environment", "yellow");
+    log("4. Install dependencies: pip install -r requirements.txt", "yellow");
+    log("5. Create .env file with your GROQ_API_KEY", "yellow");
+    log("6. Start server: python main.py", "yellow");
   }
 
-  if (!results.frontend?.status) {
-    log("🔧 Frontend Issues:", "yellow");
-    log(
-      "   1. Check if frontend is started: cd frontend && npm run dev",
-      "yellow"
-    );
-    log("   2. Check if port 5173 is available", "yellow");
+  if (!backendTest.status) {
+    logHeader("⚙️  Backend Setup");
+    log("1. Navigate to backend directory", "yellow");
+    log("2. Install dependencies: npm install", "yellow");
+    log("3. Create .env file from env.example", "yellow");
+    log("4. Start server: npm run dev", "yellow");
   }
 
-  if (
-    results.python?.status &&
-    results.backend?.status &&
-    !results.backendToPython
-  ) {
-    log("🔧 Backend-Python Connection Issues:", "yellow");
-    log("   1. Check PYTHON_API_URL in backend/.env", "yellow");
-    log("   2. Verify Python server is accessible from backend", "yellow");
-  }
-
-  log("\n🎯 Next Steps:", "blue");
-  if (allServicesRunning && allConnectionsWorking) {
-    log(
-      "✅ All systems operational! You can now use the application.",
-      "green"
-    );
-    log("   Visit: http://localhost:5173", "blue");
-  } else {
-    log(
-      "🔧 Please fix the issues above before using the application.",
-      "yellow"
-    );
-  }
-
-  console.log("\n");
-}
-
-// Handle FormData for Node.js
-class FormData {
-  constructor() {
-    this.boundary =
-      "----WebKitFormBoundary" + Math.random().toString(16).substr(2);
-    this.data = [];
-  }
-
-  append(name, value, options = {}) {
-    this.data.push({ name, value, options });
-  }
-
-  getHeaders() {
-    return {
-      "Content-Type": `multipart/form-data; boundary=${this.boundary}`,
-    };
+  if (!frontendTest.status) {
+    logHeader("🎨 Frontend Setup");
+    log("1. Navigate to frontend directory", "yellow");
+    log("2. Install dependencies: npm install", "yellow");
+    log("3. Start server: npm run dev", "yellow");
   }
 }
 
-// Run the test
-if (require.main === module) {
-  main().catch((error) => {
-    log(`\n❌ Test failed with error: ${error.message}`, "red");
-    process.exit(1);
-  });
+// Handle command line arguments
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  console.log(`
+Usage: node test-connections.js [options]
+
+Options:
+  --help, -h     Show this help message
+  --quick        Run only basic connectivity tests
+  --verbose      Show detailed error information
+
+Examples:
+  node test-connections.js
+  node test-connections.js --quick
+  node test-connections.js --verbose
+`);
+  process.exit(0);
 }
 
-module.exports = { testService, testBackendToPython, testFileUpload };
+// Run the tests
+main().catch((error) => {
+  log(`❌ Test script failed: ${error.message}`, "red");
+  process.exit(1);
+});

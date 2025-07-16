@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { analysisService, AnalysisQuery } from '../services/analysisService';
+import { analysisService, AnalysisQuery, AnalysisServiceError } from '../services/analysisService';
 import { logger } from '../utils/logger';
 import { database } from '../config/database';
 import { emailService } from '../services/emailService';
@@ -37,6 +37,14 @@ export const analysisController = {
       });
     } catch (error) {
       logger.error('Error in getAllAnalyses:', error);
+      if (error instanceof AnalysisServiceError) {
+        res.status(400).json({
+          success: false,
+          error: error.code,
+          message: error.message
+        });
+        return;
+      }
       next(error);
     }
   },
@@ -66,6 +74,14 @@ export const analysisController = {
       });
     } catch (error) {
       logger.error('Error in getAnalysisById:', error);
+      if (error instanceof AnalysisServiceError) {
+        res.status(400).json({
+          success: false,
+          error: error.code,
+          message: error.message
+        });
+        return;
+      }
       next(error);
     }
   },
@@ -84,6 +100,14 @@ export const analysisController = {
       });
     } catch (error) {
       logger.error('Error in getAnalysisStats:', error);
+      if (error instanceof AnalysisServiceError) {
+        res.status(400).json({
+          success: false,
+          error: error.code,
+          message: error.message
+        });
+        return;
+      }
       next(error);
     }
   },
@@ -103,6 +127,14 @@ export const analysisController = {
       });
     } catch (error) {
       logger.error('Error in getTopAnalyses:', error);
+      if (error instanceof AnalysisServiceError) {
+        res.status(400).json({
+          success: false,
+          error: error.code,
+          message: error.message
+        });
+        return;
+      }
       next(error);
     }
   },
@@ -132,6 +164,14 @@ export const analysisController = {
       });
     } catch (error) {
       logger.error('Error in deleteAnalysis:', error);
+      if (error instanceof AnalysisServiceError) {
+        res.status(400).json({
+          success: false,
+          error: error.code,
+          message: error.message
+        });
+        return;
+      }
       next(error);
     }
   },

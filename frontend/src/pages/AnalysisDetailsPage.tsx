@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiService } from "../services/api";
 import { AnalysisResult } from "../types";
 import { useAppContext } from "../contexts/AppContext";
-import AnalysisResults from "../components/AnalysisResults";
-import Loader from "../components/AnalysisLoading";
-import "../styles/components/AnalysisResults.css";
+import { AnalysisResults, AnalysisLoading } from "../components/analysis";
+import "../components/analysis/AnalysisResults.css";
 import "../styles/pages/AnalysisDetailsPage.css";
 
 const AnalysisDetailsPage: React.FC = () => {
@@ -65,10 +64,12 @@ const AnalysisDetailsPage: React.FC = () => {
   if (loading) {
     return (
       <div className="analysis-details-page-full">
-        <Loader
+        <AnalysisLoading
           analysisProgress={80}
           currentStageIndex={0}
-          analysisStages={["Loading"]}
+          analysisStages={[
+            { id: 1, text: "Loading analysis details", completed: false },
+          ]}
         />
       </div>
     );

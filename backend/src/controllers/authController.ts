@@ -6,6 +6,7 @@ import { User, IUser } from '../models/User';
 import { emailService } from '../services/emailService';
 import { emailValidationService } from '../services/emailValidationService';
 import { logger } from '../utils/logger';
+import { database } from '../config/database';
 
 // In-memory OTP storage (in production, use Redis)
 const otpStore = new Map<string, { otp: string; expires: Date; attempts: number }>();
@@ -243,14 +244,27 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Find user by email or username
-    // Email is case-insensitive (stored lowercase), username is case-sensitive
-    const user = await User.findOne({
-      $or: [
-        { email: emailOrUsername.toLowerCase() },
-        { username: emailOrUsername } // Keep original case for username
-      ]
-    });
+    // Check if database is connected
+    if (!database.isConnectionActive()) {
+      logger.error('Database not connected during login attempt');
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable. Please try again later.'
+      });
+    }
+
+    // Find user by email or username with timeout
+    const user = await Promise.race([
+      User.findOne({
+        $or: [
+          { email: emailOrUsername.toLowerCase() },
+          { username: emailOrUsername } // Keep original case for username
+        ]
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timeout')), 8000)
+      )
+    ]);
 
     if (!user) {
       return res.status(401).json({
@@ -295,6 +309,15 @@ export const login = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
+    // Handle database timeout errors
+    if (error instanceof Error && error.message === 'Database operation timeout') {
+      logger.error('Login database timeout:', error);
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable. Please try again later.'
+      });
+    }
+
     logger.error('Login error:', error);
     res.status(500).json({
       success: false,
@@ -308,7 +331,22 @@ export const getCurrentUser = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId; // Set by auth middleware
 
-    const user = await User.findById(userId);
+    // Check if database is connected
+    if (!database.isConnectionActive()) {
+      logger.error('Database not connected during getCurrentUser attempt');
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable'
+      });
+    }
+
+    const user = await Promise.race([
+      User.findById(userId),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timeout')), 5000)
+      )
+    ]);
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -328,6 +366,15 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
+    // Handle database timeout errors
+    if (error instanceof Error && error.message === 'Database operation timeout') {
+      logger.error('GetCurrentUser database timeout:', error);
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable'
+      });
+    }
+
     logger.error('Get current user error:', error);
     res.status(500).json({
       success: false,

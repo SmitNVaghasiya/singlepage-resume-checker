@@ -9,9 +9,8 @@ from contextlib import asynccontextmanager
 from typing import Optional, Union
 import uvicorn
 
-# Set MongoDB URI environment variable
-os.environ["MONGO_URI"] = "mongodb+srv://smitvaghasiya11280:resume_analyzer%40123@cluster0.u9fpxqt.mongodb.net/"
-os.environ["MONGODB_URL"] = "mongodb+srv://smitvaghasiya11280:resume_analyzer%40123@cluster0.u9fpxqt.mongodb.net/"
+# Ensure MONGODB_URL is set in the environment; add a retry mechanism for MongoDB connection in the app startup.
+# (No need to set credentials or fallback to local MongoDB here.)
 
 from app.models import ResumeAnalysisResponse, ErrorResponse
 from app.file_processor import FileProcessor
@@ -81,6 +80,24 @@ async def root():
     }
 
 
+@app.post("/test-upload")
+async def test_upload(
+    resume_file: UploadFile = File(...),
+    job_description_text: Optional[str] = Form(None)
+):
+    """Test endpoint to verify file upload and form data handling"""
+    logger.info("=== TEST UPLOAD REQUEST RECEIVED ===")
+    logger.info(f"Resume file: {resume_file.filename}")
+    logger.info(f"Job description text length: {len(job_description_text) if job_description_text else 0}")
+    
+    return {
+        "message": "Test upload successful",
+        "resume_filename": resume_file.filename,
+        "job_description_length": len(job_description_text) if job_description_text else 0,
+        "resume_size": len(await resume_file.read())
+    }
+
+
 @app.get("/health")
 async def health_check():
     """Detailed health check"""
@@ -116,6 +133,13 @@ async def analyze_resume(
     - **job_description_file**: Job description file (PDF, DOCX, or TXT) - optional if job_description_text is provided
     - **job_description_text**: Job description as plain text - optional if job_description_file is provided
     """
+    # Add detailed logging at the very beginning
+    logger.info("=== RESUME ANALYSIS REQUEST RECEIVED ===")
+    logger.info(f"Resume file: {resume_file.filename if resume_file else 'None'}")
+    logger.info(f"Job description file: {job_description_file.filename if job_description_file else 'None'}")
+    logger.info(f"Job description text length: {len(job_description_text) if job_description_text else 0}")
+    logger.info(f"Job description text preview: {job_description_text[:100] if job_description_text else 'None'}...")
+    
     try:
         # Validate inputs
         if not job_description_file and not job_description_text:
@@ -255,14 +279,28 @@ async def analyze_resume(
         
         except Exception as e:
             logger.error(f"Unexpected error creating response model: {str(e)}")
-            return JSONResponse(
-                status_code=500,
-                content=ErrorResponse(
-                    error="response_model_creation_failed",
-                    message="Failed to create response model",
-                    details=str(e)
-                ).dict()
-            )
+            # Log the analysis result for debugging
+            logger.error(f"Analysis result that caused validation error: {analysis_result}")
+            
+            # Check if it's a Pydantic validation error
+            if "validation error" in str(e).lower() or "pydantic" in str(e).lower():
+                return JSONResponse(
+                    status_code=422,
+                    content=ErrorResponse(
+                        error="validation_error",
+                        message="AI response validation failed - response structure doesn't match expected schema",
+                        details=f"Validation error: {str(e)}"
+                    ).dict()
+                )
+            else:
+                return JSONResponse(
+                    status_code=500,
+                    content=ErrorResponse(
+                        error="response_model_creation_failed",
+                        message="Failed to create response model",
+                        details=str(e)
+                    ).dict()
+                )
         
     except HTTPException:
         # Re-raise HTTP exceptions

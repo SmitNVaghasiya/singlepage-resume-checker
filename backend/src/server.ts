@@ -82,17 +82,24 @@ class Server {
   private async initializeDatabase(): Promise<void> {
     try {
       await database.connect();
-      this.isDatabaseConnected = true;
-      logger.info('Database connected successfully');
+      
+      // Check if the connection is actually active
+      if (database.isConnectionActive()) {
+        this.isDatabaseConnected = true;
+        logger.info('Database connected successfully');
+      } else {
+        this.isDatabaseConnected = false;
+        logger.warn('Database connection failed - continuing without database');
+      }
     } catch (error) {
       logger.error('Database connection failed:', error);
+      this.isDatabaseConnected = false;
       
       if (config.nodeEnv === 'production') {
         logger.error('Database is required in production mode');
         throw error;
       } else {
         logger.warn('Continuing without database - authentication features will be limited');
-        this.isDatabaseConnected = false;
       }
     }
   }

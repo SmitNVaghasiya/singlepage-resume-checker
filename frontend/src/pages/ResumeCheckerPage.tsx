@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppContext } from "../contexts/AppContext";
 import { AnalysisResult } from "../types";
-import InlineProgressSteps from "../components/InlineProgressSteps";
-import ResumeUploadStep from "../components/ResumeUploadStep";
-import JobDescriptionStep from "../components/JobDescriptionStep";
-import AnalysisLoading from "../components/AnalysisLoading";
-import AnalysisResults from "../components/AnalysisResults";
+import { InlineProgressSteps } from "../components/ui";
+import { ResumeUploadStep } from "../components/file-upload";
+import { JobDescriptionStep } from "../components/job-description";
+import { AnalysisLoading, AnalysisResults } from "../components/analysis";
 import { AnalysisService } from "../services/AnalysisService";
+import "../styles/pages/resume-checker.css";
 
 const ResumeCheckerPage: React.FC = () => {
   const {

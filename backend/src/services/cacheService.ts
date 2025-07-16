@@ -134,7 +134,7 @@ class InMemoryCacheService {
     let cleaned = 0;
     const startTime = Date.now();
 
-    for (const [key, item] of this.cache.entries()) {
+    for (const [key, item] of Array.from(this.cache.entries())) {
       if (now > item.expiresAt) {
         this.cache.delete(key);
         cleaned++;

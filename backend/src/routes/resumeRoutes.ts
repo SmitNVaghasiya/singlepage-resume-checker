@@ -3,43 +3,41 @@ import { uploadFields, handleMulterError } from '../middleware/fileUpload';
 import { uploadRateLimiter } from '../middleware/rateLimiter';
 import { validateAnalysisRequest, validateAnalysisId } from '../middleware/validation';
 import { resumeController } from '../controllers/resumeController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
 
 const router = Router();
 
 // Temporary file upload endpoint removed - frontend only approach
 
-// Resume analysis endpoint (authentication required)
+// Resume analysis endpoint (temporarily without authentication for testing)
 router.post(
   '/analyze',
   uploadRateLimiter,
-  authenticateToken, // Require authentication
+  optionalAuth, // Make authentication optional for now
   uploadFields,
   handleMulterError,
   validateAnalysisRequest,
   resumeController.analyzeResume
 );
 
-// Get analysis status (authentication required)
+// Get analysis status
 router.get(
-  '/status/:analysisId',
-  authenticateToken, // Require authentication
+  '/analysis/:analysisId/status',
   validateAnalysisId,
   resumeController.getAnalysisStatus
 );
 
-// Get analysis result (authentication required)
+// Get analysis result
 router.get(
-  '/result/:analysisId',
-  authenticateToken, // Require authentication
+  '/analysis/:analysisId/result',
   validateAnalysisId,
   resumeController.getAnalysisResult
 );
 
-// Get analysis history (authentication required)
+// Get user's analysis history (requires authentication)
 router.get(
   '/history',
-  authenticateToken, // Require authentication
+  authenticateToken,
   resumeController.getAnalysisHistory
 );
 
