@@ -14,27 +14,20 @@ import { useAppContext } from "../../contexts/AppContext";
 
 const Navbar: React.FC = () => {
   const { resetAnalysis, user, logout } = useAppContext();
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    const savedTheme = localStorage.getItem("theme");
-    return (savedTheme as "light" | "dark") || "light";
-  });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Apply theme on mount and whenever it changes
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    // Force light theme always
+    document.documentElement.classList.remove("dark");
   }, [theme]);
 
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
+    // Disable theme toggle - force light theme
+    setTheme("light");
+    localStorage.setItem("theme", "light");
   };
 
   const handleLogout = async () => {

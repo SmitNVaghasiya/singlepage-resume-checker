@@ -27,6 +27,13 @@ router.get(
   resumeController.getAnalysisStatus
 );
 
+// Get analysis status (alternative route for frontend compatibility)
+router.get(
+  '/status/:analysisId',
+  validateAnalysisId,
+  resumeController.getAnalysisStatus
+);
+
 // Get analysis result
 router.get(
   '/analysis/:analysisId/result',

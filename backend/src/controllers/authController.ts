@@ -24,33 +24,36 @@ const generateToken = (userId: string): string => {
 };
 
 // Send OTP for email verification
-export const sendOTP = async (req: Request, res: Response) => {
+export const sendOTP = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Email is required'
       });
+      return;
     }
 
     // Comprehensive email validation
     const emailValidation = await emailValidationService.validateEmail(email);
     if (!emailValidation.isValid) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: emailValidation.message
       });
+      return;
     }
 
     // Check if email already exists and is verified
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: email.toLowerCase() }).exec() as IUser | null;
     if (existingUser && existingUser.isEmailVerified) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Email is already registered and verified'
       });
+      return;
     }
 
     // Generate OTP
@@ -60,10 +63,11 @@ export const sendOTP = async (req: Request, res: Response) => {
     // Store OTP (with rate limiting)
     const existingOTP = otpStore.get(email);
     if (existingOTP && existingOTP.attempts >= 5) {
-      return res.status(429).json({
+      res.status(429).json({
         success: false,
         message: 'Too many OTP requests. Please try again later.'
       });
+      return;
     }
 
     otpStore.set(email, {
@@ -76,10 +80,11 @@ export const sendOTP = async (req: Request, res: Response) => {
     const emailSent = await emailService.sendOTPEmail(email, otp);
     
     if (!emailSent) {
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: 'Failed to send verification email. Please try again.'
       });
+      return;
     }
 
     logger.info(`OTP sent to ${email}`);
@@ -99,72 +104,80 @@ export const sendOTP = async (req: Request, res: Response) => {
 };
 
 // Register user
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password, otp } = req.body;
 
     // Validation
     if (!username || !email || !password || !otp) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'All fields are required'
       });
+      return;
     }
 
     // Validate username
     if (username.length < 3 || username.length > 30) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Username must be between 3 and 30 characters'
       });
+      return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Username can only contain letters, numbers, and underscores'
       });
+      return;
     }
 
     // Validate email
     const emailValidation = await emailValidationService.validateEmail(email);
     if (!emailValidation.isValid) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: emailValidation.message
       });
+      return;
     }
 
     // Validate password
     if (password.length < 6) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters long'
       });
+      return;
     }
 
     // Verify OTP
     const storedOTP = otpStore.get(email.toLowerCase());
     if (!storedOTP) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'OTP not found. Please request a new verification code.'
       });
+      return;
     }
 
     if (storedOTP.expires < new Date()) {
       otpStore.delete(email.toLowerCase());
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'OTP has expired. Please request a new verification code.'
       });
+      return;
     }
 
     if (storedOTP.otp !== otp) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid verification code'
       });
+      return;
     }
 
     // Check if user already exists
@@ -173,19 +186,21 @@ export const register = async (req: Request, res: Response) => {
         { email: email.toLowerCase() },
         { username: username.toLowerCase() }
       ]
-    });
+    }).exec() as IUser | null;
 
     if (existingUser) {
       if (existingUser.email === email.toLowerCase()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Email is already registered'
         });
+        return;
       } else {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Username is already taken'
         });
+        return;
       }
     }
 
@@ -233,24 +248,26 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Login user
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { emailOrUsername, password } = req.body;
 
     if (!emailOrUsername || !password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Email/username and password are required'
       });
+      return;
     }
 
     // Check if database is connected
     if (!database.isConnectionActive()) {
       logger.error('Database not connected during login attempt');
-      return res.status(503).json({
+      res.status(503).json({
         success: false,
         message: 'Authentication service temporarily unavailable. Please try again later.'
       });
+      return;
     }
 
     // Find user by email or username with timeout
@@ -260,34 +277,37 @@ export const login = async (req: Request, res: Response) => {
           { email: emailOrUsername.toLowerCase() },
           { username: emailOrUsername } // Keep original case for username
         ]
-      }),
-      new Promise((_, reject) => 
+      }).exec(),
+      new Promise<null>((_, reject) => 
         setTimeout(() => reject(new Error('Database operation timeout')), 8000)
       )
-    ]);
+    ]) as IUser | null;
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
+      return;
     }
 
     // Check password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
+      return;
     }
 
     // Check if email is verified
     if (!user.isEmailVerified) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Please verify your email before logging in'
       });
+      return;
     }
 
     // Generate JWT token
@@ -312,10 +332,11 @@ export const login = async (req: Request, res: Response) => {
     // Handle database timeout errors
     if (error instanceof Error && error.message === 'Database operation timeout') {
       logger.error('Login database timeout:', error);
-      return res.status(503).json({
+      res.status(503).json({
         success: false,
         message: 'Authentication service temporarily unavailable. Please try again later.'
       });
+      return;
     }
 
     logger.error('Login error:', error);
@@ -327,31 +348,33 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // Get current user
-export const getCurrentUser = async (req: Request, res: Response) => {
+export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId; // Set by auth middleware
 
     // Check if database is connected
     if (!database.isConnectionActive()) {
       logger.error('Database not connected during getCurrentUser attempt');
-      return res.status(503).json({
+      res.status(503).json({
         success: false,
         message: 'Authentication service temporarily unavailable'
       });
+      return;
     }
 
     const user = await Promise.race([
-      User.findById(userId),
-      new Promise((_, reject) => 
+      User.findById(userId).exec(),
+      new Promise<null>((_, reject) => 
         setTimeout(() => reject(new Error('Database operation timeout')), 5000)
       )
-    ]);
+    ]) as IUser | null;
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       });
+      return;
     }
 
     res.status(200).json({
@@ -369,10 +392,11 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     // Handle database timeout errors
     if (error instanceof Error && error.message === 'Database operation timeout') {
       logger.error('GetCurrentUser database timeout:', error);
-      return res.status(503).json({
+      res.status(503).json({
         success: false,
         message: 'Authentication service temporarily unavailable'
       });
+      return;
     }
 
     logger.error('Get current user error:', error);
@@ -384,14 +408,14 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 };
 
 // Logout user (optional - mainly for clearing server-side sessions if used)
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     // In JWT-based auth, logout is mainly handled client-side by removing the token
     // But we can log the event for security monitoring
     const userId = (req as any).userId;
     
     if (userId) {
-      const user = await User.findById(userId);
+      const user = await User.findById(userId).exec() as IUser | null;
       if (user) {
         logger.info(`User logged out: ${user.email}`);
       }
@@ -412,40 +436,44 @@ export const logout = async (req: Request, res: Response) => {
 };
 
 // Update user profile
-export const updateProfile = async (req: Request, res: Response) => {
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { username, email } = req.body;
 
     if (!username || !email) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Username and email are required'
       });
+      return;
     }
 
     // Validate username
     if (username.length < 3 || username.length > 30) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Username must be between 3 and 30 characters'
       });
+      return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Username can only contain letters, numbers, and underscores'
       });
+      return;
     }
 
     // Validate email
     const emailValidation = await emailValidationService.validateEmail(email);
     if (!emailValidation.isValid) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: emailValidation.message
       });
+      return;
     }
 
     // Check if username or email already exists for other users
@@ -459,19 +487,21 @@ export const updateProfile = async (req: Request, res: Response) => {
           ]
         }
       ]
-    });
+    }).exec() as IUser | null;
 
     if (existingUser) {
       if (existingUser.email === email.toLowerCase()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Email is already registered to another account'
         });
+        return;
       } else {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Username is already taken'
         });
+        return;
       }
     }
 
@@ -483,13 +513,14 @@ export const updateProfile = async (req: Request, res: Response) => {
         email: email.toLowerCase() 
       },
       { new: true }
-    );
+    ).exec() as IUser | null;
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       });
+      return;
     }
 
     logger.info(`User profile updated: ${user.email}`);
@@ -516,57 +547,63 @@ export const updateProfile = async (req: Request, res: Response) => {
 };
 
 // Update password
-export const updatePassword = async (req: Request, res: Response) => {
+export const updatePassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'All password fields are required'
       });
+      return;
     }
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'New passwords do not match'
       });
+      return;
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'New password must be at least 6 characters long'
       });
+      return;
     }
 
     // Get user
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).exec() as IUser | null;
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       });
+      return;
     }
 
     // Verify current password
     const isCurrentPasswordValid = await user.comparePassword(currentPassword);
     if (!isCurrentPasswordValid) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Current password is incorrect'
       });
+      return;
     }
 
     // Check if the new password is the same as current password
     const isSameAsCurrentPassword = await user.comparePassword(newPassword);
     if (isSameAsCurrentPassword) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'You cannot use your current password as the new password. Please choose a different password.'
       });
+      return;
     }
 
     // Update password
@@ -590,7 +627,7 @@ export const updatePassword = async (req: Request, res: Response) => {
 };
 
 // Update notification settings (placeholder - can be extended with actual notification preferences)
-export const updateNotificationSettings = async (req: Request, res: Response) => {
+export const updateNotificationSettings = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     // const { analysisNotifications, accountActivityNotifications, marketingEmails } = req.body; // Removed unused variables
@@ -615,17 +652,18 @@ export const updateNotificationSettings = async (req: Request, res: Response) =>
 };
 
 // Delete user account
-export const deleteAccount = async (req: Request, res: Response) => {
+export const deleteAccount = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
 
     // Get user first to log the deletion
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).exec() as IUser | null;
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       });
+      return;
     }
 
     // In a real implementation, you might want to:
@@ -654,17 +692,18 @@ export const deleteAccount = async (req: Request, res: Response) => {
 };
 
 // Export user data
-export const exportUserData = async (req: Request, res: Response) => {
+export const exportUserData = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
 
     // Get user data
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).exec() as IUser | null;
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       });
+      return;
     }
 
     // In a real implementation, you'd also fetch:
@@ -699,43 +738,47 @@ export const exportUserData = async (req: Request, res: Response) => {
 };
 
 // Forgot password
-export const forgotPassword = async (req: Request, res: Response) => {
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Email is required'
       });
+      return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Please provide a valid email address'
       });
+      return;
     }
 
     // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() }).exec() as IUser | null;
     
     // Always return success for security (don't reveal if email exists)
     if (!user) {
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: 'If an account with that email exists, a password reset link has been sent.'
       });
+      return;
     }
 
     // Check if user email is verified
     if (!user.isEmailVerified) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Please verify your email address first before resetting password'
       });
+      return;
     }
 
     // Generate reset token
@@ -759,10 +802,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
       user.passwordResetExpires = undefined;
       await user.save();
       
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: 'Failed to send password reset email. Please try again.'
       });
+      return;
     }
 
     logger.info(`Password reset requested for: ${user.email}`);
@@ -782,35 +826,38 @@ export const forgotPassword = async (req: Request, res: Response) => {
 };
 
 // Reset password
-export const resetPassword = async (req: Request, res: Response) => {
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
 
     logger.info(`Password reset attempt with token: ${token ? token.substring(0, 10) + '...' : 'null'}`);
 
     if (!token || !newPassword || !confirmPassword) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'All fields are required'
       });
+      return;
     }
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Passwords do not match'
       });
+      return;
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters long'
       });
+      return;
     }
 
     // First, find all users with the reset token (for debugging)
-    const allUsersWithToken = await User.findOne({ passwordResetToken: token });
+    const allUsersWithToken = await User.findOne({ passwordResetToken: token }).exec() as IUser | null;
     logger.info(`Users found with token: ${allUsersWithToken ? 'Yes' : 'No'}`);
     
     if (allUsersWithToken) {
@@ -821,23 +868,25 @@ export const resetPassword = async (req: Request, res: Response) => {
     const user = await User.findOne({
       passwordResetToken: token,
       passwordResetExpires: { $gt: new Date() }
-    });
+    }).exec() as IUser | null;
 
     if (!user) {
       // More specific error message
-      const expiredUser = await User.findOne({ passwordResetToken: token });
+      const expiredUser = await User.findOne({ passwordResetToken: token }).exec() as IUser | null;
       if (expiredUser) {
         logger.info(`Token expired for user: ${expiredUser.email}`);
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Password reset token has expired. Please request a new password reset link.'
         });
+        return;
       } else {
         logger.info(`No user found with token: ${token.substring(0, 10)}...`);
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Invalid password reset token. Please request a new password reset link.'
         });
+        return;
       }
     }
 
@@ -847,10 +896,11 @@ export const resetPassword = async (req: Request, res: Response) => {
     const isSameAsCurrentPassword = await user.comparePassword(newPassword);
     if (isSameAsCurrentPassword) {
       logger.info(`User attempted to use current password as new password: ${user.email}`);
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'You cannot use your current password as the new password. Please choose a different password.'
       });
+      return;
     }
 
     // Update password and clear reset token

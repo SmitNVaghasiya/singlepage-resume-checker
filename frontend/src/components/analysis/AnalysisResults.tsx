@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { AnalysisResult } from "../../types";
 import {
-  ChevronDown,
-  ChevronUp,
   User,
   Target,
   Award,
@@ -47,9 +45,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   onViewDashboard,
 }) => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set()
-  );
 
   const getScore = () =>
     analysisResult.score_out_of_100 ||
@@ -91,16 +86,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
       color: "#06b6d4",
     },
   ];
-
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
-    }
-    setExpandedSections(newExpanded);
-  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "#10b981";
@@ -150,36 +135,26 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
     );
   };
 
-  const CollapsibleSection = ({
+  const StaticSection = ({
     title,
     children,
-    isExpanded,
-    onToggle,
     icon: Icon,
     color = "#667eea",
   }: {
     title: string;
     children: React.ReactNode;
-    isExpanded: boolean;
-    onToggle: () => void;
     icon?: any;
     color?: string;
   }) => (
-    <div className="collapsible-section">
-      <button
-        className="collapsible-header"
-        onClick={onToggle}
+    <div className="static-section">
+      <div
+        className="static-header"
         style={{ "--section-color": color } as React.CSSProperties}
       >
         {Icon && <Icon className="section-icon" />}
         <span className="section-title">{title}</span>
-        {isExpanded ? (
-          <ChevronUp className="expand-icon" />
-        ) : (
-          <ChevronDown className="expand-icon" />
-        )}
-      </button>
-      {isExpanded && <div className="collapsible-content">{children}</div>}
+      </div>
+      <div className="static-content">{children}</div>
     </div>
   );
 
@@ -437,10 +412,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
             <div className="strengths-grid">
               {analysisResult.resume_analysis_report?.strengths_analysis && (
                 <>
-                  <CollapsibleSection
+                  <StaticSection
                     title="Technical Skills"
-                    isExpanded={expandedSections.has("tech-skills")}
-                    onToggle={() => toggleSection("tech-skills")}
                     icon={Code}
                     color="#10b981"
                   >
@@ -454,12 +427,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
 
-                  <CollapsibleSection
+                  <StaticSection
                     title="Project Portfolio"
-                    isExpanded={expandedSections.has("project-portfolio")}
-                    onToggle={() => toggleSection("project-portfolio")}
                     icon={Briefcase}
                     color="#10b981"
                   >
@@ -473,12 +444,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
 
-                  <CollapsibleSection
+                  <StaticSection
                     title="Educational Background"
-                    isExpanded={expandedSections.has("education")}
-                    onToggle={() => toggleSection("education")}
                     icon={Book}
                     color="#10b981"
                   >
@@ -492,7 +461,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
                 </>
               )}
             </div>
@@ -504,10 +473,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
             <div className="weaknesses-grid">
               {analysisResult.resume_analysis_report?.weaknesses_analysis && (
                 <>
-                  <CollapsibleSection
+                  <StaticSection
                     title="Critical Gaps Against Job Description"
-                    isExpanded={expandedSections.has("critical-gaps")}
-                    onToggle={() => toggleSection("critical-gaps")}
                     icon={XCircle}
                     color="#ef4444"
                   >
@@ -521,12 +488,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
 
-                  <CollapsibleSection
+                  <StaticSection
                     title="Technical Deficiencies"
-                    isExpanded={expandedSections.has("tech-deficiencies")}
-                    onToggle={() => toggleSection("tech-deficiencies")}
                     icon={Settings}
                     color="#ef4444"
                   >
@@ -540,12 +505,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
 
-                  <CollapsibleSection
+                  <StaticSection
                     title="Resume Presentation Issues"
-                    isExpanded={expandedSections.has("presentation-issues")}
-                    onToggle={() => toggleSection("presentation-issues")}
                     icon={FileText}
                     color="#ef4444"
                   >
@@ -559,12 +522,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
 
-                  <CollapsibleSection
+                  <StaticSection
                     title="Soft Skills Gaps"
-                    isExpanded={expandedSections.has("soft-skills-gaps")}
-                    onToggle={() => toggleSection("soft-skills-gaps")}
                     icon={Users}
                     color="#ef4444"
                   >
@@ -578,12 +539,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
 
-                  <CollapsibleSection
+                  <StaticSection
                     title="Missing Essential Elements"
-                    isExpanded={expandedSections.has("missing-elements")}
-                    onToggle={() => toggleSection("missing-elements")}
                     icon={Info}
                     color="#ef4444"
                   >
@@ -597,7 +556,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         )
                       )}
                     </ul>
-                  </CollapsibleSection>
+                  </StaticSection>
                 </>
               )}
             </div>

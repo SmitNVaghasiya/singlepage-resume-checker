@@ -1,6 +1,6 @@
 ------- Important tasks.
--- Make sure that analysis result page is showing all the content and also the dashbord page.
--- My main function of the resume checking is not complete. - Currently dashboard is not able to take all the data from the resumechecker and show in the dashboard. - After making proper resumechecker make dashboard according to that.
+-- Improve the dashboard UI.
+-- Make trantition from the resumechecker page to the dashboard make it seamless. currently it is not fast and in looking like it is too slow and showing somehtings which must not be there.
 
 -------- Must complete only after completing above tasks.
 -- Add the Google sign in and sign up inside of my website and only take data which is required.
@@ -13,7 +13,6 @@
 
 -------- Normal Site Future add on.
 -- add option where user can find out which are the improvements resume needs.
-
 
 completed work
 -- "How We Compare" make sure that this feature is correct. ---For now this is correct.

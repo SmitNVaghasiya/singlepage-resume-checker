@@ -276,7 +276,7 @@ class ApiService {
   }
 
   async getAnalysisStatus(analysisId: string): Promise<AnalysisStatus> {
-    const response = await fetch(`${this.baseUrl}/resume/status/${analysisId}`, {
+    const response = await fetch(`${this.baseUrl}/resume/analysis/${analysisId}/status`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -293,7 +293,7 @@ class ApiService {
     status: string; 
     result: AnalysisResult 
   }> {
-    const response = await fetch(`${this.baseUrl}/resume/result/${analysisId}`, {
+    const response = await fetch(`${this.baseUrl}/resume/analysis/${analysisId}/result`, {
       headers: this.getAuthHeaders(),
     });
 

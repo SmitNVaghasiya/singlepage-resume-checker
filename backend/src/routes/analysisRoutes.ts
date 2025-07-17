@@ -6,7 +6,7 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 // Apply rate limiting to all analysis routes
-router.use(rateLimiter);
+router.use(rateLimiter());
 
 // GET /api/analyses - Get all analyses with pagination and filtering
 router.get('/', analysisController.getAllAnalyses);

@@ -122,11 +122,18 @@ class PythonResponseTransformer {
   ): IAnalysisResult {
     const report = pythonResponse.resume_analysis_report;
     
+    // Ensure all required fields have fallback values
+    const jobTitle = report?.candidate_information?.position_applied || 
+                    report?.final_assessment?.hiring_recommendation?.split(' ').slice(0, 3).join(' ') || 
+                    'Software Engineer';
+    
+    const industry = this.extractIndustryFromResponse(pythonResponse);
+    
     return {
-      overallScore: pythonResponse.score_out_of_100,
-      matchPercentage: pythonResponse.chance_of_selection_percentage,
-      jobTitle: report?.candidate_information?.position_applied || 'Job Position',
-      industry: 'General',
+      overallScore: pythonResponse.score_out_of_100 || 50,
+      matchPercentage: pythonResponse.chance_of_selection_percentage || 50,
+      jobTitle: jobTitle,
+      industry: industry,
       keywordMatch: this.buildKeywordMatch(pythonResponse),
       skillsAnalysis: this.buildSkillsAnalysis(pythonResponse),
       experienceAnalysis: this.buildExperienceAnalysis(pythonResponse),
@@ -134,12 +141,44 @@ class PythonResponseTransformer {
       competitiveAnalysis: this.buildCompetitiveAnalysis(pythonResponse),
       detailedFeedback: this.buildDetailedFeedback(pythonResponse),
       improvementPlan: this.buildImprovementPlan(pythonResponse),
-      overallRecommendation: pythonResponse.short_conclusion,
+      overallRecommendation: pythonResponse.short_conclusion || 'Analysis completed successfully',
       aiInsights: this.buildAiInsights(pythonResponse),
       candidateStrengths: report?.strengths_analysis?.technical_skills || [],
-      developmentAreas: pythonResponse.resume_improvement_priority,
+      developmentAreas: pythonResponse.resume_improvement_priority || [],
       confidence: this.calculateConfidence(pythonResponse)
     };
+  }
+
+  private static extractIndustryFromResponse(response: PythonApiResponse): string {
+    const report = response.resume_analysis_report;
+    
+    // Try to extract industry from various sources
+    if (report?.candidate_information?.position_applied) {
+      const position = report.candidate_information.position_applied.toLowerCase();
+      if (position.includes('ai') || position.includes('ml') || position.includes('machine learning')) {
+        return 'Artificial Intelligence';
+      } else if (position.includes('web') || position.includes('frontend') || position.includes('backend')) {
+        return 'Web Development';
+      } else if (position.includes('mobile') || position.includes('ios') || position.includes('android')) {
+        return 'Mobile Development';
+      } else if (position.includes('data') || position.includes('analytics')) {
+        return 'Data Science';
+      } else if (position.includes('devops') || position.includes('cloud')) {
+        return 'DevOps';
+      } else if (position.includes('security') || position.includes('cyber')) {
+        return 'Cybersecurity';
+      }
+    }
+    
+    // Default based on technical skills
+    const technicalSkills = report?.strengths_analysis?.technical_skills || [];
+    if (technicalSkills.some(skill => skill.toLowerCase().includes('python'))) {
+      return 'Software Development';
+    } else if (technicalSkills.some(skill => skill.toLowerCase().includes('javascript'))) {
+      return 'Web Development';
+    }
+    
+    return 'Technology';
   }
 
   private static buildKeywordMatch(response: PythonApiResponse) {

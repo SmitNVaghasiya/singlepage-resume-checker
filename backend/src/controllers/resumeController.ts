@@ -431,11 +431,58 @@ class ResumeController {
     try {
       await analysisService.updateAnalysisResult(analysisId, result);
     } catch (dbError) {
-      logger.warn('Failed to update MongoDB with results:', { 
-        analysisId, 
-        error: extractErrorMessage(dbError) 
+      const errorMessage = extractErrorMessage(dbError);
+      logger.error('Error updating analysis result:', {
+        analysisId,
+        error: errorMessage,
+        resultKeys: Object.keys(result || {}),
+        hasRequiredFields: {
+          overallScore: typeof result?.overallScore === 'number',
+          matchPercentage: typeof result?.matchPercentage === 'number',
+          jobTitle: typeof result?.jobTitle === 'string',
+          industry: typeof result?.industry === 'string'
+        }
       });
+      
+      // Try to fix the result if it's missing required fields
+      const fixedResult = this.fixMissingRequiredFields(result);
+      if (fixedResult !== result) {
+        try {
+          await analysisService.updateAnalysisResult(analysisId, fixedResult);
+          logger.info('Successfully updated with fixed result', { analysisId });
+        } catch (retryError) {
+          logger.error('Failed to update with fixed result:', {
+            analysisId,
+            error: extractErrorMessage(retryError)
+          });
+        }
+      }
     }
+  }
+
+  private fixMissingRequiredFields(result: any): any {
+    if (!result) return result;
+    
+    const fixed = { ...result };
+    
+    // Ensure required fields have default values
+    if (typeof fixed.overallScore !== 'number' || isNaN(fixed.overallScore)) {
+      fixed.overallScore = 50;
+    }
+    
+    if (typeof fixed.matchPercentage !== 'number' || isNaN(fixed.matchPercentage)) {
+      fixed.matchPercentage = 50;
+    }
+    
+    if (typeof fixed.jobTitle !== 'string' || !fixed.jobTitle.trim()) {
+      fixed.jobTitle = 'Software Engineer';
+    }
+    
+    if (typeof fixed.industry !== 'string' || !fixed.industry.trim()) {
+      fixed.industry = 'Technology';
+    }
+    
+    return fixed;
   }
 
   private async completeAnalysis(analysisId: string, result: any): Promise<void> {

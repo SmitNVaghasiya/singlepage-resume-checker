@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import { AnalysisResult } from "../../types";
 import {
   X,
@@ -10,10 +16,89 @@ import {
   Award,
   Download,
   Share,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import AnalysisSummary from "./AnalysisSummary";
 import AnalysisTabContent from "./AnalysisTabContent";
 import "./DashboardAnalysisView.css";
+
+// Interface for the dashboard-specific data structure
+interface DashboardAnalysisData {
+  score: number;
+  chance: number;
+  jobTitle: string;
+  validity: string;
+  eligibility: string;
+  conclusion: string;
+  fitSummary?: string;
+  candidateInfo?: any;
+  priorities: string[];
+  strengths?: {
+    technical_skills?: string[];
+    project_portfolio?: string[];
+    educational_background?: string[];
+  };
+  weaknesses?: {
+    critical_gaps_against_job_description?: string[];
+    technical_deficiencies?: string[];
+    resume_presentation_issues?: string[];
+    soft_skills_gaps?: string[];
+    missing_essential_elements?: string[];
+  };
+  feedback?: {
+    contact_information?: {
+      current_state: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    profile_summary?: {
+      current_state: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    education?: {
+      current_state: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    skills?: {
+      current_state: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    projects?: {
+      current_state: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    missing_sections?: {
+      certifications?: string;
+      experience?: string;
+      achievements?: string;
+      soft_skills?: string;
+    };
+  };
+  recommendations?: {
+    immediate_resume_additions?: string[];
+    immediate_priority_actions?: string[];
+    short_term_development_goals?: string[];
+    medium_term_objectives?: string[];
+  };
+  softSkills?: {
+    communication_skills?: string[];
+    teamwork_and_collaboration?: string[];
+    leadership_and_initiative?: string[];
+    problem_solving_approach?: string[];
+  };
+  finalAssessment?: {
+    eligibility_status: string;
+    hiring_recommendation: string;
+    key_interview_areas?: string[];
+    onboarding_requirements?: string[];
+    long_term_potential: string;
+  };
+}
 
 interface DashboardAnalysisViewProps {
   analysis: AnalysisResult;
@@ -39,12 +124,13 @@ const DashboardAnalysisView: React.FC<DashboardAnalysisViewProps> = ({
   isLoading = false,
 }) => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["tech-skills", "critical-gaps"]) // Default expanded sections
-  );
+  const [isExporting, setIsExporting] = useState(false);
+  const [tabScrollPosition, setTabScrollPosition] = useState(0);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   // Memoized data extraction functions
-  const analysisData = useMemo(
+  const analysisData: DashboardAnalysisData = useMemo(
     () => ({
       score:
         analysis.score_out_of_100 ||
@@ -72,7 +158,32 @@ const DashboardAnalysisView: React.FC<DashboardAnalysisViewProps> = ({
       priorities: analysis.resume_improvement_priority || [],
       strengths: analysis.resume_analysis_report?.strengths_analysis,
       weaknesses: analysis.resume_analysis_report?.weaknesses_analysis,
-      feedback: analysis.resume_analysis_report?.section_wise_detailed_feedback,
+      feedback: analysis.resume_analysis_report?.section_wise_detailed_feedback
+        ? {
+            ...analysis.resume_analysis_report.section_wise_detailed_feedback,
+            missing_sections: analysis.resume_analysis_report
+              .section_wise_detailed_feedback.missing_sections
+              ? {
+                  certifications:
+                    analysis.resume_analysis_report
+                      .section_wise_detailed_feedback.missing_sections
+                      .certifications || "No certifications found",
+                  experience:
+                    analysis.resume_analysis_report
+                      .section_wise_detailed_feedback.missing_sections
+                      .experience || "No experience found",
+                  achievements:
+                    analysis.resume_analysis_report
+                      .section_wise_detailed_feedback.missing_sections
+                      .achievements || "No achievements found",
+                  soft_skills:
+                    analysis.resume_analysis_report
+                      .section_wise_detailed_feedback.missing_sections
+                      .soft_skills || "No soft skills found",
+                }
+              : undefined,
+          }
+        : undefined,
       recommendations:
         analysis.resume_analysis_report?.improvement_recommendations,
       softSkills:
@@ -130,22 +241,43 @@ const DashboardAnalysisView: React.FC<DashboardAnalysisViewProps> = ({
     [analysisData]
   );
 
-  const toggleSection = useCallback((sectionId: string) => {
-    setExpandedSections((prev) => {
-      const newExpanded = new Set(prev);
-      if (newExpanded.has(sectionId)) {
-        newExpanded.delete(sectionId);
-      } else {
-        newExpanded.add(sectionId);
-      }
-      return newExpanded;
-    });
+  // Focus management for accessibility
+  useEffect(() => {
+    const focusableElements = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements && focusableElements.length > 0) {
+      (focusableElements[0] as HTMLElement).focus();
+    }
   }, []);
 
+  // Tab navigation with keyboard
+  const handleTabNavigation = useCallback(
+    (direction: "next" | "prev") => {
+      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+      let newIndex;
+
+      if (direction === "next") {
+        newIndex = currentIndex === tabs.length - 1 ? 0 : currentIndex + 1;
+      } else {
+        newIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
+      }
+
+      setActiveTab(tabs[newIndex].id);
+    },
+    [activeTab, tabs]
+  );
+
   const handleExport = useCallback(
-    (format: "pdf" | "json") => {
+    async (format: "pdf" | "json") => {
       if (onExport) {
-        onExport(format);
+        setIsExporting(true);
+        try {
+          await onExport(format);
+        } finally {
+          setIsExporting(false);
+        }
       }
     },
     [onExport]
@@ -161,41 +293,102 @@ const DashboardAnalysisView: React.FC<DashboardAnalysisViewProps> = ({
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+      } else if (e.key === "ArrowLeft" && e.ctrlKey) {
+        e.preventDefault();
+        handleTabNavigation("prev");
+      } else if (e.key === "ArrowRight" && e.ctrlKey) {
+        e.preventDefault();
+        handleTabNavigation("next");
       }
     },
-    [onClose]
+    [onClose, handleTabNavigation]
   );
 
-  const TabButton: React.FC<{ tab: Tab }> = React.memo(({ tab }) => {
-    const Icon = tab.icon;
-    const isActive = activeTab === tab.id;
+  const scrollTabs = useCallback(
+    (direction: "left" | "right") => {
+      if (tabsRef.current) {
+        const scrollAmount = 200;
+        const newPosition =
+          direction === "left"
+            ? Math.max(0, tabScrollPosition - scrollAmount)
+            : tabScrollPosition + scrollAmount;
 
-    return (
-      <button
-        className={`tab-button ${isActive ? "active" : ""}`}
-        onClick={() => setActiveTab(tab.id)}
-        style={{ "--tab-color": tab.color } as React.CSSProperties}
-        role="tab"
-        aria-selected={isActive}
-        tabIndex={isActive ? 0 : -1}
-      >
-        <Icon className="tab-icon" aria-hidden="true" />
-        <span>{tab.label}</span>
-        {tab.count !== undefined && tab.count > 0 && (
-          <span className="tab-count">{tab.count}</span>
-        )}
-        {isActive && <div className="tab-indicator" />}
-      </button>
-    );
-  });
+        tabsRef.current.scrollTo({
+          left: newPosition,
+          behavior: "smooth",
+        });
+        setTabScrollPosition(newPosition);
+      }
+    },
+    [tabScrollPosition]
+  );
+
+  const TabButton: React.FC<{ tab: Tab; index: number }> = React.memo(
+    ({ tab, index }) => {
+      const Icon = tab.icon;
+      const isActive = activeTab === tab.id;
+
+      return (
+        <button
+          className={`tab-button ${isActive ? "active" : ""}`}
+          onClick={() => setActiveTab(tab.id)}
+          style={{ "--tab-color": tab.color } as React.CSSProperties}
+          role="tab"
+          aria-selected={isActive}
+          aria-controls={`tabpanel-${tab.id}`}
+          id={`tab-${tab.id}`}
+          tabIndex={isActive ? 0 : -1}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft" && index > 0) {
+              e.preventDefault();
+              setActiveTab(tabs[index - 1].id);
+            } else if (e.key === "ArrowRight" && index < tabs.length - 1) {
+              e.preventDefault();
+              setActiveTab(tabs[index + 1].id);
+            }
+          }}
+        >
+          <Icon className="tab-icon" aria-hidden="true" />
+          <span className="tab-label">{tab.label}</span>
+          {tab.count !== undefined && tab.count > 0 && (
+            <span className="tab-count" aria-label={`${tab.count} items`}>
+              {tab.count}
+            </span>
+          )}
+          {isActive && <div className="tab-indicator" />}
+        </button>
+      );
+    }
+  );
+
+  const LoadingSpinner = () => (
+    <div className="loading-container">
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+        <p className="loading-text">Loading analysis...</p>
+      </div>
+    </div>
+  );
+
+  const ExportButton: React.FC<{ format: "pdf" | "json"; label: string }> = ({
+    format,
+    label,
+  }) => (
+    <button
+      className="action-btn export-btn"
+      onClick={() => handleExport(format)}
+      disabled={isExporting}
+      title={`Export as ${label}`}
+    >
+      <Download className="action-icon" />
+      <span>{isExporting ? "..." : label}</span>
+    </button>
+  );
 
   if (isLoading) {
     return (
       <div className="dashboard-analysis-overlay">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading analysis...</p>
-        </div>
+        <LoadingSpinner />
       </div>
     );
   }
@@ -206,38 +399,28 @@ const DashboardAnalysisView: React.FC<DashboardAnalysisViewProps> = ({
       onKeyDown={handleKeyDown}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-describedby="modal-description"
     >
-      <div className="dashboard-analysis-modal">
+      <div className="dashboard-analysis-modal" ref={modalRef}>
         {/* Header */}
         <header className="modal-header">
           <div className="header-content">
             <h1 id="modal-title">Resume Analysis Report</h1>
-            <p>Comprehensive evaluation and improvement recommendations</p>
+            <p id="modal-description">
+              Comprehensive evaluation and improvement recommendations
+            </p>
           </div>
           <div className="header-actions">
             {onExport && (
               <div className="export-buttons">
-                <button
-                  className="action-btn"
-                  onClick={() => handleExport("pdf")}
-                  title="Export as PDF"
-                >
-                  <Download className="action-icon" />
-                  <span>PDF</span>
-                </button>
-                <button
-                  className="action-btn"
-                  onClick={() => handleExport("json")}
-                  title="Export as JSON"
-                >
-                  <Download className="action-icon" />
-                  <span>JSON</span>
-                </button>
+                <ExportButton format="pdf" label="PDF" />
+                <ExportButton format="json" label="JSON" />
               </div>
             )}
             {onShare && (
               <button
-                className="action-btn"
+                className="action-btn share-btn"
                 onClick={handleShare}
                 title="Share analysis"
               >
@@ -260,22 +443,47 @@ const DashboardAnalysisView: React.FC<DashboardAnalysisViewProps> = ({
 
         {/* Tabs */}
         <section className="tabs-container">
-          <div className="tabs" role="tablist" aria-labelledby="analysis-tabs">
-            <h2 id="analysis-tabs" className="sr-only">
-              Analysis Sections
-            </h2>
-            {tabs.map((tab) => (
-              <TabButton key={tab.id} tab={tab} />
-            ))}
+          <div className="tabs-wrapper">
+            <button
+              className="tab-scroll-btn tab-scroll-left"
+              onClick={() => scrollTabs("left")}
+              aria-label="Scroll tabs left"
+            >
+              <ChevronLeft className="scroll-icon" />
+            </button>
+
+            <div
+              className="tabs"
+              role="tablist"
+              aria-label="Analysis sections"
+              ref={tabsRef}
+            >
+              {tabs.map((tab, index) => (
+                <TabButton key={tab.id} tab={tab} index={index} />
+              ))}
+            </div>
+
+            <button
+              className="tab-scroll-btn tab-scroll-right"
+              onClick={() => scrollTabs("right")}
+              aria-label="Scroll tabs right"
+            >
+              <ChevronRight className="scroll-icon" />
+            </button>
           </div>
 
           {/* Tab Contents */}
-          <AnalysisTabContent
-            activeTab={activeTab}
-            expandedSections={expandedSections}
-            analysisData={analysisData}
-            onToggleSection={toggleSection}
-          />
+          <div
+            id={`tabpanel-${activeTab}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${activeTab}`}
+            className="tab-content"
+          >
+            <AnalysisTabContent
+              activeTab={activeTab}
+              analysisData={analysisData}
+            />
+          </div>
         </section>
       </div>
     </div>

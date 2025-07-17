@@ -26,18 +26,30 @@ class Database {
     try {
       const mongoUri = config.mongoUri || 'mongodb://localhost:27017/resume_analyzer';
       
-      logger.info(`Attempting to connect to MongoDB: ${mongoUri}`);
+      logger.info(`Attempting to connect to MongoDB: ${mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
       
       await mongoose.connect(mongoUri, {
         maxPoolSize: 10,
-        serverSelectionTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 30000, // Increased timeout for Atlas
         socketTimeoutMS: 45000,
-        bufferCommands: true
+        bufferCommands: true,
+        // Add these options for better Atlas compatibility
+        retryWrites: true,
+        w: 'majority',
+        // Connection pool settings
+        minPoolSize: 1,
+        maxIdleTimeMS: 30000,
+        // Timeout settings
+        connectTimeoutMS: 30000,
+        // Heartbeat settings
+        heartbeatFrequencyMS: 10000,
+        // Server selection settings
+        localThresholdMS: 15
       });
 
       this.isConnected = true;
       this.connectionAttempts = 0;
-      logger.info(`Successfully connected to MongoDB: ${mongoUri}`);
+      logger.info(`Successfully connected to MongoDB: ${mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
 
       // Handle connection events
       mongoose.connection.on('error', (error) => {

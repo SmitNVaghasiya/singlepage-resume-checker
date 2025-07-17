@@ -4,7 +4,7 @@ import { AnalysisResult } from "../types";
 import { InlineProgressSteps } from "../components/ui";
 import { ResumeUploadStep } from "../components/file-upload";
 import { JobDescriptionStep } from "../components/job-description";
-import { AnalysisLoading, AnalysisResults } from "../components/analysis";
+import { AnalysisLoading } from "../components/analysis";
 import { AnalysisService } from "../services/AnalysisService";
 import "../styles/pages/resume-checker.css";
 
@@ -260,17 +260,6 @@ const ResumeCheckerPage: React.FC = () => {
     }
   }, [user, isAuthLoading, resumeFile, currentStep, setCurrentStep]);
 
-  const handleAnalyzeAnother = () => {
-    resetAnalysis();
-    setAnalysisResult(null);
-    setAnalysisProgress(0);
-    setCurrentStageIndex(0);
-  };
-
-  const handleViewDashboard = () => {
-    window.location.href = "/dashboard";
-  };
-
   // Debug function to check current state
   const debugCurrentState = () => {
     console.log("=== DEBUG CURRENT STATE ===");
@@ -415,16 +404,10 @@ const ResumeCheckerPage: React.FC = () => {
                 currentStageIndex={currentStageIndex}
                 analysisStages={analysisService.analysisStages}
               />
-            ) : analysisResult ? (
-              <AnalysisResults
-                analysisResult={analysisResult}
-                onAnalyzeAnother={handleAnalyzeAnother}
-                onViewDashboard={handleViewDashboard}
-              />
             ) : null}
 
-            {/* Hide progress steps when analysis is complete */}
-            {!analysisResult && (
+            {/* Show progress steps when not analyzing */}
+            {!isAnalyzing && (
               <InlineProgressSteps
                 currentStep={currentStep}
                 resumeFile={resumeFile}

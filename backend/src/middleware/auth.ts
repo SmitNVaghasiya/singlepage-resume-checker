@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
+import { User, IUser } from '../models/User';
 import { logger } from '../utils/logger';
 import { database } from '../config/database';
 
@@ -15,7 +15,7 @@ declare global {
   namespace Express {
     interface Request {
       userId?: string;
-      user?: any;
+      user?: IUser;
     }
   }
 }
@@ -44,15 +44,24 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      logger.error('JWT_SECRET environment variable is not set');
+      res.status(500).json({
+        success: false,
+        message: 'Authentication service configuration error'
+      });
+      return;
+    }
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
     
     // Check if user still exists with timeout
     const user = await Promise.race([
-      User.findById(decoded.userId),
-      new Promise((_, reject) => 
+      User.findById(decoded.userId).exec(),
+      new Promise<null>((_resolve, reject) => 
         setTimeout(() => reject(new Error('Database operation timeout')), 5000)
       )
-    ]);
+    ]) as IUser | null;
 
     if (!user) {
       res.status(401).json({
@@ -129,15 +138,21 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      logger.error('JWT_SECRET environment variable is not set');
+      next(); // Continue without authentication for optional auth
+      return;
+    }
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
     
     // Use timeout for user lookup
     const user = await Promise.race([
-      User.findById(decoded.userId),
-      new Promise((_, reject) => 
+      User.findById(decoded.userId).exec(),
+      new Promise<null>((_resolve, reject) => 
         setTimeout(() => reject(new Error('Database operation timeout')), 5000)
       )
-    ]);
+    ]) as IUser | null;
     
     if (user && user.isEmailVerified) {
       req.userId = decoded.userId;

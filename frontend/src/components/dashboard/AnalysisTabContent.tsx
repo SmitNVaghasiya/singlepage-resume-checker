@@ -4,617 +4,761 @@ import {
   XCircle,
   ArrowRight,
   Target,
-  ChevronDown,
-  ChevronUp,
   Code,
   Briefcase,
   Book,
   Settings,
   FileText,
   Users,
-  Info,
   User,
-  MessageSquare,
   Zap,
   Calendar,
-  TrendingUp,
+  AlertTriangle,
   Award,
+  MessageSquare,
+  UserCheck,
+  Lightbulb,
+  BarChart3,
+  TrendingUp,
+  Info,
+  Plus,
+  CheckSquare,
+  AlertCircle,
 } from "lucide-react";
-import "./AnalysisTabContent.css";
+
+// Type definitions
+interface ItemCardProps {
+  items: string[];
+  type?: "strength" | "weakness" | "recommendation" | "neutral";
+  showIcon?: boolean;
+  emptyMessage?: string;
+}
+
+interface SectionProps {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  className?: string;
+  badge?: string;
+}
 
 interface AnalysisTabContentProps {
   activeTab: string;
-  expandedSections: Set<string>;
   analysisData: {
-    strengths?: any;
-    weaknesses?: any;
-    feedback?: any;
-    recommendations?: any;
-    softSkills?: any;
-    finalAssessment?: any;
+    score: number;
+    chance: number;
+    jobTitle: string;
+    validity: string;
+    eligibility: string;
+    conclusion: string;
+    fitSummary?: string;
+    candidateInfo?: any;
+    priorities: string[];
+    strengths?: {
+      technical_skills?: string[];
+      project_portfolio?: string[];
+      educational_background?: string[];
+    };
+    weaknesses?: {
+      critical_gaps_against_job_description?: string[];
+      technical_deficiencies?: string[];
+      resume_presentation_issues?: string[];
+      soft_skills_gaps?: string[];
+      missing_essential_elements?: string[];
+    };
+    feedback?: {
+      contact_information?: {
+        current_state: string;
+        strengths: string[];
+        improvements: string[];
+      };
+      profile_summary?: {
+        current_state: string;
+        strengths: string[];
+        improvements: string[];
+      };
+      education?: {
+        current_state: string;
+        strengths: string[];
+        improvements: string[];
+      };
+      skills?: {
+        current_state: string;
+        strengths: string[];
+        improvements: string[];
+      };
+      projects?: {
+        current_state: string;
+        strengths: string[];
+        improvements: string[];
+      };
+      missing_sections?: {
+        certifications?: string;
+        experience?: string;
+        achievements?: string;
+        soft_skills?: string;
+      };
+    };
+    recommendations?: {
+      immediate_resume_additions?: string[];
+      immediate_priority_actions?: string[];
+      short_term_development_goals?: string[];
+      medium_term_objectives?: string[];
+    };
+    softSkills?: {
+      communication_skills?: string[];
+      teamwork_and_collaboration?: string[];
+      leadership_and_initiative?: string[];
+      problem_solving_approach?: string[];
+    };
+    finalAssessment?: {
+      eligibility_status: string;
+      hiring_recommendation: string;
+      key_interview_areas?: string[];
+      onboarding_requirements?: string[];
+      long_term_potential: string;
+    };
   };
-  onToggleSection: (sectionId: string) => void;
 }
 
 const AnalysisTabContent: React.FC<AnalysisTabContentProps> = ({
   activeTab,
-  expandedSections,
   analysisData,
-  onToggleSection,
 }) => {
-  const TabContent: React.FC<{ children: React.ReactNode; tabId: string }> = ({
-    children,
-    tabId,
+  const ItemCard: React.FC<ItemCardProps> = ({
+    items,
+    type = "neutral",
+    showIcon = true,
+    emptyMessage = "No items available",
   }) => {
-    if (activeTab !== tabId) return null;
+    const getTypeConfig = () => {
+      switch (type) {
+        case "strength":
+          return {
+            icon: CheckCircle2,
+            iconColor: "text-emerald-600",
+            bgColor: "bg-emerald-50",
+            borderColor: "border-emerald-200",
+            textColor: "text-emerald-800",
+            cardBg: "bg-white",
+          };
+        case "weakness":
+          return {
+            icon: XCircle,
+            iconColor: "text-red-600",
+            bgColor: "bg-red-50",
+            borderColor: "border-red-200",
+            textColor: "text-red-800",
+            cardBg: "bg-white",
+          };
+        case "recommendation":
+          return {
+            icon: ArrowRight,
+            iconColor: "text-blue-600",
+            bgColor: "bg-blue-50",
+            borderColor: "border-blue-200",
+            textColor: "text-blue-800",
+            cardBg: "bg-white",
+          };
+        default:
+          return {
+            icon: Target,
+            iconColor: "text-gray-600",
+            bgColor: "bg-gray-50",
+            borderColor: "border-gray-200",
+            textColor: "text-gray-800",
+            cardBg: "bg-white",
+          };
+      }
+    };
+
+    const config = getTypeConfig();
+    const Icon = config.icon;
+
+    if (!items || items.length === 0) {
+      return (
+        <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-200">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="p-3 bg-gray-100 rounded-full">
+              <Info className="w-6 h-6 text-gray-400" />
+            </div>
+            <p className="text-gray-600 font-medium">{emptyMessage}</p>
+            <p className="text-sm text-gray-500">
+              This section will be populated when data is available
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div
-        className="tab-content active"
-        role="tabpanel"
-        aria-labelledby={`tab-${tabId}`}
-      >
-        <div className="tab-content-inner">{children}</div>
+      <div className="space-y-4">
+        {items.map((item: string, index: number) => (
+          <div
+            key={index}
+            className={`${config.cardBg} ${config.borderColor} rounded-lg p-4 border-l-4 hover:shadow-md transition-all duration-200 group`}
+          >
+            <div className="flex items-start gap-3">
+              {showIcon && (
+                <div className="mt-0.5">
+                  <Icon className={`w-5 h-5 ${config.iconColor}`} />
+                </div>
+              )}
+              <div className="flex-1">
+                <p
+                  className={`${config.textColor} font-medium leading-relaxed`}
+                >
+                  {item}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
 
-  const CollapsibleSection: React.FC<{
-    title: string;
-    children: React.ReactNode;
-    isExpanded: boolean;
-    onToggle: () => void;
-    icon?: React.ComponentType<{ className?: string }>;
-    color?: string;
-    isEmpty?: boolean;
-  }> = ({
+  const Section: React.FC<SectionProps> = ({
     title,
-    children,
-    isExpanded,
-    onToggle,
     icon: Icon,
-    color = "#667eea",
-    isEmpty = false,
+    children,
+    className = "",
+    badge,
   }) => (
-    <div className={`collapsible-section ${isEmpty ? "empty" : ""}`}>
-      <button
-        className="collapsible-header"
-        onClick={onToggle}
-        style={{ "--section-color": color } as React.CSSProperties}
-        aria-expanded={isExpanded}
-        disabled={isEmpty}
-      >
-        {Icon && <Icon className="section-icon" aria-hidden="true" />}
-        <span className="section-title">{title}</span>
-        {!isEmpty &&
-          (isExpanded ? (
-            <ChevronUp className="expand-icon" aria-hidden="true" />
-          ) : (
-            <ChevronDown className="expand-icon" aria-hidden="true" />
-          ))}
-      </button>
-      {isExpanded && !isEmpty && (
-        <div
-          className="collapsible-content"
-          role="region"
-          aria-labelledby={`section-${title}`}
-        >
-          {children}
-        </div>
-      )}
-      {isEmpty && <div className="empty-message">No data available</div>}
-    </div>
-  );
-
-  const ItemList: React.FC<{
-    items: string[];
-    iconType: "strength" | "weakness" | "recommendation" | "assessment";
-  }> = ({ items, iconType }) => {
-    const iconMap = {
-      strength: CheckCircle2,
-      weakness: XCircle,
-      recommendation: ArrowRight,
-      assessment: Target,
-    };
-
-    const Icon = iconMap[iconType];
-
-    if (!items || items.length === 0) {
-      return <div className="empty-list">No items available</div>;
-    }
-
-    return (
-      <ul className="item-list" role="list">
-        {items.map((item, index) => (
-          <li key={index} role="listitem">
-            <Icon className={`${iconType}-icon`} aria-hidden="true" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    );
-  };
-
-  return (
-    <div className="tab-contents">
-      {/* Overview Tab */}
-      <TabContent tabId="overview">
-        <h2 className="section-title">Analysis Overview</h2>
-        {/* Overview content is now in AnalysisSummary component */}
-      </TabContent>
-
-      {/* Strengths Tab */}
-      <TabContent tabId="strengths">
-        <h2 className="section-title">Strengths Analysis</h2>
-        <div className="strengths-grid">
-          {analysisData.strengths && (
-            <>
-              <CollapsibleSection
-                title="Technical Skills"
-                isExpanded={expandedSections.has("tech-skills")}
-                onToggle={() => onToggleSection("tech-skills")}
-                icon={Code}
-                color="#10b981"
-                isEmpty={!analysisData.strengths.technical_skills?.length}
-              >
-                <ItemList
-                  items={analysisData.strengths.technical_skills || []}
-                  iconType="strength"
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Project Portfolio"
-                isExpanded={expandedSections.has("project-portfolio")}
-                onToggle={() => onToggleSection("project-portfolio")}
-                icon={Briefcase}
-                color="#10b981"
-                isEmpty={!analysisData.strengths.project_portfolio?.length}
-              >
-                <ItemList
-                  items={analysisData.strengths.project_portfolio || []}
-                  iconType="strength"
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Educational Background"
-                isExpanded={expandedSections.has("education")}
-                onToggle={() => onToggleSection("education")}
-                icon={Book}
-                color="#10b981"
-                isEmpty={!analysisData.strengths.educational_background?.length}
-              >
-                <ItemList
-                  items={analysisData.strengths.educational_background || []}
-                  iconType="strength"
-                />
-              </CollapsibleSection>
-            </>
-          )}
-        </div>
-      </TabContent>
-
-      {/* Weaknesses Tab */}
-      <TabContent tabId="weaknesses">
-        <h2 className="section-title">Weaknesses Analysis</h2>
-        <div className="weaknesses-grid">
-          {analysisData.weaknesses && (
-            <>
-              <CollapsibleSection
-                title="Critical Gaps Against Job Description"
-                isExpanded={expandedSections.has("critical-gaps")}
-                onToggle={() => onToggleSection("critical-gaps")}
-                icon={XCircle}
-                color="#ef4444"
-                isEmpty={
-                  !analysisData.weaknesses.critical_gaps_against_job_description
-                    ?.length
-                }
-              >
-                <ItemList
-                  items={
-                    analysisData.weaknesses
-                      .critical_gaps_against_job_description || []
-                  }
-                  iconType="weakness"
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Technical Deficiencies"
-                isExpanded={expandedSections.has("tech-deficiencies")}
-                onToggle={() => onToggleSection("tech-deficiencies")}
-                icon={Settings}
-                color="#ef4444"
-                isEmpty={
-                  !analysisData.weaknesses.technical_deficiencies?.length
-                }
-              >
-                <ItemList
-                  items={analysisData.weaknesses.technical_deficiencies || []}
-                  iconType="weakness"
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Resume Presentation Issues"
-                isExpanded={expandedSections.has("presentation-issues")}
-                onToggle={() => onToggleSection("presentation-issues")}
-                icon={FileText}
-                color="#ef4444"
-                isEmpty={
-                  !analysisData.weaknesses.resume_presentation_issues?.length
-                }
-              >
-                <ItemList
-                  items={
-                    analysisData.weaknesses.resume_presentation_issues || []
-                  }
-                  iconType="weakness"
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Soft Skills Gaps"
-                isExpanded={expandedSections.has("soft-skills-gaps")}
-                onToggle={() => onToggleSection("soft-skills-gaps")}
-                icon={Users}
-                color="#ef4444"
-                isEmpty={!analysisData.weaknesses.soft_skills_gaps?.length}
-              >
-                <ItemList
-                  items={analysisData.weaknesses.soft_skills_gaps || []}
-                  iconType="weakness"
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Missing Essential Elements"
-                isExpanded={expandedSections.has("missing-elements")}
-                onToggle={() => onToggleSection("missing-elements")}
-                icon={Info}
-                color="#ef4444"
-                isEmpty={
-                  !analysisData.weaknesses.missing_essential_elements?.length
-                }
-              >
-                <ItemList
-                  items={
-                    analysisData.weaknesses.missing_essential_elements || []
-                  }
-                  iconType="weakness"
-                />
-              </CollapsibleSection>
-            </>
-          )}
-        </div>
-      </TabContent>
-
-      {/* Section Feedback Tab */}
-      <TabContent tabId="feedback">
-        <h2 className="section-title">Section-wise Detailed Feedback</h2>
-        <div className="section-feedback">
-          {analysisData.feedback && (
-            <>
-              {/* Contact Information */}
-              <div className="feedback-section">
-                <h3 className="feedback-title">
-                  <User className="feedback-icon" aria-hidden="true" />
-                  Contact Information
-                </h3>
-                <div className="feedback-state">
-                  {analysisData.feedback.contact_information.current_state}
-                </div>
-                <div className="feedback-content">
-                  <div className="feedback-list">
-                    <h5>Strengths:</h5>
-                    <ItemList
-                      items={
-                        analysisData.feedback.contact_information.strengths
-                      }
-                      iconType="strength"
-                    />
-                  </div>
-                  <div className="feedback-list improvements">
-                    <h5>Improvements:</h5>
-                    <ItemList
-                      items={
-                        analysisData.feedback.contact_information.improvements
-                      }
-                      iconType="recommendation"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Profile Summary */}
-              <div className="feedback-section">
-                <h3 className="feedback-title">
-                  <FileText className="feedback-icon" aria-hidden="true" />
-                  Profile Summary
-                </h3>
-                <div className="feedback-state">
-                  {analysisData.feedback.profile_summary.current_state}
-                </div>
-                <div className="feedback-content">
-                  <div className="feedback-list">
-                    <h5>Strengths:</h5>
-                    <ItemList
-                      items={analysisData.feedback.profile_summary.strengths}
-                      iconType="strength"
-                    />
-                  </div>
-                  <div className="feedback-list improvements">
-                    <h5>Improvements:</h5>
-                    <ItemList
-                      items={analysisData.feedback.profile_summary.improvements}
-                      iconType="recommendation"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Education */}
-              <div className="feedback-section">
-                <h3 className="feedback-title">
-                  <Book className="feedback-icon" aria-hidden="true" />
-                  Education
-                </h3>
-                <div className="feedback-state">
-                  {analysisData.feedback.education.current_state}
-                </div>
-                <div className="feedback-content">
-                  <div className="feedback-list">
-                    <h5>Strengths:</h5>
-                    <ItemList
-                      items={analysisData.feedback.education.strengths}
-                      iconType="strength"
-                    />
-                  </div>
-                  <div className="feedback-list improvements">
-                    <h5>Improvements:</h5>
-                    <ItemList
-                      items={analysisData.feedback.education.improvements}
-                      iconType="recommendation"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Skills */}
-              <div className="feedback-section">
-                <h3 className="feedback-title">
-                  <Code className="feedback-icon" aria-hidden="true" />
-                  Skills
-                </h3>
-                <div className="feedback-state">
-                  {analysisData.feedback.skills.current_state}
-                </div>
-                <div className="feedback-content">
-                  <div className="feedback-list">
-                    <h5>Strengths:</h5>
-                    <ItemList
-                      items={analysisData.feedback.skills.strengths}
-                      iconType="strength"
-                    />
-                  </div>
-                  <div className="feedback-list improvements">
-                    <h5>Improvements:</h5>
-                    <ItemList
-                      items={analysisData.feedback.skills.improvements}
-                      iconType="recommendation"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Projects */}
-              <div className="feedback-section">
-                <h3 className="feedback-title">
-                  <Briefcase className="feedback-icon" aria-hidden="true" />
-                  Projects
-                </h3>
-                <div className="feedback-state">
-                  {analysisData.feedback.projects.current_state}
-                </div>
-                <div className="feedback-content">
-                  <div className="feedback-list">
-                    <h5>Strengths:</h5>
-                    <ItemList
-                      items={analysisData.feedback.projects.strengths}
-                      iconType="strength"
-                    />
-                  </div>
-                  <div className="feedback-list improvements">
-                    <h5>Improvements:</h5>
-                    <ItemList
-                      items={analysisData.feedback.projects.improvements}
-                      iconType="recommendation"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Missing Sections */}
-              {analysisData.feedback.missing_sections && (
-                <div className="missing-sections">
-                  <h4>Missing Sections</h4>
-                  <div className="missing-grid">
-                    <div className="missing-item">
-                      <h5>Certifications</h5>
-                      <p>
-                        {analysisData.feedback.missing_sections.certifications}
-                      </p>
-                    </div>
-                    <div className="missing-item">
-                      <h5>Experience</h5>
-                      <p>{analysisData.feedback.missing_sections.experience}</p>
-                    </div>
-                    <div className="missing-item">
-                      <h5>Achievements</h5>
-                      <p>
-                        {analysisData.feedback.missing_sections.achievements}
-                      </p>
-                    </div>
-                    <div className="missing-item">
-                      <h5>Soft Skills</h5>
-                      <p>
-                        {analysisData.feedback.missing_sections.soft_skills}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </TabContent>
-
-      {/* Recommendations Tab */}
-      <TabContent tabId="recommendations">
-        <h2 className="section-title">Improvement Recommendations</h2>
-        <div className="recommendations-grid">
-          {analysisData.recommendations && (
-            <>
-              <div className="recommendation-category">
-                <h3 className="category-title">
-                  <Zap className="category-icon" aria-hidden="true" />
-                  Immediate Resume Additions
-                </h3>
-                <ItemList
-                  items={
-                    analysisData.recommendations.immediate_resume_additions ||
-                    []
-                  }
-                  iconType="recommendation"
-                />
-              </div>
-              <div className="recommendation-category">
-                <h3 className="category-title">
-                  <Target className="category-icon" aria-hidden="true" />
-                  Immediate Priority Actions
-                </h3>
-                <ItemList
-                  items={
-                    analysisData.recommendations.immediate_priority_actions ||
-                    []
-                  }
-                  iconType="recommendation"
-                />
-              </div>
-              <div className="recommendation-category">
-                <h3 className="category-title">
-                  <Calendar className="category-icon" aria-hidden="true" />
-                  Short-term Development Goals
-                </h3>
-                <ItemList
-                  items={
-                    analysisData.recommendations.short_term_development_goals ||
-                    []
-                  }
-                  iconType="recommendation"
-                />
-              </div>
-              <div className="recommendation-category">
-                <h3 className="category-title">
-                  <TrendingUp className="category-icon" aria-hidden="true" />
-                  Medium-term Objectives
-                </h3>
-                <ItemList
-                  items={
-                    analysisData.recommendations.medium_term_objectives || []
-                  }
-                  iconType="recommendation"
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Soft Skills Enhancement */}
-        {analysisData.softSkills && (
-          <div className="skills-enhancement">
-            <h3>Soft Skills Enhancement</h3>
-            <div className="skills-grid">
-              <div className="skill-category">
-                <h4>Communication Skills</h4>
-                <ItemList
-                  items={analysisData.softSkills.communication_skills || []}
-                  iconType="recommendation"
-                />
-              </div>
-              <div className="skill-category">
-                <h4>Teamwork & Collaboration</h4>
-                <ItemList
-                  items={
-                    analysisData.softSkills.teamwork_and_collaboration || []
-                  }
-                  iconType="recommendation"
-                />
-              </div>
-              <div className="skill-category">
-                <h4>Leadership & Initiative</h4>
-                <ItemList
-                  items={
-                    analysisData.softSkills.leadership_and_initiative || []
-                  }
-                  iconType="recommendation"
-                />
-              </div>
-              <div className="skill-category">
-                <h4>Problem-solving Approach</h4>
-                <ItemList
-                  items={analysisData.softSkills.problem_solving_approach || []}
-                  iconType="recommendation"
-                />
-              </div>
-            </div>
+    <div
+      className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${className}`}
+    >
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-200">
+            <Icon className="w-5 h-5 text-blue-600" />
           </div>
-        )}
-      </TabContent>
-
-      {/* Final Assessment Tab */}
-      <TabContent tabId="assessment">
-        <div className="final-assessment">
-          <h2 className="section-title">Final Assessment</h2>
-          <div className="assessment-grid">
-            {analysisData.finalAssessment && (
-              <>
-                <div className="assessment-item">
-                  <h4>Eligibility Status</h4>
-                  <p>{analysisData.finalAssessment.eligibility_status}</p>
-                </div>
-                <div className="assessment-item">
-                  <h4>Hiring Recommendation</h4>
-                  <p>{analysisData.finalAssessment.hiring_recommendation}</p>
-                </div>
-                <div className="assessment-item">
-                  <h4>Key Interview Areas</h4>
-                  <ItemList
-                    items={
-                      analysisData.finalAssessment.key_interview_areas || []
-                    }
-                    iconType="assessment"
-                  />
-                </div>
-                <div className="assessment-item">
-                  <h4>Onboarding Requirements</h4>
-                  <ItemList
-                    items={
-                      analysisData.finalAssessment.onboarding_requirements || []
-                    }
-                    iconType="assessment"
-                  />
-                </div>
-                <div className="assessment-item">
-                  <h4>Long-term Potential</h4>
-                  <p>{analysisData.finalAssessment.long_term_potential}</p>
-                </div>
-              </>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            {badge && (
+              <div className="mt-1">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {badge}
+                </span>
+              </div>
             )}
           </div>
         </div>
-      </TabContent>
+      </div>
+      <div className="p-6 bg-white">{children}</div>
+    </div>
+  );
+
+  const StatCard: React.FC<{
+    title: string;
+    value: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+  }> = ({ title, value, description, icon: Icon, color }) => (
+    <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`p-2 rounded-lg ${color}`}>
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+        <h4 className="font-semibold text-gray-900">{title}</h4>
+      </div>
+      <div className="space-y-2">
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-sm text-gray-600">{description}</p>
+      </div>
+    </div>
+  );
+
+  const FeedbackSection: React.FC<{
+    title: string;
+    icon: React.ComponentType<{ className?: string }>;
+    feedbackData: {
+      current_state: string;
+      strengths: string[];
+      improvements: string[];
+    };
+  }> = ({ title, icon: Icon, feedbackData }) => (
+    <Section title={title} icon={Icon}>
+      <div className="space-y-6">
+        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <Info className="w-4 h-4" />
+            Current State
+          </h4>
+          <p className="text-blue-800 leading-relaxed">
+            {feedbackData.current_state}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              Strengths
+            </h4>
+            <ItemCard items={feedbackData.strengths} type="strength" />
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
+              <Plus className="w-4 h-4 text-blue-500" />
+              Improvements
+            </h4>
+            <ItemCard items={feedbackData.improvements} type="recommendation" />
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+
+  const OverviewTab = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-8 text-white">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 bg-white/20 rounded-lg">
+            <BarChart3 className="w-6 h-6" />
+          </div>
+          <h2 className="text-2xl font-bold">Analysis Summary</h2>
+        </div>
+        <p className="text-blue-100 text-lg leading-relaxed">
+          {analysisData.fitSummary || analysisData.conclusion}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="Match Score"
+          value={`${analysisData.score || 0}%`}
+          description="Overall compatibility rating"
+          icon={TrendingUp}
+          color="bg-blue-500"
+        />
+        <StatCard
+          title="Success Chance"
+          value={`${analysisData.chance || 0}%`}
+          description="Probability of success"
+          icon={Target}
+          color="bg-emerald-500"
+        />
+        <StatCard
+          title="Status"
+          value={analysisData.validity || "Pending"}
+          description="Current eligibility status"
+          icon={CheckSquare}
+          color="bg-purple-500"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-200">
+          <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            Key Strengths
+          </h3>
+          <div className="space-y-3">
+            {(analysisData.strengths?.technical_skills?.slice(0, 3) || []).map(
+              (skill, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <p className="text-emerald-800 font-medium">{skill}</p>
+                </div>
+              )
+            )}
+            {(!analysisData.strengths?.technical_skills ||
+              analysisData.strengths.technical_skills.length === 0) && (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <p className="text-emerald-800 font-medium">
+                  Strong foundation in relevant technologies
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-red-50 rounded-xl p-6 border border-red-200">
+          <h3 className="font-semibold text-red-900 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            Critical Gaps
+          </h3>
+          <div className="space-y-3">
+            {(
+              analysisData.weaknesses?.critical_gaps_against_job_description?.slice(
+                0,
+                3
+              ) || []
+            ).map((gap, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <p className="text-red-800 font-medium">{gap}</p>
+              </div>
+            ))}
+            {(!analysisData.weaknesses?.critical_gaps_against_job_description ||
+              analysisData.weaknesses.critical_gaps_against_job_description
+                .length === 0) && (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <p className="text-red-800 font-medium">
+                  Some areas need improvement
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
+        <h3 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+          <Award className="w-5 h-5 text-amber-600" />
+          Overall Assessment
+        </h3>
+        <div className="bg-white rounded-lg p-4 border border-amber-200">
+          <p className="text-amber-800 font-medium">
+            {analysisData.eligibility} - {analysisData.conclusion}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const StrengthsTab = () => (
+    <div className="space-y-6">
+      <Section
+        title="Technical Skills"
+        icon={Code}
+        badge={`${analysisData.strengths?.technical_skills?.length || 0} items`}
+      >
+        <ItemCard
+          items={analysisData.strengths?.technical_skills || []}
+          type="strength"
+          emptyMessage="No technical skills highlighted"
+        />
+      </Section>
+
+      <Section
+        title="Project Portfolio"
+        icon={Briefcase}
+        badge={`${
+          analysisData.strengths?.project_portfolio?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.strengths?.project_portfolio || []}
+          type="strength"
+          emptyMessage="No project portfolio strengths identified"
+        />
+      </Section>
+
+      <Section
+        title="Educational Background"
+        icon={Book}
+        badge={`${
+          analysisData.strengths?.educational_background?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.strengths?.educational_background || []}
+          type="strength"
+          emptyMessage="No educational background strengths noted"
+        />
+      </Section>
+    </div>
+  );
+
+  const WeaknessesTab = () => (
+    <div className="space-y-6">
+      <Section
+        title="Critical Gaps Against Job Description"
+        icon={AlertTriangle}
+        badge={`${
+          analysisData.weaknesses?.critical_gaps_against_job_description
+            ?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={
+            analysisData.weaknesses?.critical_gaps_against_job_description || []
+          }
+          type="weakness"
+          emptyMessage="No critical gaps identified"
+        />
+      </Section>
+
+      <Section
+        title="Technical Deficiencies"
+        icon={Settings}
+        badge={`${
+          analysisData.weaknesses?.technical_deficiencies?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.weaknesses?.technical_deficiencies || []}
+          type="weakness"
+          emptyMessage="No technical deficiencies found"
+        />
+      </Section>
+
+      <Section
+        title="Resume Presentation Issues"
+        icon={FileText}
+        badge={`${
+          analysisData.weaknesses?.resume_presentation_issues?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.weaknesses?.resume_presentation_issues || []}
+          type="weakness"
+          emptyMessage="No resume presentation issues noted"
+        />
+      </Section>
+
+      <Section
+        title="Soft Skills Gaps"
+        icon={Users}
+        badge={`${
+          analysisData.weaknesses?.soft_skills_gaps?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.weaknesses?.soft_skills_gaps || []}
+          type="weakness"
+          emptyMessage="No soft skills gaps identified"
+        />
+      </Section>
+    </div>
+  );
+
+  const FeedbackTab = () => (
+    <div className="space-y-6">
+      {analysisData.feedback?.contact_information && (
+        <FeedbackSection
+          title="Contact Information"
+          icon={User}
+          feedbackData={analysisData.feedback.contact_information}
+        />
+      )}
+
+      {analysisData.feedback?.profile_summary && (
+        <FeedbackSection
+          title="Profile Summary"
+          icon={FileText}
+          feedbackData={analysisData.feedback.profile_summary}
+        />
+      )}
+
+      {analysisData.feedback?.skills && (
+        <FeedbackSection
+          title="Skills Section"
+          icon={Code}
+          feedbackData={analysisData.feedback.skills}
+        />
+      )}
+
+      {analysisData.feedback?.education && (
+        <FeedbackSection
+          title="Education"
+          icon={Book}
+          feedbackData={analysisData.feedback.education}
+        />
+      )}
+
+      {analysisData.feedback?.projects && (
+        <FeedbackSection
+          title="Projects"
+          icon={Briefcase}
+          feedbackData={analysisData.feedback.projects}
+        />
+      )}
+
+      {analysisData.feedback?.missing_sections && (
+        <Section title="Missing Sections" icon={AlertTriangle}>
+          <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+            <h4 className="font-semibold text-red-900 mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Sections to Add
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(analysisData.feedback.missing_sections).map(
+                ([key, value]) => (
+                  <div
+                    key={key}
+                    className="bg-white rounded-lg p-4 border border-red-200"
+                  >
+                    <h5 className="font-medium text-red-900 capitalize mb-2">
+                      {key.replace("_", " ")}
+                    </h5>
+                    <p className="text-red-800 text-sm">{value}</p>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </Section>
+      )}
+    </div>
+  );
+
+  const RecommendationsTab = () => (
+    <div className="space-y-6">
+      <Section
+        title="Immediate Resume Additions"
+        icon={FileText}
+        badge={`${
+          analysisData.recommendations?.immediate_resume_additions?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.recommendations?.immediate_resume_additions || []}
+          type="recommendation"
+          emptyMessage="No immediate resume additions recommended"
+        />
+      </Section>
+
+      <Section
+        title="Immediate Priority Actions"
+        icon={Zap}
+        badge={`${
+          analysisData.recommendations?.immediate_priority_actions?.length || 0
+        } items`}
+      >
+        <ItemCard
+          items={analysisData.recommendations?.immediate_priority_actions || []}
+          type="recommendation"
+          emptyMessage="No immediate priority actions identified"
+        />
+      </Section>
+
+      <Section
+        title="Short-term Development Goals"
+        icon={Calendar}
+        badge={`${
+          analysisData.recommendations?.short_term_development_goals?.length ||
+          0
+        } items`}
+      >
+        <ItemCard
+          items={
+            analysisData.recommendations?.short_term_development_goals || []
+          }
+          type="recommendation"
+          emptyMessage="No short-term development goals specified"
+        />
+      </Section>
+
+      {analysisData.recommendations?.medium_term_objectives && (
+        <Section
+          title="Medium-term Objectives"
+          icon={Target}
+          badge={`${analysisData.recommendations.medium_term_objectives.length} items`}
+        >
+          <ItemCard
+            items={analysisData.recommendations.medium_term_objectives}
+            type="recommendation"
+            emptyMessage="No medium-term objectives defined"
+          />
+        </Section>
+      )}
+    </div>
+  );
+
+  const AssessmentTab = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl p-8 text-white">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-white/20 rounded-lg">
+            <Award className="w-6 h-6" />
+          </div>
+          <h2 className="text-2xl font-bold">Final Assessment</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white/10 rounded-lg p-6">
+            <h4 className="font-semibold mb-3 text-slate-200">
+              Eligibility Status
+            </h4>
+            <p className="text-xl font-bold text-white">
+              {analysisData.finalAssessment?.eligibility_status ||
+                analysisData.eligibility}
+            </p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-6">
+            <h4 className="font-semibold mb-3 text-slate-200">
+              Long-term Potential
+            </h4>
+            <p className="text-xl font-bold text-white">
+              {analysisData.finalAssessment?.long_term_potential ||
+                "High potential with proper development"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Section title="Hiring Recommendation" icon={UserCheck}>
+        <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+            <h4 className="font-semibold text-blue-900">Recommendation</h4>
+          </div>
+          <p className="text-blue-800 leading-relaxed font-medium">
+            {analysisData.finalAssessment?.hiring_recommendation ||
+              analysisData.conclusion}
+          </p>
+        </div>
+      </Section>
+
+      <Section
+        title="Key Interview Areas"
+        icon={MessageSquare}
+        badge={`${
+          analysisData.finalAssessment?.key_interview_areas?.length || 0
+        } areas`}
+      >
+        <ItemCard
+          items={analysisData.finalAssessment?.key_interview_areas || []}
+          emptyMessage="No specific interview areas identified"
+        />
+      </Section>
+
+      {analysisData.finalAssessment?.onboarding_requirements && (
+        <Section
+          title="Onboarding Requirements"
+          icon={Settings}
+          badge={`${analysisData.finalAssessment.onboarding_requirements.length} requirements`}
+        >
+          <ItemCard
+            items={analysisData.finalAssessment.onboarding_requirements}
+            emptyMessage="No specific onboarding requirements"
+          />
+        </Section>
+      )}
+    </div>
+  );
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "overview":
+        return <OverviewTab />;
+      case "strengths":
+        return <StrengthsTab />;
+      case "weaknesses":
+        return <WeaknessesTab />;
+      case "feedback":
+        return <FeedbackTab />;
+      case "recommendations":
+        return <RecommendationsTab />;
+      case "assessment":
+        return <AssessmentTab />;
+      default:
+        return <OverviewTab />;
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow-sm">{renderTabContent()}</div>
     </div>
   );
 };

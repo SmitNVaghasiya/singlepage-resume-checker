@@ -913,9 +913,9 @@
   }
 }
 
-/* ===== DARK MODE SUPPORT ===== */
+/* ===== FORCE LIGHT THEME ===== */
 .dark .dashboard-page {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
 }
 
 .dark .stat-card,
@@ -923,8 +923,8 @@
 .dark .empty-state,
 .dark .modal-container,
 .dark .analysis-section {
-  background: #1e293b !important;
-  border-color: #334155;
+  background: #ffffff !important;
+  border-color: #e5e7eb;
 }
 
 .dark .stat-value,
@@ -937,7 +937,7 @@
 .dark .meta-value,
 .dark .analysis-text,
 .dark .feedback-text {
-  color: #f1f5f9;
+  color: #1f2937 !important;
 }
 
 .dark .stat-label,
@@ -947,7 +947,7 @@
 .dark .stat-title,
 .dark .stat-subtitle,
 .dark .meta-label {
-  color: #94a3b8;
+  color: #6b7280 !important;
 }
 
 .dark .history-table thead {

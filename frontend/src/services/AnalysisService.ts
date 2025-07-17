@@ -270,6 +270,10 @@ export class AnalysisService {
       localStorage.removeItem('hasPendingAnalysis');
       setRequiresAuth(false);
 
+      // Redirect to analysis details page to show the full detailed results
+      console.log('Analysis completed successfully, redirecting to analysis details...');
+      window.location.href = `/dashboard/analysis/${analysisResponse.analysisId}`;
+
     } catch (error) {
       console.error('Analysis failed:', error);
       setIsAnalyzing(false);
