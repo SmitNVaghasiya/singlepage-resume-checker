@@ -24,11 +24,31 @@ interface AnalysisSummaryProps {
     eligibility: string;
     conclusion: string;
     fitSummary?: string;
-    candidateInfo?: any;
+    candidateInfo?: {
+      name: string;
+      position_applied: string;
+      experience_level: string;
+      current_status: string;
+    };
     priorities: string[];
-    strengths?: any;
-    weaknesses?: any;
-    recommendations?: any;
+    strengths?: {
+      technical_skills?: string[];
+      project_portfolio?: string[];
+      educational_background?: string[];
+    };
+    weaknesses?: {
+      critical_gaps_against_job_description?: string[];
+      technical_deficiencies?: string[];
+      resume_presentation_issues?: string[];
+      soft_skills_gaps?: string[];
+      missing_essential_elements?: string[];
+    };
+    recommendations?: {
+      immediate_resume_additions?: string[];
+      immediate_priority_actions?: string[];
+      short_term_development_goals?: string[];
+      medium_term_objectives?: string[];
+    };
   };
 }
 

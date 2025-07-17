@@ -28,6 +28,7 @@ import "./components/file-upload/FileUpload.css";
 import "./components/analysis/analysis.css";
 import "./styles/pages/resume-checker.css";
 import "./components/job-description/job-description.css";
+import "./components/dashboard/DashboardAnalysisResults.css";
 
 function App() {
   return (

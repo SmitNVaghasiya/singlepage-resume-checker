@@ -8,15 +8,18 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Optional, Union
 import uvicorn
+import time
+from uuid import uuid4
+from datetime import datetime
 
 # Ensure MONGODB_URL is set in the environment; add a retry mechanism for MongoDB connection in the app startup.
 # (No need to set credentials or fallback to local MongoDB here.)
 
-from app.models import ResumeAnalysisResponse, ErrorResponse
+from app.models import ResumeAnalysisResponse, ErrorResponse, AnalysisDocument
 from app.file_processor import FileProcessor
 from app.groq_service import GroqService
 from app.config import settings
-from app.database import connect_to_mongo, close_mongo_connection
+from app.database import connect_to_mongo, close_mongo_connection, save_analysis, get_analysis_by_id
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -69,6 +72,13 @@ except Exception as e:
     logger.error(f"Failed to initialize services: {str(e)}")
     raise
 
+# Include routes
+from routes.analysis_routes import router as analysis_router
+from routes.health_routes import router as health_router
+
+app.include_router(analysis_router, prefix="/api/v1")
+app.include_router(health_router, prefix="/api/v1")
+
 
 @app.get("/")
 async def root():
@@ -120,19 +130,112 @@ async def health_check():
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
 
 
-@app.post("/analyze-resume", response_model=Union[ResumeAnalysisResponse, ErrorResponse])
+@app.get("/analysis/{analysis_id}/status")
+async def get_analysis_status(analysis_id: str):
+    """Get analysis status by analysis ID"""
+    try:
+        logger.info(f"Checking analysis status for ID: {analysis_id}")
+        
+        # Get analysis from database
+        analysis_doc = await get_analysis_by_id(analysis_id)
+        
+        if not analysis_doc:
+            return JSONResponse(
+                status_code=404,
+                content=ErrorResponse(
+                    error="analysis_not_found",
+                    message=f"Analysis with ID {analysis_id} not found"
+                ).dict()
+            )
+        
+        # Return the analysis status
+        return {
+            "success": True,
+            "analysis_id": analysis_id,
+            "status": analysis_doc.status,
+            "has_result": analysis_doc.analysis_result is not None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking analysis status: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                error="internal_server_error",
+                message="Failed to check analysis status",
+                details=str(e)
+            ).dict()
+        )
+
+
+@app.get("/analysis/{analysis_id}/result")
+async def get_analysis_result(analysis_id: str):
+    """Get complete analysis result by analysis ID"""
+    try:
+        logger.info(f"Fetching analysis result for ID: {analysis_id}")
+        
+        # Get analysis from database
+        analysis_doc = await get_analysis_by_id(analysis_id)
+        
+        if not analysis_doc:
+            return JSONResponse(
+                status_code=404,
+                content=ErrorResponse(
+                    error="analysis_not_found",
+                    message=f"Analysis with ID {analysis_id} not found"
+                ).dict()
+            )
+        
+        if analysis_doc.status != "completed":
+            return JSONResponse(
+                status_code=400,
+                content=ErrorResponse(
+                    error="analysis_not_completed",
+                    message=f"Analysis with ID {analysis_id} is not completed (status: {analysis_doc.status})"
+                ).dict()
+            )
+        
+        # Return the complete analysis result
+        return {
+            "success": True,
+            "analysis_id": analysis_id,
+            "status": analysis_doc.status,
+            "analysis_result": analysis_doc.analysis_result.dict() if analysis_doc.analysis_result else None,
+            "resume_filename": analysis_doc.resume_filename,
+            "job_description_filename": analysis_doc.job_description_filename,
+            "created_at": analysis_doc.created_at.isoformat(),
+            "processing_time": analysis_doc.processing_time
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching analysis result: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                error="internal_server_error",
+                message="Failed to fetch analysis result",
+                details=str(e)
+            ).dict()
+        )
+
+
+@app.post("/analyze-resume")
 async def analyze_resume(
     resume_file: UploadFile = File(...),
     job_description_file: Optional[UploadFile] = File(None),
     job_description_text: Optional[str] = Form(None)
 ):
     """
-    Analyze resume against job description
+    Analyze resume against job description and save to database
     
     - **resume_file**: Resume file (PDF, DOCX, or TXT)
     - **job_description_file**: Job description file (PDF, DOCX, or TXT) - optional if job_description_text is provided
     - **job_description_text**: Job description as plain text - optional if job_description_file is provided
+    
+    Returns analysis ID for tracking progress
     """
+    start_time = time.time()
+    
     # Add detailed logging at the very beginning
     logger.info("=== RESUME ANALYSIS REQUEST RECEIVED ===")
     logger.info(f"Resume file: {resume_file.filename if resume_file else 'None'}")
@@ -201,6 +304,7 @@ async def analyze_resume(
         
         # Process job description
         job_description_text_final = ""
+        job_description_filename = None
         
         if job_description_file:
             logger.info(f"Processing job description file: {job_description_file.filename}")
@@ -230,6 +334,7 @@ async def analyze_resume(
                 )
             
             job_description_text_final = job_desc_text
+            job_description_filename = job_description_file.filename
         else:
             job_description_text_final = job_description_text.strip()
         
@@ -246,8 +351,11 @@ async def analyze_resume(
                 ).dict()
             )
         
+        # Generate analysis ID
+        analysis_id = str(uuid4())
+        
         # Perform resume analysis (includes job description validation)
-        logger.info("Starting resume analysis with AI (includes job description validation)")
+        logger.info(f"Starting resume analysis with AI (analysis_id: {analysis_id})")
         analysis_result = groq_service.analyze_resume(resume_text, job_description_text_final)
         
         # Check if job description validation failed
@@ -271,36 +379,48 @@ async def analyze_resume(
                 ).dict()
             )
         
-        # Final Pydantic model creation
-        try:
-            response = ResumeAnalysisResponse(**analysis_result)
-            logger.info("✅ Resume analysis completed successfully with valid schema")
-            return response
+        # Calculate processing time
+        processing_time = time.time() - start_time
         
+        # Create analysis document for database
+        analysis_doc = AnalysisDocument(
+            analysis_id=analysis_id,
+            resume_filename=resume_file.filename or "resume",
+            job_description_filename=job_description_filename,
+            job_description_text=job_description_text if not job_description_file else None,
+            analysis_result=ResumeAnalysisResponse(**analysis_result),
+            status="completed",
+            processing_time=processing_time,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        # Save to database
+        try:
+            await save_analysis(analysis_doc)
+            logger.info(f"✅ Analysis saved to database with ID: {analysis_id}")
         except Exception as e:
-            logger.error(f"Unexpected error creating response model: {str(e)}")
-            # Log the analysis result for debugging
-            logger.error(f"Analysis result that caused validation error: {analysis_result}")
-            
-            # Check if it's a Pydantic validation error
-            if "validation error" in str(e).lower() or "pydantic" in str(e).lower():
-                return JSONResponse(
-                    status_code=422,
-                    content=ErrorResponse(
-                        error="validation_error",
-                        message="AI response validation failed - response structure doesn't match expected schema",
-                        details=f"Validation error: {str(e)}"
-                    ).dict()
-                )
-            else:
-                return JSONResponse(
-                    status_code=500,
-                    content=ErrorResponse(
-                        error="response_model_creation_failed",
-                        message="Failed to create response model",
-                        details=str(e)
-                    ).dict()
-                )
+            logger.error(f"❌ Failed to save analysis to database: {e}")
+            return JSONResponse(
+                status_code=500,
+                content=ErrorResponse(
+                    error="database_save_failed",
+                    message="Analysis completed but failed to save to database",
+                    details=str(e)
+                ).dict()
+            )
+        
+        # Return success response with analysis ID for tracking
+        logger.info(f"✅ Resume analysis completed and saved successfully (analysis_id: {analysis_id})")
+        return {
+            "success": True,
+            "message": "Analysis completed successfully",
+            "analysis_id": analysis_id,
+            "status": "completed",
+            "processing_time": round(processing_time, 2),
+            "resume_filename": resume_file.filename,
+            "job_description_filename": job_description_filename or "Text Input"
+        }
         
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -315,6 +435,9 @@ async def analyze_resume(
                 details=str(e)
             ).dict()
         )
+
+
+
 
 
 # Error handlers

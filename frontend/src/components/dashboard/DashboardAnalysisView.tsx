@@ -32,7 +32,12 @@ interface DashboardAnalysisData {
   eligibility: string;
   conclusion: string;
   fitSummary?: string;
-  candidateInfo?: any;
+  candidateInfo?: {
+    name: string;
+    position_applied: string;
+    experience_level: string;
+    current_status: string;
+  };
   priorities: string[];
   strengths?: {
     technical_skills?: string[];

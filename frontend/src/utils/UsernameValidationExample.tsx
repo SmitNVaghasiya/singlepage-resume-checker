@@ -1,26 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { User, CheckCircle, AlertTriangle, Info } from 'lucide-react';
-import UsernameValidator, { usernameUtils } from './usernameValidation';
+import React, { useState, useEffect } from "react";
+import { User, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import UsernameValidator, { usernameUtils } from "./usernameValidation";
+import "./UsernameValidationExample.css";
 
 const UsernameValidationExample: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState("");
   const [validationResult, setValidationResult] = useState<{
     isValid: boolean;
     message: string;
-    type: 'success' | 'warning' | 'error';
+    type: "success" | "warning" | "error";
   } | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [validationMethod, setValidationMethod] = useState<'basic' | 'strict' | 'flexible' | 'social'>('basic');
+  const [validationMethod, setValidationMethod] = useState<
+    "basic" | "strict" | "flexible" | "social"
+  >("basic");
 
   // Real-time validation
   useEffect(() => {
     if (username) {
       const result = UsernameValidator.validateRealtime(username);
       setValidationResult(result);
-      
+
       // Get suggestions if validation fails
       if (!result.isValid && username.length >= 2) {
-        const suggestionResult = UsernameValidator.validateWithSuggestions(username);
+        const suggestionResult =
+          UsernameValidator.validateWithSuggestions(username);
         setSuggestions(suggestionResult.suggestions || []);
       } else {
         setSuggestions([]);
@@ -37,23 +41,23 @@ const UsernameValidationExample: React.FC = () => {
     if (username) {
       let result;
       switch (method) {
-        case 'strict':
+        case "strict":
           result = UsernameValidator.validateStrict(username);
           break;
-        case 'flexible':
+        case "flexible":
           result = UsernameValidator.validateFlexible(username);
           break;
-        case 'social':
+        case "social":
           result = UsernameValidator.validateSocialMedia(username);
           break;
         default:
           result = UsernameValidator.validateBasic(username);
       }
-      
+
       setValidationResult({
         isValid: result.isValid,
-        message: result.isValid ? 'Username is valid!' : result.errors[0],
-        type: result.isValid ? 'success' : 'error'
+        message: result.isValid ? "Username is valid!" : result.errors[0],
+        type: result.isValid ? "success" : "error",
       });
     }
   };
@@ -63,46 +67,67 @@ const UsernameValidationExample: React.FC = () => {
   };
 
   const getValidationIcon = () => {
-    if (!validationResult) return <User className="w-4 h-4" />;
-    
+    if (!validationResult) return <User className="username-input-icon" />;
+
     switch (validationResult.type) {
-      case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'warning':
-        return <Info className="w-4 h-4 text-yellow-600" />;
-      case 'error':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case "success":
+        return <CheckCircle className="username-input-icon success" />;
+      case "warning":
+        return <Info className="username-input-icon warning" />;
+      case "error":
+        return <AlertTriangle className="username-input-icon error" />;
       default:
-        return <User className="w-4 h-4" />;
+        return <User className="username-input-icon" />;
     }
   };
 
-  const getMessageColor = () => {
-    if (!validationResult) return 'text-gray-500';
-    
+  const getInputClassName = () => {
+    const baseClass = "username-input";
+    if (!validationResult) return baseClass;
+
     switch (validationResult.type) {
-      case 'success':
-        return 'text-green-600';
-      case 'warning':
-        return 'text-yellow-600';
-      case 'error':
-        return 'text-red-600';
+      case "success":
+        return `${baseClass} success`;
+      case "warning":
+        return `${baseClass} warning`;
+      case "error":
+        return `${baseClass} error`;
       default:
-        return 'text-gray-500';
+        return baseClass;
+    }
+  };
+
+  const getMessageClassName = () => {
+    const baseClass = "validation-message";
+    if (!validationResult) return baseClass;
+
+    switch (validationResult.type) {
+      case "success":
+        return `${baseClass} success`;
+      case "warning":
+        return `${baseClass} warning`;
+      case "error":
+        return `${baseClass} error`;
+      default:
+        return baseClass;
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-xl font-bold mb-4">Username Validation Demo</h2>
-      
+    <div className="username-validation-demo">
+      <h2 className="username-validation-title">Username Validation Demo</h2>
+
       {/* Validation Method Selector */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">Validation Method:</label>
-        <select 
+      <div className="validation-method-section">
+        <label className="validation-method-label">Validation Method:</label>
+        <select
           value={validationMethod}
-          onChange={(e) => handleValidationMethodChange(e.target.value as typeof validationMethod)}
-          className="w-full p-2 border border-gray-300 rounded-md"
+          onChange={(e) =>
+            handleValidationMethodChange(
+              e.target.value as typeof validationMethod
+            )
+          }
+          className="validation-method-select"
         >
           <option value="basic">Basic (letters, numbers, _, -)</option>
           <option value="strict">Strict (letters, numbers only)</option>
@@ -112,61 +137,62 @@ const UsernameValidationExample: React.FC = () => {
       </div>
 
       {/* Username Input */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">Username:</label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+      <div className="username-input-section">
+        <label className="username-input-label">Username:</label>
+        <div className="username-input-wrapper">
+          <div className="username-input-icon-wrapper">
             {getValidationIcon()}
           </div>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className={`w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              validationResult
-                ? validationResult.type === 'success'
-                  ? 'border-green-500 focus:ring-green-200'
-                  : validationResult.type === 'warning'
-                  ? 'border-yellow-500 focus:ring-yellow-200'
-                  : 'border-red-500 focus:ring-red-200'
-                : 'border-gray-300 focus:ring-blue-200'
-            }`}
+            className={getInputClassName()}
             placeholder="Enter username"
           />
         </div>
-        
+
         {/* Validation Message */}
         {validationResult && (
-          <p className={`text-sm mt-1 ${getMessageColor()}`}>
-            {validationResult.message}
-          </p>
+          <p className={getMessageClassName()}>{validationResult.message}</p>
         )}
       </div>
 
       {/* Character Analysis */}
       {username && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-md">
-          <h3 className="text-sm font-medium mb-2">Character Analysis:</h3>
-          <div className="space-y-1 text-xs">
+        <div className="character-analysis">
+          <h3 className="character-analysis-title">Character Analysis:</h3>
+          <div className="character-analysis-content">
             <div>Length: {username.length} characters</div>
-            <div>Has spaces: {usernameUtils.hasSpaces(username) ? '❌ Yes' : '✅ No'}</div>
-            <div>Starts with letter: {/^[a-zA-Z]/.test(username) ? '✅ Yes' : '❌ No'}</div>
-            <div>Contains numbers: {/\d/.test(username) ? '✅ Yes' : '❌ No'}</div>
-            <div>Contains special chars: {/[^a-zA-Z0-9]/.test(username) ? '✅ Yes' : '❌ No'}</div>
+            <div>
+              Has spaces:{" "}
+              {usernameUtils.hasSpaces(username) ? "❌ Yes" : "✅ No"}
+            </div>
+            <div>
+              Starts with letter:{" "}
+              {/^[a-zA-Z]/.test(username) ? "✅ Yes" : "❌ No"}
+            </div>
+            <div>
+              Contains numbers: {/\d/.test(username) ? "✅ Yes" : "❌ No"}
+            </div>
+            <div>
+              Contains special chars:{" "}
+              {/[^a-zA-Z0-9]/.test(username) ? "✅ Yes" : "❌ No"}
+            </div>
           </div>
         </div>
       )}
 
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <div className="mb-4">
-          <h3 className="text-sm font-medium mb-2">Suggestions:</h3>
-          <div className="space-y-1">
+        <div className="suggestions-section">
+          <h3 className="suggestions-title">Suggestions:</h3>
+          <div className="suggestions-list">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
                 onClick={() => applySuggestion(suggestion)}
-                className="block w-full text-left p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 transition-colors"
+                className="suggestion-button"
               >
                 {suggestion}
               </button>
@@ -176,34 +202,36 @@ const UsernameValidationExample: React.FC = () => {
       )}
 
       {/* Validation Rules */}
-      <div className="text-xs text-gray-600 space-y-1">
-        <div className="font-medium">Current Rules ({validationMethod}):</div>
-        {validationMethod === 'basic' && (
-          <ul className="list-disc list-inside space-y-1">
+      <div className="validation-rules">
+        <div className="validation-rules-title">
+          Current Rules ({validationMethod}):
+        </div>
+        {validationMethod === "basic" && (
+          <ul className="validation-rules-list">
             <li>3-20 characters long</li>
             <li>Letters, numbers, underscore (_), hyphen (-)</li>
             <li>Must start with a letter</li>
             <li>No spaces allowed</li>
           </ul>
         )}
-        {validationMethod === 'strict' && (
-          <ul className="list-disc list-inside space-y-1">
+        {validationMethod === "strict" && (
+          <ul className="validation-rules-list">
             <li>3-15 characters long</li>
             <li>Letters and numbers only</li>
             <li>Must start with a letter</li>
             <li>No special characters</li>
           </ul>
         )}
-        {validationMethod === 'flexible' && (
-          <ul className="list-disc list-inside space-y-1">
+        {validationMethod === "flexible" && (
+          <ul className="validation-rules-list">
             <li>2-30 characters long</li>
             <li>Letters, numbers, period (.), underscore (_), hyphen (-)</li>
             <li>Cannot start/end with special characters</li>
             <li>No consecutive special characters</li>
           </ul>
         )}
-        {validationMethod === 'social' && (
-          <ul className="list-disc list-inside space-y-1">
+        {validationMethod === "social" && (
+          <ul className="validation-rules-list">
             <li>1-30 characters long</li>
             <li>Letters, numbers, underscore (_), period (.)</li>
             <li>Cannot start/end with period</li>
@@ -215,4 +243,4 @@ const UsernameValidationExample: React.FC = () => {
   );
 };
 
-export default UsernameValidationExample; 
+export default UsernameValidationExample;

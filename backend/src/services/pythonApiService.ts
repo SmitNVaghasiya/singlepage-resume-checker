@@ -117,7 +117,7 @@ interface RetryOptions {
 class PythonResponseTransformer {
   public static transform(
     pythonResponse: PythonApiResponse,
-    resumeFile: Express.Multer.File,
+    resumeFile?: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File
   ): IAnalysisResult {
     const report = pythonResponse.resume_analysis_report;
@@ -227,7 +227,7 @@ class PythonResponseTransformer {
     };
   }
 
-  private static buildResumeQuality(response: PythonApiResponse, resumeFile: Express.Multer.File) {
+  private static buildResumeQuality(response: PythonApiResponse, resumeFile?: Express.Multer.File) {
     const report = response.resume_analysis_report;
     return {
       formatting: {
@@ -245,7 +245,7 @@ class PythonResponseTransformer {
       },
       length: {
         score: ANALYSIS_CONSTANTS.RESUME_QUALITY.DEFAULT_LENGTH_SCORE,
-        wordCount: Math.floor(resumeFile.size / ANALYSIS_CONSTANTS.WORD_COUNT_DIVISOR),
+        wordCount: resumeFile ? Math.floor(resumeFile.size / ANALYSIS_CONSTANTS.WORD_COUNT_DIVISOR) : 0,
         recommendations: []
       },
       structure: {
@@ -426,55 +426,55 @@ class PythonApiService {
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string
-  ): Promise<{ result: any }> {
-    // Input validation
-    if (!resumeFile?.buffer) {
-      throw new Error('Resume file is required and must contain data');
-    }
+  ): Promise<{ analysis_id: string; status: string }> {
+    const requestId = this.generateRequestId();
+    const startTime = Date.now();
     
-    if (jobDescriptionFile && !jobDescriptionFile.buffer) {
-      throw new Error('Invalid job description file');
-    }
-    
-    if (jobDescriptionText && !jobDescriptionText.trim()) {
-      throw new Error('Job description text cannot be empty');
-    }
+    logger.info('Starting Python API analysis', {
+      requestId,
+      resumeFile: resumeFile.originalname,
+      jobDescriptionFile: jobDescriptionFile?.originalname,
+      hasJobDescriptionText: !!jobDescriptionText
+    });
 
     try {
-      logger.info('Starting Python API analysis', {
-        resumeFilename: resumeFile.originalname,
-        resumeSize: resumeFile.size,
-        hasJobDescriptionFile: !!jobDescriptionFile,
-        hasJobDescriptionText: !!jobDescriptionText,
-      });
-
+      // Build form data
       const formData = this.buildFormData(resumeFile, jobDescriptionFile, jobDescriptionText);
       
-      // Use the new Python API endpoint
+      // Make request to Python API
       const response = await this.makeRequestWithRetry('/analyze-resume', formData);
       
-      // Check for job description validation errors
-      if (response.job_description_validity === 'Invalid') {
-        throw new Error(response.validation_error || 'Invalid job description');
-      }
-
-      // Return the Python API response directly (it's already in the new format)
-      // Add processing time metadata
-      const resultWithMetadata = {
-        ...response,
-        processingTime: Date.now() - Date.now(), // Will be set by the caller
-        resumeFilename: resumeFile.originalname,
-        jobDescriptionFilename: jobDescriptionFile?.originalname
-      };
+      const responseTime = Date.now() - startTime;
       
-      logger.info('Python API analysis completed successfully', {
-        score: response.score_out_of_100,
-        matchPercentage: response.chance_of_selection_percentage,
-        eligibility: response.resume_eligibility,
+      logger.info('Python API analysis completed', {
+        requestId,
+        responseTime,
+        analysis_id: response.analysis_id,
+        status: response.status
       });
 
-      return { result: resultWithMetadata };
+      // Check if analysis was successful
+      if (!response.success || response.status !== 'completed') {
+        throw new Error(`Analysis failed: ${response.message || 'Unknown error'}`);
+      }
+
+      // Return only status and analysis_id - no need to fetch full result here
+      // Frontend will fetch the complete analysis separately when needed
+      return {
+        analysis_id: response.analysis_id,
+        status: response.status
+      };
+
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      this.logApiError(error as AxiosError);
+      
+      logger.error('Python API analysis failed', {
+        requestId,
+        responseTime,
+        error: extractErrorMessage(error)
+      });
+
       throw this.createAnalysisError(error);
     }
   }
@@ -508,7 +508,7 @@ class PythonApiService {
   private async makeRequestWithRetry(
     endpoint: string, 
     formData: FormData
-  ): Promise<PythonApiResponse> {
+  ): Promise<any> { // Changed return type to any as PythonApiResponse is not directly returned here
     let lastError: AxiosError;
     
     for (let attempt = 1; attempt <= this.retryOptions.maxRetries; attempt++) {
@@ -519,7 +519,7 @@ class PythonApiService {
           },
         });
         
-        return response.data as PythonApiResponse;
+        return response.data; // Return the raw response data
       } catch (error) {
         lastError = error as AxiosError;
         
@@ -626,6 +626,66 @@ class PythonApiService {
 
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // REMOVED: fetchAnalysisFromDatabase method - no longer needed since we use API calls
+
+  public async checkAnalysisStatus(analysis_id: string): Promise<{ status: string; has_result: boolean }> {
+    try {
+      logger.info('Checking analysis status from Python server API', { analysis_id });
+      
+      // Make API request to Python server to check status
+      const response = await this.client.get(`/analysis/${analysis_id}/status`);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error('Failed to check analysis status from Python server');
+      }
+      
+      return {
+        status: response.data.status,
+        has_result: response.data.has_result
+      };
+      
+    } catch (error) {
+      logger.error('Failed to check analysis status from Python server API', { 
+        analysis_id, 
+        error: extractErrorMessage(error) 
+      });
+      throw new Error(`Failed to check analysis status: ${extractErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Fetch complete analysis result from Python server via API
+   * This method is called when backend needs the full analysis data
+   */
+  public async fetchAnalysisResult(analysis_id: string): Promise<any> {
+    try {
+      logger.info('Fetching complete analysis result from Python server API', { analysis_id });
+      
+      // Make API request to Python server to get the full analysis
+      const response = await this.client.get(`/analysis/${analysis_id}/result`);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error('Failed to fetch analysis result from Python server');
+      }
+
+      // Transform the result to match our schema
+      const transformedResult = PythonResponseTransformer.transform(
+        response.data.analysis_result,
+        undefined, // We don't have file objects here, but transformer can handle it
+        undefined
+      );
+
+      return transformedResult;
+      
+    } catch (error) {
+      logger.error('Failed to fetch analysis result from Python server API', { 
+        analysis_id, 
+        error: extractErrorMessage(error) 
+      });
+      throw new Error(`Failed to fetch analysis result: ${extractErrorMessage(error)}`);
+    }
   }
 
   public async checkHealth(): Promise<{ healthy: boolean; responseTime?: number; error?: string }> {

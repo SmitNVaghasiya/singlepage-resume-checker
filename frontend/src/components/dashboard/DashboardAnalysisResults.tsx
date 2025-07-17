@@ -31,15 +31,15 @@ import {
   // ExternalLink,
   Plus,
 } from "lucide-react";
-import "./AnalysisResults.css";
+import "./DashboardAnalysisResults.css";
 
-interface AnalysisResultsProps {
+interface DashboardAnalysisResultsProps {
   analysisResult: AnalysisResult;
   onAnalyzeAnother: () => void;
   onViewDashboard: () => void;
 }
 
-const AnalysisResults: React.FC<AnalysisResultsProps> = ({
+const DashboardAnalysisResults: React.FC<DashboardAnalysisResultsProps> = ({
   analysisResult,
   onAnalyzeAnother,
   onViewDashboard,
@@ -143,7 +143,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   }: {
     title: string;
     children: React.ReactNode;
-    icon?: any;
+    icon?: React.ComponentType<{ className?: string }>;
     color?: string;
   }) => (
     <div className="static-section">
@@ -1052,4 +1052,4 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   );
 };
 
-export default AnalysisResults;
+export default DashboardAnalysisResults;

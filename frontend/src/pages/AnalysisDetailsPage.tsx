@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { apiService } from "../services/api";
 import { AnalysisResult } from "../types";
 import { useAppContext } from "../contexts/AppContext";
-import { AnalysisResults, AnalysisLoading } from "../components/analysis";
-import "../components/analysis/AnalysisResults.css";
+import { AnalysisLoading } from "../components/analysis";
+import { DashboardAnalysisResults } from "../components/dashboard";
+import "../components/dashboard/DashboardAnalysisResults.css";
 import "../styles/pages/AnalysisDetailsPage.css";
 
 const AnalysisDetailsPage: React.FC = () => {
@@ -91,16 +92,8 @@ const AnalysisDetailsPage: React.FC = () => {
 
   return (
     <div className="analysis-details-page-full">
-      <div className="analysis-details-header-bar">
-        <button
-          className="back-btn-full"
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Back to Dashboard
-        </button>
-      </div>
       {analysis && (
-        <AnalysisResults
+        <DashboardAnalysisResults
           analysisResult={analysis}
           onAnalyzeAnother={() => navigate("/resumechecker")}
           onViewDashboard={() => navigate("/dashboard")}

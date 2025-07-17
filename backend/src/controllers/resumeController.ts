@@ -168,21 +168,42 @@ class ResumeController {
       }
 
       let result = await cacheService.getAnalysisResult(analysisId);
-      let dbResult: any = null;
+      let pythonAnalysisId: string | null = null;
 
-      // Fallback to database if not in cache
-      if (!result) {
+      // Check if we have a minimal result with Python analysis ID
+      if (result && result.analysis_id) {
+        pythonAnalysisId = result.analysis_id;
+      }
+
+      // If we don't have the full result, fetch it from Python server
+      if (!result || !result.overallScore) {
         try {
-          dbResult = await analysisService.getAnalysisByAnalysisId(analysisId);
-          if (dbResult?.status === 'completed') {
-            result = dbResult.result;
-            // Re-cache the result for future requests
-            await cacheService.setAnalysisResult(analysisId, result);
+          if (pythonAnalysisId) {
+            // Fetch complete analysis from Python server's database
+            const fullResult = await pythonApiService.fetchAnalysisResult(pythonAnalysisId);
+            
+            // Store the complete result in cache
+            await cacheService.setAnalysisResult(analysisId, fullResult);
+            
+            result = fullResult;
+            
+            logger.info('Fetched complete analysis from Python server', { 
+              analysisId, 
+              pythonAnalysisId 
+            });
+          } else {
+            // Fallback to old database if no Python analysis ID
+            const dbResult = await analysisService.getAnalysisByAnalysisId(analysisId);
+            if (dbResult?.status === 'completed') {
+              result = dbResult.result;
+              await cacheService.setAnalysisResult(analysisId, result);
+            }
           }
-        } catch (dbError) {
-          logger.warn('Database fallback failed:', { 
+        } catch (fetchError) {
+          logger.warn('Failed to fetch analysis result:', { 
             analysisId, 
-            error: extractErrorMessage(dbError) 
+            pythonAnalysisId,
+            error: extractErrorMessage(fetchError) 
           });
         }
       }
@@ -201,9 +222,9 @@ class ResumeController {
         logger.info('Transforming old format result to frontend format', { analysisId });
         transformedResult = ResultTransformer.transformToFrontendFormat(result, {
           analysisId,
-          resumeFilename: dbResult?.resumeFilename,
-          jobDescriptionFilename: dbResult?.jobDescriptionFilename,
-          analyzedAt: dbResult?.createdAt,
+          resumeFilename: result.resumeFilename,
+          jobDescriptionFilename: result.jobDescriptionFilename,
+          analyzedAt: result.analyzedAt,
           processingTime: result.processingTime
         });
       }
@@ -332,7 +353,7 @@ class ResumeController {
         currentStage: 'Extracting resume content...',
       });
 
-      // Create initial database record
+      // Note: Python server handles all database operations - no initial record needed here
       await this.createInitialAnalysisRecord(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
 
       // Update progress - job description analysis
@@ -342,17 +363,12 @@ class ResumeController {
         currentStage: 'Analyzing job requirements...',
       });
 
-      // Call Python API for analysis
+      // Call Python API for analysis (optimized - returns only status and analysis_id)
       const result = await pythonApiService.analyzeResume(
         resumeFile,
         jobDescriptionFile,
         jobDescriptionText
       );
-
-      // Add processing time metadata
-      if (startTime && result.result) {
-        result.result.processingTime = Date.now() - startTime;
-      }
 
       // Update progress - finalizing
       await this.updateAnalysisStatus(analysisId, {
@@ -361,11 +377,22 @@ class ResumeController {
         currentStage: 'Finalizing analysis report...',
       });
 
-      // Store results
-      await this.storeAnalysisResults(analysisId, result.result);
+      // Store minimal result in cache (analysis_id and status only)
+      await this.storeAnalysisResults(analysisId, {
+        analysis_id: result.analysis_id,
+        status: result.status,
+        completedAt: new Date().toISOString()
+      });
 
       // Complete analysis
-      await this.completeAnalysis(analysisId, result.result);
+      await this.completeAnalysis(analysisId, { status: result.status });
+
+      // Log the Python server's analysis ID for reference
+      logger.info('Analysis completed with Python server analysis ID', {
+        ourAnalysisId: analysisId,
+        pythonAnalysisId: result.analysis_id,
+        status: result.status
+      });
 
     } catch (error) {
       await this.handleAnalysisError(analysisId, error);
@@ -389,25 +416,13 @@ class ResumeController {
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string
   ): Promise<void> {
-    try {
-      const resumeTextPreview = this.extractTextPreview(resumeFile.buffer);
-      const jobDescriptionTextPreview = jobDescriptionFile 
-        ? this.extractTextPreview(jobDescriptionFile.buffer)
-        : jobDescriptionText || '';
-
-      await analysisService.createAnalysis({
-        analysisId,
-        resumeFilename: resumeFile.originalname,
-        jobDescriptionFilename: jobDescriptionFile?.originalname || 'Text Input',
-        resumeText: resumeTextPreview,
-        jobDescriptionText: jobDescriptionTextPreview,
-      });
-    } catch (dbError) {
-      logger.warn('Failed to save initial record to MongoDB:', { 
-        analysisId, 
-        error: extractErrorMessage(dbError) 
-      });
-    }
+    // REMOVED: No longer creating initial database record since Python server handles all database operations
+    // The Python server saves the complete analysis to its database, and we fetch from there
+    logger.info('Skipping initial database record creation - Python server handles all database operations', {
+      analysisId,
+      resumeFilename: resumeFile.originalname,
+      jobDescriptionFilename: jobDescriptionFile?.originalname || 'Text Input'
+    });
   }
 
   private extractTextPreview(buffer: Buffer): string {
@@ -424,66 +439,22 @@ class ResumeController {
       completedAt: new Date().toISOString(),
     };
 
-    // Store in cache
+    // Store in cache only - Python server handles all database operations
     await cacheService.setAnalysisResult(analysisId, enhancedResult);
-
-    // Update database
-    try {
-      await analysisService.updateAnalysisResult(analysisId, result);
-    } catch (dbError) {
-      const errorMessage = extractErrorMessage(dbError);
-      logger.error('Error updating analysis result:', {
-        analysisId,
-        error: errorMessage,
-        resultKeys: Object.keys(result || {}),
-        hasRequiredFields: {
-          overallScore: typeof result?.overallScore === 'number',
-          matchPercentage: typeof result?.matchPercentage === 'number',
-          jobTitle: typeof result?.jobTitle === 'string',
-          industry: typeof result?.industry === 'string'
-        }
-      });
-      
-      // Try to fix the result if it's missing required fields
-      const fixedResult = this.fixMissingRequiredFields(result);
-      if (fixedResult !== result) {
-        try {
-          await analysisService.updateAnalysisResult(analysisId, fixedResult);
-          logger.info('Successfully updated with fixed result', { analysisId });
-        } catch (retryError) {
-          logger.error('Failed to update with fixed result:', {
-            analysisId,
-            error: extractErrorMessage(retryError)
-          });
-        }
+    
+    logger.info('Analysis results stored in cache - Python server handles database persistence', {
+      analysisId,
+      resultKeys: Object.keys(result || {}),
+      hasRequiredFields: {
+        overallScore: typeof result?.overallScore === 'number',
+        matchPercentage: typeof result?.matchPercentage === 'number',
+        jobTitle: typeof result?.jobTitle === 'string',
+        industry: typeof result?.industry === 'string'
       }
-    }
+    });
   }
 
-  private fixMissingRequiredFields(result: any): any {
-    if (!result) return result;
-    
-    const fixed = { ...result };
-    
-    // Ensure required fields have default values
-    if (typeof fixed.overallScore !== 'number' || isNaN(fixed.overallScore)) {
-      fixed.overallScore = 50;
-    }
-    
-    if (typeof fixed.matchPercentage !== 'number' || isNaN(fixed.matchPercentage)) {
-      fixed.matchPercentage = 50;
-    }
-    
-    if (typeof fixed.jobTitle !== 'string' || !fixed.jobTitle.trim()) {
-      fixed.jobTitle = 'Software Engineer';
-    }
-    
-    if (typeof fixed.industry !== 'string' || !fixed.industry.trim()) {
-      fixed.industry = 'Technology';
-    }
-    
-    return fixed;
-  }
+  // REMOVED: fixMissingRequiredFields method - no longer needed since we don't save to backend database
 
   private async completeAnalysis(analysisId: string, result: any): Promise<void> {
     await this.updateAnalysisStatus(analysisId, {
@@ -507,22 +478,17 @@ class ResumeController {
       error: errorMessage,
     });
 
-    // Update status to failed
+    // Update status to failed in cache only - Python server handles database operations
     await this.updateAnalysisStatus(analysisId, {
       status: 'failed',
       error: errorMessage,
       failedAt: new Date().toISOString(),
     });
 
-    // Update database status
-    try {
-      await analysisService.updateAnalysisStatus(analysisId, AnalysisStatus.FAILED, errorMessage);
-    } catch (dbError) {
-      logger.warn('Failed to update database status:', { 
-        analysisId, 
-        error: extractErrorMessage(dbError) 
-      });
-    }
+    logger.info('Analysis failure status updated in cache - Python server handles database operations', {
+      analysisId,
+      error: errorMessage
+    });
   }
 
 
