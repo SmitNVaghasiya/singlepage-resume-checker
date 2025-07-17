@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     mongodb_database: str = "resume_analyzer"
     mongodb_collection: str = "analyses"
     
-    # Use MONGODB_URL from environment
+    # Use MONGO_URI from environment
     @field_validator("mongodb_url", mode="before")
     @classmethod
     def _validate_mongodb_url(cls, v):

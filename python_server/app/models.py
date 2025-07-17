@@ -4,23 +4,6 @@ from datetime import datetime
 from bson import ObjectId
 
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
-
-    @classmethod
-    def __get_pydantic_json_schema__(cls, field_schema):
-        field_schema.update(type="string")
-        return field_schema
-
-
 class CandidateInformation(BaseModel):
     name: str
     position_applied: str
@@ -117,7 +100,7 @@ class ErrorResponse(BaseModel):
 
 # Database Models
 class AnalysisDocument(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[str] = Field(None, alias="_id")
     analysis_id: str = Field(..., description="Unique analysis ID")
     user_id: Optional[str] = Field(None, description="User ID if authenticated")
     resume_filename: str = Field(..., description="Original resume filename")
@@ -129,11 +112,11 @@ class AnalysisDocument(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Analysis creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
-    class Config:
-        validate_by_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-        json_schema_extra = {
+    model_config = {
+        "validate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {ObjectId: str},
+        "json_schema_extra": {
             "example": {
                 "analysis_id": "uuid-string",
                 "user_id": "user-123",
@@ -143,6 +126,7 @@ class AnalysisDocument(BaseModel):
                 "created_at": "2024-01-01T00:00:00Z"
             }
         }
+    }
 
 
 class AnalysisStatus(BaseModel):

@@ -11,7 +11,9 @@ const API_BASE_URL = 'http://localhost:5000/api';
 export interface User {
   id: string;
   username: string;
+  fullName?: string;
   email: string;
+  location?: string;
   createdAt: string;
 }
 
@@ -39,7 +41,9 @@ export interface RegisterResponse {
 
 export interface UpdateProfileRequest {
   username: string;
+  fullName?: string;
   email: string;
+  location?: string;
 }
 
 export interface UpdatePasswordRequest {

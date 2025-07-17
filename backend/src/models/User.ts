@@ -3,9 +3,12 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
   username: string;
+  fullName?: string;
   email: string;
   password: string;
+  location?: string;
   isEmailVerified: boolean;
+  status: 'active' | 'deleted' | 'suspended';
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
   passwordResetToken?: string;
@@ -25,6 +28,11 @@ const userSchema = new Schema<IUser>({
     maxlength: 30,
     match: /^[a-zA-Z0-9_]+$/
   },
+  fullName: {
+    type: String,
+    trim: true,
+    maxlength: 100
+  },
   email: {
     type: String,
     required: true,
@@ -38,9 +46,19 @@ const userSchema = new Schema<IUser>({
     required: true,
     minlength: 6
   },
+  location: {
+    type: String,
+    trim: true,
+    maxlength: 100
+  },
   isEmailVerified: {
     type: Boolean,
     default: false
+  },
+  status: {
+    type: String,
+    enum: ['active', 'deleted', 'suspended'],
+    default: 'active'
   },
   emailVerificationToken: {
     type: String,

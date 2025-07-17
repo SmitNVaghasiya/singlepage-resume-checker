@@ -17,3 +17,4 @@ nltk
 typing-extensions
 magic-python
 pydantic
+pydantic-core

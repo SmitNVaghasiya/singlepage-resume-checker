@@ -127,6 +127,7 @@ export interface IAnalysisResult {
 // Interface for the Analysis document
 export interface IAnalysis extends Document {
   analysisId: string;
+  userId?: string; // Optional user ID for authenticated users
   resumeFilename: string;
   jobDescriptionFilename?: string;
   resumeText: string;
@@ -255,6 +256,11 @@ const analysisSchema = new Schema<IAnalysis>({
     type: String,
     required: true,
     unique: true,
+    index: true
+  },
+  userId: {
+    type: String,
+    required: false,
     index: true
   },
   resumeFilename: {

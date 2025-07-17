@@ -69,6 +69,9 @@ async def save_analysis(analysis_doc: AnalysisDocument) -> str:
         collection = await get_collection()
         doc_dict = analysis_doc.dict(by_alias=True, exclude_unset=True)
         
+        # Remove the _id field if it exists to let MongoDB generate it
+        doc_dict.pop('_id', None)
+        
         result = await collection.insert_one(doc_dict)
         logger.info(f"Analysis saved with ID: {result.inserted_id}")
         return str(result.inserted_id)
@@ -85,7 +88,15 @@ async def get_analysis_by_id(analysis_id: str) -> Optional[AnalysisDocument]:
         doc = await collection.find_one({"analysis_id": analysis_id})
         
         if doc:
-            return AnalysisDocument(**doc)
+            # Convert ObjectId to string for the _id field
+            if '_id' in doc:
+                doc['_id'] = str(doc['_id'])
+            try:
+                return AnalysisDocument(**doc)
+            except Exception as model_error:
+                logger.error(f"Failed to create AnalysisDocument from database result: {model_error}")
+                logger.error(f"Document keys: {list(doc.keys())}")
+                raise
         return None
         
     except Exception as e:

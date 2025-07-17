@@ -48,7 +48,7 @@ export const config: Config = {
   redisPassword: process.env.REDIS_PASSWORD,
 
   // MongoDB
-  mongoUri: process.env.MONGODB_URL || 'mongodb://localhost:27017/resume_analyzer',
+  mongoUri: process.env.MONGO_URI || process.env.MONGODB_URL || 'mongodb://localhost:27017/resume_analyzer',
 
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',

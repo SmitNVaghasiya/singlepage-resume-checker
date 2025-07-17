@@ -19,7 +19,9 @@ export interface WeaknessesAnalysis {
   technical_deficiencies: string[];
   resume_presentation_issues: string[];
   soft_skills_gaps: string[];
-  missing_essential_elements: string[];
+  missing_essential_elements: {
+    [key: string]: string;
+  };
 }
 
 export interface SectionFeedback {
@@ -77,6 +79,7 @@ export interface ResumeAnalysisReport {
 export interface AnalysisResult {
   // Basic analysis fields
   job_description_validity: string;
+  job_description_text?: string;
   resume_eligibility: string;
   score_out_of_100: number;
   short_conclusion: string;
@@ -95,6 +98,8 @@ export interface AnalysisResult {
   jobTitle?: string;
   industry?: string;
   analyzedAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   processingTime?: number;
   
   // Legacy compatibility fields (these will map to the new structure)

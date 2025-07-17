@@ -231,7 +231,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user._id,
         username: user.username,
+        fullName: user.fullName,
         email: user.email,
+        location: user.location,
         isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt
       },
@@ -310,6 +312,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Check if account is active
+    if (user.status !== 'active') {
+      res.status(401).json({
+        success: false,
+        message: 'Account is not active. Please contact support if you believe this is an error.'
+      });
+      return;
+    }
+
     // Generate JWT token
     const token = generateToken(String(user._id));
 
@@ -321,7 +332,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user._id,
         username: user.username,
+        fullName: user.fullName,
         email: user.email,
+        location: user.location,
         isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt
       },
@@ -377,12 +390,23 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // Check if account is active
+    if (user.status !== 'active') {
+      res.status(401).json({
+        success: false,
+        message: 'Account is not active. Please contact support if you believe this is an error.'
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       user: {
         id: user._id,
         username: user.username,
+        fullName: user.fullName,
         email: user.email,
+        location: user.location,
         isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt
       }
@@ -439,7 +463,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { username, email } = req.body;
+    const { username, fullName, email, location } = req.body;
 
     if (!username || !email) {
       res.status(400).json({
@@ -510,7 +534,9 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       userId,
       { 
         username, 
-        email: email.toLowerCase() 
+        email: email.toLowerCase(),
+        ...(fullName !== undefined && { fullName }),
+        ...(location !== undefined && { location })
       },
       { new: true }
     ).exec() as IUser | null;
@@ -531,7 +557,9 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       user: {
         id: user._id,
         username: user.username,
+        fullName: user.fullName,
         email: user.email,
+        location: user.location,
         isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt
       }
@@ -666,14 +694,24 @@ export const deleteAccount = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // In a real implementation, you might want to:
-    // 1. Delete related data (analyses, etc.)
-    // 2. Soft delete instead of hard delete
-    // 3. Send confirmation email
-    // 4. Add a grace period before actual deletion
+    // Soft delete - mark account as deleted instead of hard delete
+    // This allows for data recovery and future analytics
+    await User.findByIdAndUpdate(userId, {
+      status: 'deleted',
+      // Optionally clear sensitive data
+      password: 'deleted_account',
+      emailVerificationToken: undefined,
+      emailVerificationExpires: undefined,
+      passwordResetToken: undefined,
+      passwordResetExpires: undefined
+    });
 
-    // For now, we'll do a hard delete
-    await User.findByIdAndDelete(userId);
+    // IMPORTANT: Analysis data is preserved for:
+    // 1. Account recovery - users can restore their analysis history
+    // 2. Business analytics - understand user behavior and improve service
+    // 3. Customer support - help users who contact support later
+    // 4. Future outreach - contact users for feedback or new features
+    // Analysis data includes: resume content, job descriptions, scores, recommendations
 
     logger.info(`User account deleted: ${user.email}`);
 

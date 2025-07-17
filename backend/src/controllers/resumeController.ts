@@ -1,11 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { pythonApiService } from '../services/pythonApiService';
 import { cacheService } from '../services/cacheService';
-import { analysisService, AnalysisServiceError, AnalysisStatus } from '../services/analysisService';
+import { analysisService } from '../services/analysisService';
 import { ResultTransformer } from '../services/resultTransformer';
 import { logger } from '../utils/logger';
-import { generateAnalysisId, extractErrorMessage } from '../utils/helpers';
-import * as crypto from 'crypto';
+import { extractErrorMessage } from '../utils/helpers';
 
 interface MulterFiles {
   resume?: Express.Multer.File[];
@@ -32,25 +31,16 @@ class ResumeController {
 
   // Analyze resume against job description
   public analyzeResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const startTime = Date.now();
-    
     try {
-      const files = req.files as MulterFiles;
+      const startTime = Date.now();
       const { jobDescriptionText } = req.body;
-      
-      logger.info('Analyze resume request received:', {
-        hasResumeFiles: !!files.resume?.length,
-        hasJobDescriptionFiles: !!files.jobDescription?.length,
-        hasJobDescriptionText: !!jobDescriptionText,
-        resumeFileName: files.resume?.[0]?.originalname,
-        jobDescriptionFileName: files.jobDescription?.[0]?.originalname
-      });
-      
+      const files = req.files as MulterFiles;
+
       let resumeFile: Express.Multer.File | undefined;
       let jobDescriptionFile: Express.Multer.File | undefined;
       let finalJobDescriptionText: string | undefined;
 
-      // Handle resume file - only from direct upload
+      // Handle resume file
       if (files.resume?.length) {
         resumeFile = files.resume[0];
         logger.info('Using uploaded resume file:', {
@@ -93,24 +83,16 @@ class ResumeController {
         return;
       }
 
-      // Generate unique analysis ID
-      const analysisId = generateAnalysisId();
+      // Log analysis request
+      this.logAnalysisRequest('pending', resumeFile, jobDescriptionFile, finalJobDescriptionText);
 
-      // Log analysis request with structured data
-      this.logAnalysisRequest(analysisId, resumeFile, jobDescriptionFile, finalJobDescriptionText);
+      // Start async processing and get the Python server's analysis ID
+      const pythonAnalysisId = await this.processAnalysisAsync(resumeFile, jobDescriptionFile, finalJobDescriptionText);
 
-      // Start async processing (fire and forget)
-      this.processAnalysisAsync(analysisId, resumeFile, jobDescriptionFile, finalJobDescriptionText, startTime)
-        .catch(error => {
-          logger.error('Unhandled error in async processing:', { analysisId, error: extractErrorMessage(error) });
-        });
-
-      // No cleanup needed - frontend handles everything
-
-      // Return immediate response
+      // Return immediate response with the Python server's analysis ID
       res.status(202).json({
         message: 'Comprehensive analysis started',
-        analysisId,
+        analysisId: pythonAnalysisId, // Use Python server's ID
         status: 'processing',
         estimatedTime: '15-45 seconds',
       });
@@ -134,7 +116,30 @@ class ResumeController {
         return;
       }
 
-      const status = await cacheService.getAnalysisStatus(analysisId);
+      // First check cache
+      let status = await cacheService.getAnalysisStatus(analysisId);
+
+      // If not in cache, check Python server directly
+      if (!status) {
+        try {
+          const pythonStatus = await pythonApiService.checkAnalysisStatus(analysisId);
+          status = {
+            status: pythonStatus.status as 'processing' | 'completed' | 'failed',
+            progress: pythonStatus.status === 'completed' ? 100 : 50,
+            currentStage: pythonStatus.status === 'completed' ? 'Analysis completed' : 'Processing analysis',
+            startedAt: new Date().toISOString(),
+            ...(pythonStatus.status === 'completed' && { completedAt: new Date().toISOString() })
+          };
+          
+          // Cache the status
+          await cacheService.setAnalysisStatus(analysisId, status);
+        } catch (pythonError) {
+          logger.warn('Failed to check Python server status:', { 
+            analysisId, 
+            error: extractErrorMessage(pythonError) 
+          });
+        }
+      }
 
       if (!status) {
         res.status(404).json({
@@ -167,48 +172,130 @@ class ResumeController {
         return;
       }
 
-      let result = await cacheService.getAnalysisResult(analysisId);
-      let pythonAnalysisId: string | null = null;
+      // First check if we have the analysis in our backend database
+      let analysis = await analysisService.getAnalysisByAnalysisId(analysisId);
+      
+      if (analysis && analysis.result) {
+        // We have the data in our database, return it directly
+        logger.info('Found analysis in backend database', { analysisId });
+        
+        // Transform result to frontend format
+        const transformedResult = this.transformResult(analysis.result, analysisId);
 
-      // Check if we have a minimal result with Python analysis ID
-      if (result && result.analysis_id) {
-        pythonAnalysisId = result.analysis_id;
+        // Ensure the response has all required fields
+        const finalResult = {
+          ...transformedResult,
+          // Add metadata fields that frontend expects
+          id: analysisId,
+          analysisId: analysisId,
+          resumeFilename: analysis.resumeFilename || transformedResult.resumeFilename || 'Resume',
+          jobDescriptionFilename: analysis.jobDescriptionFilename || transformedResult.jobDescriptionFilename || 'Job Description',
+          jobTitle: transformedResult.jobTitle || analysis.result.jobTitle || 'Position Analysis',
+          overallScore: transformedResult.score_out_of_100 || transformedResult.overallScore || analysis.result.overallScore || 0,
+          chance_of_selection_percentage: transformedResult.chance_of_selection_percentage || transformedResult.matchPercentage || analysis.result.matchPercentage || 0,
+          analyzedAt: analysis.createdAt || new Date().toISOString(),
+          status: 'completed'
+        };
+
+        res.json({
+          analysisId,
+          status: 'completed',
+          result: finalResult,
+          retrievedAt: new Date().toISOString(),
+        });
+        return;
       }
 
-      // If we don't have the full result, fetch it from Python server
-      if (!result || !result.overallScore) {
+      // If not in backend database, check cache
+      const status = await cacheService.getAnalysisStatus(analysisId);
+      let result = await cacheService.getAnalysisResult(analysisId);
+
+      // If we have result in cache, return it
+      if (result) {
+        logger.info('Found analysis in cache', { analysisId });
+        
+        // Transform result to frontend format
+        const transformedResult = this.transformResult(result, analysisId);
+
+        // Ensure the response has all required fields
+        const finalResult = {
+          ...transformedResult,
+          // Add metadata fields that frontend expects
+          id: analysisId,
+          analysisId: analysisId,
+          resumeFilename: result.resumeFilename || transformedResult.resumeFilename || 'Resume',
+          jobDescriptionFilename: result.jobDescriptionFilename || transformedResult.jobDescriptionFilename || 'Job Description',
+          jobTitle: transformedResult.jobTitle || result.jobTitle || 'Position Analysis',
+          overallScore: transformedResult.score_out_of_100 || transformedResult.overallScore || result.overallScore || 0,
+          chance_of_selection_percentage: transformedResult.chance_of_selection_percentage || transformedResult.matchPercentage || result.matchPercentage || 0,
+          analyzedAt: result.analyzedAt || result.createdAt || new Date().toISOString(),
+          status: 'completed'
+        };
+
+        res.json({
+          analysisId,
+          status: 'completed',
+          result: finalResult,
+          retrievedAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // Only try Python server if we don't have the data locally
+      if (!status) {
         try {
-          if (pythonAnalysisId) {
-            // Fetch complete analysis from Python server's database
-            const fullResult = await pythonApiService.fetchAnalysisResult(pythonAnalysisId);
+          const pythonStatus = await pythonApiService.checkAnalysisStatus(analysisId);
+          if (pythonStatus.status === 'completed') {
+            // Fetch complete analysis from Python server
+            const fullResult = await pythonApiService.fetchAnalysisResult(analysisId);
             
-            // Store the complete result in cache
+            // Store in cache for future requests
             await cacheService.setAnalysisResult(analysisId, fullResult);
-            
-            result = fullResult;
-            
-            logger.info('Fetched complete analysis from Python server', { 
-              analysisId, 
-              pythonAnalysisId 
+            await cacheService.setAnalysisStatus(analysisId, {
+              status: 'completed',
+              progress: 100,
+              completedAt: new Date().toISOString()
             });
-          } else {
-            // Fallback to old database if no Python analysis ID
-            const dbResult = await analysisService.getAnalysisByAnalysisId(analysisId);
-            if (dbResult?.status === 'completed') {
-              result = dbResult.result;
-              await cacheService.setAnalysisResult(analysisId, result);
-            }
+            
+            // Transform and return result
+            const transformedResult = this.transformResult(fullResult, analysisId);
+            res.json({
+              analysisId,
+              status: 'completed',
+              result: transformedResult,
+              retrievedAt: new Date().toISOString(),
+            });
+            return;
+          } else if (pythonStatus.status === 'processing') {
+            res.json({
+              analysisId,
+              status: 'processing',
+              message: 'Analysis is still in progress'
+            });
+            return;
           }
-        } catch (fetchError) {
-          logger.warn('Failed to fetch analysis result:', { 
+        } catch (pythonError) {
+          logger.warn('Failed to check Python server status:', { 
             analysisId, 
-            pythonAnalysisId,
+            error: extractErrorMessage(pythonError) 
+          });
+        }
+      }
+
+      // If we have status but no result, try to fetch from Python server
+      if (status?.status === 'completed' && !result) {
+        try {
+          result = await pythonApiService.fetchAnalysisResult(analysisId);
+          await cacheService.setAnalysisResult(analysisId, result);
+        } catch (fetchError) {
+          logger.warn('Failed to fetch analysis result from Python server:', { 
+            analysisId, 
             error: extractErrorMessage(fetchError) 
           });
         }
       }
 
-      if (!result) {
+      if (!result && status?.status !== 'processing') {
         res.status(404).json({
           error: 'Not found',
           message: 'Analysis result not found or expired',
@@ -216,23 +303,40 @@ class ResumeController {
         return;
       }
 
-      // Transform result to frontend format if it's in old format
-      let transformedResult: any = result;
-      if (ResultTransformer.isOldFormat(result)) {
-        logger.info('Transforming old format result to frontend format', { analysisId });
-        transformedResult = ResultTransformer.transformToFrontendFormat(result, {
+      // If still processing, return status
+      if (status?.status === 'processing') {
+        res.json({
           analysisId,
-          resumeFilename: result.resumeFilename,
-          jobDescriptionFilename: result.jobDescriptionFilename,
-          analyzedAt: result.analyzedAt,
-          processingTime: result.processingTime
+          status: 'processing',
+          progress: status.progress,
+          currentStage: status.currentStage,
+          startedAt: status.startedAt
         });
+        return;
       }
+
+      // Transform result to frontend format
+      const transformedResult = this.transformResult(result, analysisId);
+
+      // Ensure the response has all required fields
+      const finalResult = {
+        ...transformedResult,
+        // Add metadata fields that frontend expects
+        id: analysisId,
+        analysisId: analysisId,
+        resumeFilename: result.resumeFilename || transformedResult.resumeFilename || 'Resume',
+        jobDescriptionFilename: result.jobDescriptionFilename || transformedResult.jobDescriptionFilename || 'Job Description',
+        jobTitle: transformedResult.jobTitle || result.jobTitle || 'Position Analysis',
+        overallScore: transformedResult.score_out_of_100 || transformedResult.overallScore || result.overallScore || 0,
+        chance_of_selection_percentage: transformedResult.chance_of_selection_percentage || transformedResult.matchPercentage || result.matchPercentage || 0,
+        analyzedAt: result.analyzedAt || result.createdAt || new Date().toISOString(),
+        status: 'completed'
+      };
 
       res.json({
         analysisId,
         status: 'completed',
-        result: transformedResult,
+        result: finalResult,
         retrievedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -254,6 +358,7 @@ class ResumeController {
         ? req.query.sortOrder as 'asc' | 'desc' 
         : 'desc';
 
+      // Get analyses from backend database
       const analyses = await analysisService.getAnalysesWithPagination({
         page,
         limit,
@@ -262,7 +367,7 @@ class ResumeController {
       });
 
       // Transform the analyses to match frontend expectations
-      const transformedAnalyses = analyses.analyses.map(analysis => {
+      const transformedAnalyses = analyses.analyses.map((analysis) => {
         // Transform result to frontend format if it's in old format
         let transformedResult: any = analysis.result;
         if (analysis.result && ResultTransformer.isOldFormat(analysis.result)) {
@@ -282,8 +387,8 @@ class ResumeController {
           resumeFilename: analysis.resumeFilename,
           jobDescriptionFilename: analysis.jobDescriptionFilename || 'Text Input',
           jobTitle: transformedResult?.jobTitle || analysis.result?.jobTitle || 'Position Analysis',
-          overallScore: transformedResult?.score_out_of_100 || analysis.result?.overallScore || 0,
-          chance_of_selection_percentage: transformedResult?.chance_of_selection_percentage || analysis.result?.chance_of_selection_percentage || 0,
+          overallScore: transformedResult?.score_out_of_100 || transformedResult?.overallScore || analysis.result?.overallScore || 0,
+          chance_of_selection_percentage: transformedResult?.chance_of_selection_percentage || transformedResult?.matchPercentage || analysis.result?.matchPercentage || 0,
           analyzedAt: analysis.createdAt,
           status: analysis.status,
           result: transformedResult // Include the full transformed result
@@ -315,13 +420,13 @@ class ResumeController {
 
   // Private helper methods
   private logAnalysisRequest(
-    analysisId: string,
+    status: 'pending' | 'processing' | 'completed' | 'failed',
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string
   ): void {
     logger.info('Starting comprehensive resume analysis', {
-      analysisId,
+      status,
       resume: {
         size: resumeFile.size,
         filename: resumeFile.originalname,
@@ -338,64 +443,95 @@ class ResumeController {
   }
 
   private async processAnalysisAsync(
-    analysisId: string,
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
-    jobDescriptionText?: string,
-    startTime?: number
-  ): Promise<void> {
+    jobDescriptionText?: string
+  ): Promise<string> {
     try {
-      // Update initial status
-      await this.updateAnalysisStatus(analysisId, {
-        status: 'processing',
-        startedAt: new Date().toISOString(),
-        progress: 10,
-        currentStage: 'Extracting resume content...',
-      });
-
-      // Note: Python server handles all database operations - no initial record needed here
-      await this.createInitialAnalysisRecord(analysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
-
-      // Update progress - job description analysis
-      await this.updateAnalysisStatus(analysisId, {
-        status: 'processing',
-        progress: 25,
-        currentStage: 'Analyzing job requirements...',
-      });
-
-      // Call Python API for analysis (optimized - returns only status and analysis_id)
+      // Call Python API for analysis first to get the analysis ID
       const result = await pythonApiService.analyzeResume(
         resumeFile,
         jobDescriptionFile,
         jobDescriptionText
       );
 
+      const pythonAnalysisId = result.analysis_id;
+
+      // Create a record in backend database with Python's analysis ID
+      await this.createInitialAnalysisRecord(pythonAnalysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
+
+      // Update initial status using Python's analysis ID
+      await this.updateAnalysisStatus(pythonAnalysisId, {
+        status: 'processing',
+        startedAt: new Date().toISOString(),
+        progress: 10,
+        currentStage: 'Extracting resume content...',
+      });
+
+      // Update progress - job description analysis
+      await this.updateAnalysisStatus(pythonAnalysisId, {
+        status: 'processing',
+        progress: 25,
+        currentStage: 'Analyzing job requirements...',
+      });
+
       // Update progress - finalizing
-      await this.updateAnalysisStatus(analysisId, {
+      await this.updateAnalysisStatus(pythonAnalysisId, {
         status: 'processing',
         progress: 90,
         currentStage: 'Finalizing analysis report...',
       });
 
-      // Store minimal result in cache (analysis_id and status only)
-      await this.storeAnalysisResults(analysisId, {
-        analysis_id: result.analysis_id,
-        status: result.status,
-        completedAt: new Date().toISOString()
-      });
+      // Fetch the complete result from Python server
+      try {
+        const fullResult = await pythonApiService.fetchAnalysisResult(pythonAnalysisId);
+        
+        // Store complete result in backend database
+        await analysisService.updateAnalysisResult(pythonAnalysisId, fullResult);
+        
+        // Store in cache for future requests
+        await cacheService.setAnalysisResult(pythonAnalysisId, fullResult);
+        await cacheService.setAnalysisStatus(pythonAnalysisId, {
+          status: 'completed',
+          progress: 100,
+          completedAt: new Date().toISOString()
+        });
+        
+        logger.info('Analysis completed and stored in backend database', {
+          pythonAnalysisId: pythonAnalysisId,
+          status: 'completed'
+        });
+      } catch (fetchError) {
+        logger.warn('Failed to fetch complete result from Python server, storing minimal result:', {
+          pythonAnalysisId: pythonAnalysisId,
+          error: extractErrorMessage(fetchError)
+        });
+        
+        // Store minimal result in cache
+        await cacheService.setAnalysisResult(pythonAnalysisId, {
+          analysis_id: pythonAnalysisId,
+          status: result.status,
+          completedAt: new Date().toISOString()
+        });
+      }
 
       // Complete analysis
-      await this.completeAnalysis(analysisId, { status: result.status });
+      await this.completeAnalysis(pythonAnalysisId, { status: result.status });
 
       // Log the Python server's analysis ID for reference
       logger.info('Analysis completed with Python server analysis ID', {
-        ourAnalysisId: analysisId,
-        pythonAnalysisId: result.analysis_id,
+        pythonAnalysisId: pythonAnalysisId,
         status: result.status
       });
 
+      return pythonAnalysisId;
+
     } catch (error) {
-      await this.handleAnalysisError(analysisId, error);
+      // If we have a Python analysis ID, update it to failed status
+      if (error && typeof error === 'object' && 'analysis_id' in error) {
+        await this.handleAnalysisError((error as any).analysis_id, error);
+      }
+      throw error; // Re-throw to be caught by the caller
     }
   }
 
@@ -416,13 +552,31 @@ class ResumeController {
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string
   ): Promise<void> {
-    // REMOVED: No longer creating initial database record since Python server handles all database operations
-    // The Python server saves the complete analysis to its database, and we fetch from there
-    logger.info('Skipping initial database record creation - Python server handles all database operations', {
-      analysisId,
-      resumeFilename: resumeFile.originalname,
-      jobDescriptionFilename: jobDescriptionFile?.originalname || 'Text Input'
-    });
+    try {
+      // Extract text from resume file for storage
+      const resumeText = this.extractTextPreview(resumeFile.buffer);
+      
+      // Create analysis record in backend database
+      await analysisService.createAnalysis({
+        analysisId: analysisId, // Use Python server's analysis ID
+        resumeFilename: resumeFile.originalname,
+        jobDescriptionFilename: jobDescriptionFile?.originalname,
+        resumeText: resumeText,
+        jobDescriptionText: jobDescriptionText
+      });
+
+      logger.info('Created analysis record in backend database', {
+        analysisId,
+        resumeFilename: resumeFile.originalname,
+        jobDescriptionFilename: jobDescriptionFile?.originalname || 'Text Input'
+      });
+    } catch (error) {
+      logger.warn('Failed to create analysis record in backend database:', {
+        analysisId,
+        error: extractErrorMessage(error)
+      });
+      // Don't throw error - Python server is the source of truth
+    }
   }
 
   private extractTextPreview(buffer: Buffer): string {
@@ -491,6 +645,35 @@ class ResumeController {
     });
   }
 
+  private transformResult(result: any, analysisId: string): any {
+    // If result is already in the new format (from Python server), return as is
+    if (result && (result.job_description_validity || result.score_out_of_100)) {
+      logger.info('Result is already in new format, returning as is', { analysisId });
+      return result;
+    }
+    
+    // If result is in old format, transform it
+    if (ResultTransformer.isOldFormat(result)) {
+      logger.info('Transforming old format result to frontend format', { analysisId });
+      return ResultTransformer.transformToFrontendFormat(result, {
+        analysisId,
+        resumeFilename: result.resumeFilename,
+        jobDescriptionFilename: result.jobDescriptionFilename,
+        analyzedAt: result.analyzedAt,
+        processingTime: result.processingTime
+      });
+    }
+    
+    // If result is in the new format from database, return as is
+    if (result && result.resume_analysis_report) {
+      logger.info('Result is in new format from database, returning as is', { analysisId });
+      return result;
+    }
+    
+    // Fallback: return the result as is
+    logger.warn('Unknown result format, returning as is', { analysisId, resultKeys: Object.keys(result || {}) });
+    return result;
+  }
 
 }
 

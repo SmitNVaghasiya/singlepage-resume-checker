@@ -1,17 +1,12 @@
 ------- Important tasks.
--- data is not being stored in the database fully but i we are showing the static data in the dashboard analysis.
-
-
--- Improve the dashboard UI.
+-- Improve the dashboard UI. and also add fetures like the download he report or export data.
 -- Make trantition from the resumechecker page to the dashboard make it seamless. currently it is not fast and in looking like it is too slow and showing somehtings which must not be there.
 
--- Profile page is not complete have to complete it first.
-
 -- 0% Avg Match Rate instead of this change this too something else.
+-- theme cheing button stopped working.
 
 -------- Must complete only after completing above tasks.
 -- Add the Google sign in and sign up inside of my website and only take data which is required.
--- Cheking the Delete Account feature and also all the features inside of the settings.
 
 -------- Future add on.
 -- Add freemium version option. - Add payment gateway.

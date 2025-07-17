@@ -77,7 +77,7 @@ export const validateAnalysisId = [
     .isString()
     .notEmpty()
     .withMessage('Analysis ID is required')
-    .isAlphanumeric()
+    .matches(/^[a-zA-Z0-9-]+$/)
     .withMessage('Invalid analysis ID format'),
   validate,
 ];

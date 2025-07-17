@@ -3,29 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   TrendingUp,
-  Download,
   FileText,
   Calendar,
   Search,
   Eye,
   Plus,
-  CheckCircle,
-  AlertCircle,
   Target,
   Award,
-  Activity,
-  Star,
-  X,
   Loader,
   Lock,
 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
-import { apiService } from "../services/api";
 import { AnalysisResult } from "../types";
-import { DashboardAnalysisView } from "../components/dashboard";
-import { AuthModal } from "../components/auth";
+
 import "../styles/pages/DashboardPage.css";
-import "../components/auth/AuthModal.css";
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,30 +26,15 @@ const DashboardPage: React.FC = () => {
     currentAnalysis,
     analysisHistory,
     resetAnalysis,
-    addAnalysisToHistory,
   } = useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
-  // Remove all state and logic for selectedAnalysis, loadingDetails, and modal rendering
 
   // Check authentication when component mounts
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      // setShowAuthModal(true); // This line is removed as per the edit hint
+      // User is not authenticated, will show auth prompt
     }
   }, [user, isAuthLoading]);
-
-  // Handle successful authentication
-  const handleAuthSuccess = () => {
-    // setShowAuthModal(false); // This line is removed as per the edit hint
-    // Reload the page to fetch user's analysis history
-    window.location.reload();
-  };
-
-  // Handle auth modal close
-  const handleAuthModalClose = () => {
-    // setShowAuthModal(false); // This line is removed as per the edit hint
-    navigate("/"); // Redirect to homepage if user closes auth modal
-  };
 
   // Don't render content until we know authentication status
   if (isAuthLoading) {
@@ -96,14 +72,6 @@ const DashboardPage: React.FC = () => {
             </button>
           </div>
         </div>
-
-        {/* {showAuthModal && ( // This block is removed as per the edit hint */}
-        {/*   <AuthModal // This block is removed as per the edit hint */}
-        {/*     isOpen={showAuthModal} // This block is removed as per the edit hint */}
-        {/*     onAuthSuccess={handleAuthSuccess} // This block is removed as per the edit hint */}
-        {/*     onClose={handleAuthModalClose} // This block is removed as per the edit hint */}
-        {/*   /> // This block is removed as per the edit hint */}
-        {/* )} // This block is removed as per the edit hint */}
       </div>
     );
   }
@@ -137,14 +105,26 @@ const DashboardPage: React.FC = () => {
 
   const getAnalyzedDate = (analysis: AnalysisResult): string => {
     try {
-      if (!analysis.analyzedAt) {
-        return "Recently";
+      // Try multiple date fields that might exist
+      const dateFields = [
+        analysis.analyzedAt,
+        analysis.createdAt,
+        analysis.updatedAt,
+        (analysis as any).created_at,
+        (analysis as any).updated_at,
+      ];
+
+      for (const dateField of dateFields) {
+        if (dateField) {
+          const date = new Date(dateField);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString();
+          }
+        }
       }
-      const date = new Date(analysis.analyzedAt);
-      if (isNaN(date.getTime())) {
-        return "Recently";
-      }
-      return date.toLocaleDateString();
+
+      // If no valid date found, return a default
+      return "Recently";
     } catch {
       return "Recently";
     }
@@ -190,27 +170,6 @@ const DashboardPage: React.FC = () => {
     if (score >= 80) return "success";
     if (score >= 60) return "warning";
     return "error";
-  };
-
-  const loadFullAnalysisDetails = async (analysisId: string) => {
-    // setLoadingDetails(true); // This line is removed as per the edit hint
-    try {
-      const response = await apiService.getAnalysisResult(analysisId);
-      if (response.result) {
-        // setSelectedAnalysis(response.result); // This line is removed as per the edit hint
-      }
-    } catch (error) {
-      console.error("Failed to load analysis details:", error);
-      // Still show basic info from history if full details fail to load
-      const basicAnalysis = analysisHistory.find(
-        (a) => a.analysisId === analysisId
-      );
-      if (basicAnalysis) {
-        // setSelectedAnalysis(basicAnalysis); // This line is removed as per the edit hint
-      }
-    } finally {
-      // setLoadingDetails(false); // This line is removed as per the edit hint
-    }
   };
 
   return (
@@ -350,7 +309,6 @@ const DashboardPage: React.FC = () => {
                                 navigate(`/dashboard/analysis/${analysisId}`);
                               }
                             }}
-                            // disabled={loadingDetails} // This line is removed as per the edit hint
                           >
                             <Eye className="view-icon" />
                             View Details
@@ -385,9 +343,6 @@ const DashboardPage: React.FC = () => {
             </Link>
           </div>
         )}
-
-        {/* Dashboard Analysis View */}
-        {/* This section is removed as per the edit hint */}
       </div>
     </div>
   );

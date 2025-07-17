@@ -26,7 +26,9 @@ import "../styles/pages/ProfilePage.css";
 
 interface UserProfileData {
   username: string;
+  fullName?: string;
   email: string;
+  location?: string;
 }
 
 interface PasswordData {
@@ -52,6 +54,8 @@ const ProfilePage: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteUsername, setDeleteUsername] = useState("");
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -60,7 +64,9 @@ const ProfilePage: React.FC = () => {
 
   const [profileData, setProfileData] = useState<UserProfileData>({
     username: user?.username || "",
+    fullName: user?.fullName || "",
     email: user?.email || "",
+    location: user?.location || "",
   });
 
   const [passwordData, setPasswordData] = useState<PasswordData>({
@@ -86,6 +92,18 @@ const ProfilePage: React.FC = () => {
     }
   }, [user, isAuthLoading, navigate]);
 
+  // Initialize profile data
+  useEffect(() => {
+    if (user) {
+      setProfileData((prev) => ({
+        username: user.username || prev.username || "",
+        fullName: user.fullName || prev.fullName || "",
+        email: user.email || prev.email || "",
+        location: user.location || prev.location || "",
+      }));
+    }
+  }, [user]);
+
   // Don't render the page if still loading auth state
   if (isAuthLoading) {
     return (
@@ -104,16 +122,6 @@ const ProfilePage: React.FC = () => {
   if (!user) {
     return null;
   }
-
-  // Initialize profile data
-  useEffect(() => {
-    if (user) {
-      setProfileData((prev) => ({
-        username: user.username || prev.username || "",
-        email: user.email || prev.email || "",
-      }));
-    }
-  }, [user]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,6 +254,40 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleDeleteConfirmation = async () => {
+    // Accept both with and without @ symbol
+    const enteredUsername = deleteUsername.replace(/^@/, ""); // Remove @ if present
+    if (enteredUsername !== user?.username) {
+      setErrors({
+        general: "Username does not match. Please enter your exact username.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      await apiService.deleteAccount();
+      await logout();
+      navigate("/");
+    } catch (error) {
+      setErrors({
+        general:
+          error instanceof Error ? error.message : "Failed to delete account",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteButtonClick = () => {
+    setShowDeleteModal(false);
+    setShowDeleteConfirmation(true);
+    setDeleteUsername("");
+    setErrors({});
+  };
+
   const handleExportData = async () => {
     try {
       setIsLoading(true);
@@ -291,8 +333,35 @@ const ProfilePage: React.FC = () => {
             <User className="avatar-icon" />
           </div>
           <div className="profile-info">
-            <h1 className="profile-name">{user.username}</h1>
+            <h1 className="profile-name">{user.fullName || user.username}</h1>
+            {user.fullName && (
+              <p className="profile-username">@{user.username}</p>
+            )}
             <p className="profile-email">{user.email}</p>
+            {user.location && (
+              <p className="profile-location">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span>{user.location}</span>
+              </p>
+            )}
             <div className="profile-joined">
               <Calendar className="w-4 h-4" />
               <span>
@@ -346,7 +415,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="tab-content">
+        <div className="profile-tab-content">
           {activeTab === "profile" && (
             <>
               {/* Profile Information */}
@@ -398,6 +467,43 @@ const ProfilePage: React.FC = () => {
                     </div>
 
                     <div className="input-group-compact">
+                      <label className="input-label-compact">Full Name</label>
+                      <div className="input-wrapper-compact">
+                        <svg
+                          className="input-icon-compact"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        <input
+                          type="text"
+                          value={profileData.fullName || ""}
+                          onChange={(e) =>
+                            setProfileData({
+                              ...profileData,
+                              fullName: e.target.value,
+                            })
+                          }
+                          className={`input-field-compact ${
+                            errors.fullName ? "error" : ""
+                          }`}
+                          disabled={!isEditingProfile || isLoading}
+                          placeholder="Enter your full name (optional)"
+                        />
+                      </div>
+                      {errors.fullName && (
+                        <p className="input-error-compact">{errors.fullName}</p>
+                      )}
+                    </div>
+
+                    <div className="input-group-compact">
                       <label className="input-label-compact">Email</label>
                       <div className="input-wrapper-compact">
                         <Mail className="input-icon-compact" />
@@ -419,6 +525,49 @@ const ProfilePage: React.FC = () => {
                       </div>
                       {errors.email && (
                         <p className="input-error-compact">{errors.email}</p>
+                      )}
+                    </div>
+
+                    <div className="input-group-compact">
+                      <label className="input-label-compact">Location</label>
+                      <div className="input-wrapper-compact">
+                        <svg
+                          className="input-icon-compact"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        <input
+                          type="text"
+                          value={profileData.location || ""}
+                          onChange={(e) =>
+                            setProfileData({
+                              ...profileData,
+                              location: e.target.value,
+                            })
+                          }
+                          className={`input-field-compact ${
+                            errors.location ? "error" : ""
+                          }`}
+                          disabled={!isEditingProfile || isLoading}
+                          placeholder="Enter your location (optional)"
+                        />
+                      </div>
+                      {errors.location && (
+                        <p className="input-error-compact">{errors.location}</p>
                       )}
                     </div>
                   </div>
@@ -788,7 +937,7 @@ const ProfilePage: React.FC = () => {
                     <small>Permanently delete your account and all data</small>
                   </div>
                   <button
-                    onClick={() => setShowDeleteModal(true)}
+                    onClick={handleDeleteButtonClick}
                     className="btn-danger-small"
                     disabled={isLoading}
                   >
@@ -807,7 +956,7 @@ const ProfilePage: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal delete-modal">
             <div className="modal-header">
-              <h3>Delete Account</h3>
+              <h3 style={{ color: "white" }}>Delete Account</h3>
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="modal-close"
@@ -845,6 +994,91 @@ const ProfilePage: React.FC = () => {
                 onClick={handleDeleteAccount}
                 className="btn-danger"
                 disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Username Confirmation Modal */}
+      {showDeleteConfirmation && (
+        <div className="modal-overlay">
+          <div className="modal delete-modal">
+            <div className="modal-header">
+              <h3 style={{ color: "white" }}>Confirm Account Deletion</h3>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setDeleteUsername("");
+                  setErrors({});
+                }}
+                className="modal-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="warning-content">
+                <AlertTriangle className="warning-icon" />
+                <p>
+                  To permanently delete your account @{user?.username}, please
+                  enter your username below
+                </p>
+                <div style={{ marginTop: "1rem" }}>
+                  <input
+                    type="text"
+                    value={deleteUsername}
+                    onChange={(e) => setDeleteUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "8px",
+                      fontSize: "1rem",
+                      marginBottom: "1rem",
+                    }}
+                  />
+                  {errors.general && (
+                    <p
+                      style={{
+                        color: "#ef4444",
+                        fontSize: "0.875rem",
+                        margin: "0",
+                      }}
+                    >
+                      {errors.general}
+                    </p>
+                  )}
+                </div>
+                <p className="warning-text">
+                  <strong>This action cannot be undone.</strong>
+                </p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setDeleteUsername("");
+                  setErrors({});
+                }}
+                className="btn-secondary"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirmation}
+                className="btn-danger"
+                disabled={isLoading || !deleteUsername.trim()}
               >
                 {isLoading ? (
                   <Loader className="w-4 h-4 animate-spin" />

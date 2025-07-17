@@ -5,7 +5,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
   const start = Date.now();
 
   // Log request
-  logger.info({
+  logger.info('HTTP Request', {
     type: 'request',
     method: req.method,
     url: req.url,
@@ -22,7 +22,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
     const responseTime = Date.now() - start;
 
     // Log response
-    logger.info({
+    logger.info('HTTP Response', {
       type: 'response',
       method: req.method,
       url: req.url,

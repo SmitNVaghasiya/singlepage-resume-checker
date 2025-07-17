@@ -4,8 +4,7 @@ import { apiService } from "../services/api";
 import { AnalysisResult } from "../types";
 import { useAppContext } from "../contexts/AppContext";
 import { AnalysisLoading } from "../components/analysis";
-import { DashboardAnalysisResults } from "../components/dashboard";
-import "../components/dashboard/DashboardAnalysisResults.css";
+import ResumeAnalysisUI from "../components/dashboard/ResumeAnalysisUI";
 import "../styles/pages/AnalysisDetailsPage.css";
 
 const AnalysisDetailsPage: React.FC = () => {
@@ -34,10 +33,11 @@ const AnalysisDetailsPage: React.FC = () => {
         if (response.result) {
           setAnalysis(response.result);
         } else {
-          setError("Analysis not found.");
+          setError("Analysis not found or incomplete.");
         }
-      } catch (err) {
-        setError("Failed to load analysis details.");
+      } catch (err: any) {
+        console.error("Failed to load analysis details:", err);
+        setError(err.message || "Failed to load analysis details.");
       } finally {
         setLoading(false);
       }
@@ -92,13 +92,7 @@ const AnalysisDetailsPage: React.FC = () => {
 
   return (
     <div className="analysis-details-page-full">
-      {analysis && (
-        <DashboardAnalysisResults
-          analysisResult={analysis}
-          onAnalyzeAnother={() => navigate("/resumechecker")}
-          onViewDashboard={() => navigate("/dashboard")}
-        />
-      )}
+      {analysis && <ResumeAnalysisUI analysisId={id!} />}
     </div>
   );
 };
