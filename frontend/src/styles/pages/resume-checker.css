@@ -3,6 +3,7 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   padding: 2rem 0;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .resume-checker-page .container {
@@ -10,6 +11,23 @@
   margin: 0 auto;
   margin-top: 3rem;
   padding: 0 1rem;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth transitions for better UX */
+.resume-checker-page * {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading state for seamless transitions */
+.resume-checker-page.loading {
+  opacity: 0.7;
+  pointer-events: none;
+  transform: scale(0.99);
+}
+
+.resume-checker-page.loading .container {
+  transform: scale(0.97);
 }
 
 /* Modern Progress Steps - No Card Background */
@@ -19,6 +37,7 @@
   align-items: center;
   margin-bottom: 2rem;
   padding: 1rem 0;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .step {
@@ -28,15 +47,15 @@
   text-align: center;
   min-width: 140px;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 1rem;
 }
 
 .step:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-3px);
 }
 
 .step-number {
@@ -51,7 +70,7 @@
   font-weight: bold;
   font-size: 1.2rem;
   margin-bottom: 0.5rem;
-  transition: all 0.3s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 2px solid #e2e8f0;
 }
@@ -60,15 +79,15 @@
   font-weight: 600;
   color: #475569;
   font-size: 0.9rem;
-  transition: all 0.3s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .step.active .step-number {
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   color: white;
-  transform: scale(1.1);
+  transform: scale(1.15);
   border-color: #3b82f6;
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
 }
 
 .step.active .step-title {
@@ -80,7 +99,7 @@
   background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border-color: #10b981;
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .step.completed .step-title {

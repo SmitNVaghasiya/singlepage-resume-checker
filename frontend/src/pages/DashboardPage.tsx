@@ -39,7 +39,7 @@ const DashboardPage: React.FC = () => {
   // Don't render content until we know authentication status
   if (isAuthLoading) {
     return (
-      <div className="dashboard-page">
+      <div className="dashboard-page loading">
         <div className="dashboard-loading">
           <Loader className="loading-spinner2" />
           <p>Loading dashboard...</p>
@@ -194,7 +194,14 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="dashboard-content">
+      <div
+        className="dashboard-content"
+        style={{
+          animation: "fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1)",
+          opacity: 0,
+          animationFillMode: "forwards",
+        }}
+      >
         {/* Statistics Cards */}
         <div className="stats-grid">
           <div className="stat-card stat-primary">

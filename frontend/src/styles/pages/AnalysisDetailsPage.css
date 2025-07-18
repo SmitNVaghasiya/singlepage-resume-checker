@@ -1,49 +1,51 @@
-/* Full-width immersive analysis details page */
+/* Analysis Details Page Styles */
 .analysis-details-page-full {
-  width: 100vw;
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  margin: 0;
-  padding-top: 5rem;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
+  padding: 2rem 0;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Analysis loading state */
+/* Smooth transitions for better UX */
+.analysis-details-page-full * {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading state for seamless transitions */
+.analysis-details-page-full.loading {
+  opacity: 0.7;
+  pointer-events: none;
+  transform: scale(0.99);
+}
+
+.analysis-details-page-full.loading .analysis-content {
+  transform: scale(0.97);
+}
+
 .analysis-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding: 4rem 2rem;
+  min-height: 60vh;
   text-align: center;
-  min-height: 100vh;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.analysis-loading .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e2e8f0;
-  border-top: 3px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.analysis-loading p {
-  color: #64748b;
-  font-size: 0.9375rem;
-  margin: 0;
-  font-weight: 500;
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  color: #3b82f6;
+  animation: spin 1.5s linear infinite;
+  margin-bottom: 1rem;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes spin {
-  0% {
+  from {
     transform: rotate(0deg);
   }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }

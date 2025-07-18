@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import {
   User,
   Target,
@@ -15,21 +14,30 @@ import {
   Lightbulb,
   RefreshCw,
   LucideIcon,
-  Plus,
   BarChart3,
+  Brain,
+  Zap,
+  Settings,
+  MessageSquare,
+  Calendar,
+  FileText,
+  Briefcase,
+  Shield,
+  ArrowRight,
+  CheckCircle2,
+  Info,
+  Plus,
+  CheckSquare,
 } from "lucide-react";
 import { AnalysisResult } from "../../types";
 import { apiService } from "../../services/api";
-import { useAppContext } from "../../contexts/AppContext";
-import "./ResumeAnalysisUI.css";
+import "./view_DetailsUi_2.css";
 
-interface ResumeAnalysisUIProps {
+interface ViewDetailsUI2Props {
   analysisId: string;
 }
 
-const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
-  const navigate = useNavigate();
-  const { resetAnalysis } = useAppContext();
+const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,19 +82,28 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     return "text-red-600";
   };
 
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return "Excellent";
+    if (score >= 60) return "Good";
+    if (score >= 40) return "Average";
+    return "Needs Improvement";
+  };
+
   const TabButton: React.FC<{
     id: string;
     label: string;
     icon: LucideIcon;
     active: boolean;
     onClick: (id: string) => void;
-  }> = ({ id, label, icon: Icon, active, onClick }) => (
+    count?: number;
+  }> = ({ id, label, icon: Icon, active, onClick, count }) => (
     <button
       onClick={() => onClick(id)}
       className={`tab-button ${active ? "active" : ""}`}
     >
       <Icon size={18} />
-      {label}
+      <span className="tab-label">{label}</span>
+      {count !== undefined && <span className="tab-count">{count}</span>}
     </button>
   );
 
@@ -95,12 +112,14 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     icon: LucideIcon;
     children: React.ReactNode;
     className?: string;
-  }> = ({ title, icon: Icon, children, className = "" }) => (
+    badge?: string;
+  }> = ({ title, icon: Icon, children, className = "", badge }) => (
     <div className={`analysis-card ${className}`}>
       <div className="card-header">
         <div className="card-header-content">
           <Icon className="card-header-icon" size={24} />
           <h3 className="card-header-title">{title}</h3>
+          {badge && <span className="card-badge">{badge}</span>}
         </div>
       </div>
       <div className="card-body">{children}</div>
@@ -121,69 +140,114 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     </ul>
   );
 
+  const StatCard: React.FC<{
+    title: string;
+    value: string | number;
+    description: string;
+    icon: LucideIcon;
+    color: "blue" | "green" | "purple" | "orange";
+  }> = ({ title, value, description, icon: Icon, color }) => (
+    <div className={`stat-card ${color}`}>
+      <div className="stat-card-content">
+        <div className="stat-card-info">
+          <h3>{title}</h3>
+          <div className="value">{value}</div>
+        </div>
+        <Icon className="stat-card-icon" size={32} />
+      </div>
+    </div>
+  );
+
   const renderOverview = () => {
     if (!data || !data.resume_analysis_report) return null;
 
     return (
       <div className="space-y-6">
-        <div className="overview-grid">
-          <div className="stat-card blue">
-            <div className="stat-card-content">
-              <div className="stat-card-info">
-                <h3>Overall Score</h3>
-                <div
-                  className={`value ${getScoreColor(data.score_out_of_100)}`}
-                >
-                  {data.score_out_of_100}/100
-                </div>
+        {/* Hero Section */}
+        <div className="overview-hero">
+          <div className="overview-hero-content">
+            <div className="overview-hero-header">
+              <div className="overview-hero-icon">
+                <BarChart3 size={32} />
               </div>
-              <Star className="stat-card-icon" size={32} />
+              <h2 className="overview-hero-title">Analysis Summary</h2>
             </div>
-          </div>
-
-          <div className="stat-card purple">
-            <div className="stat-card-content">
-              <div className="stat-card-info">
-                <h3>Selection Chance</h3>
-                <div className="value">
-                  {data.chance_of_selection_percentage}%
-                </div>
-              </div>
-              <TrendingUp className="stat-card-icon" size={32} />
-            </div>
-          </div>
-
-          <div className="stat-card green">
-            <div className="stat-card-content">
-              <div className="stat-card-info">
-                <h3>Position</h3>
-                <div className="value">
-                  {
-                    data.resume_analysis_report.candidate_information
-                      .position_applied
-                  }
-                </div>
-              </div>
-              <Target className="stat-card-icon" size={32} />
-            </div>
-          </div>
-
-          <div className="stat-card orange">
-            <div className="stat-card-content">
-              <div className="stat-card-info">
-                <h3>Experience Level</h3>
-                <div className="value">
-                  {
-                    data.resume_analysis_report.candidate_information
-                      .experience_level
-                  }
-                </div>
-              </div>
-              <User className="stat-card-icon" size={32} />
-            </div>
+            <p className="overview-hero-description">
+              {data.overall_fit_summary || data.short_conclusion}
+            </p>
           </div>
         </div>
 
+        {/* Stats Grid */}
+        <div className="overview-grid">
+          <StatCard
+            title="Overall Score"
+            value={`${data.score_out_of_100}/100`}
+            description="Overall compatibility rating"
+            icon={Target}
+            color="blue"
+          />
+          <StatCard
+            title="Selection Chance"
+            value={`${data.chance_of_selection_percentage}%`}
+            description="Probability of success"
+            icon={TrendingUp}
+            color="green"
+          />
+          <StatCard
+            title="Position"
+            value={
+              data.resume_analysis_report.candidate_information.position_applied
+            }
+            description="Target role"
+            icon={User}
+            color="purple"
+          />
+          <StatCard
+            title="Experience Level"
+            value={
+              data.resume_analysis_report.candidate_information.experience_level
+            }
+            description="Current level"
+            icon={Award}
+            color="orange"
+          />
+        </div>
+
+        {/* Quick Stats */}
+        <Card title="Quick Statistics" icon={BarChart3}>
+          <div className="stats-grid">
+            <div className="stat-item">
+              <div className="stat-number">
+                {data.resume_analysis_report.strengths_analysis
+                  ?.technical_skills?.length || 0}
+              </div>
+              <div className="stat-label">Technical Strengths</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">
+                {data.resume_analysis_report.weaknesses_analysis
+                  ?.critical_gaps_against_job_description?.length || 0}
+              </div>
+              <div className="stat-label">Critical Gaps</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">
+                {data.resume_improvement_priority?.length || 0}
+              </div>
+              <div className="stat-label">Priority Actions</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">
+                {data.resume_analysis_report.improvement_recommendations
+                  ?.immediate_resume_additions?.length || 0}
+              </div>
+              <div className="stat-label">Quick Fixes</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Candidate Information */}
         <Card title="Candidate Information" icon={User}>
           <div className="info-grid">
             <div className="info-item">
@@ -202,6 +266,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           </div>
         </Card>
 
+        {/* Eligibility Assessment */}
         <Card title="Eligibility Assessment" icon={CheckCircle}>
           <div
             className={`eligibility-badge ${getEligibilityColor(
@@ -220,19 +285,59 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           </div>
         </Card>
 
-        <Card title="Job Description" icon={Target}>
-          <div className="job-description-content">
-            <h4>Job Description Text</h4>
-            <p className="job-description-text">
-              {data.job_description_text ||
-                "Job description text is not available in the current response format."}
+        {/* Priority Improvements */}
+        {data.resume_improvement_priority && (
+          <div className="priority-improvements">
+            <h3 className="priority-title">
+              <AlertCircle className="priority-icon" size={24} />
+              Priority Improvements
+            </h3>
+            <ul className="priority-list">
+              {data.resume_improvement_priority.map((item, index) => (
+                <li key={index} className="priority-item">
+                  <span className="priority-number">{index + 1}</span>
+                  <span className="priority-text">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Overview Cards */}
+        <div className="overview-grid">
+          <div className="overview-card">
+            <div className="overview-icon">
+              <Brain size={28} />
+            </div>
+            <h4>AI Analysis</h4>
+            <p>
+              Advanced AI-powered resume evaluation against job requirements
             </p>
           </div>
-          <div className="job-description-validity">
-            <h4>Validity Status</h4>
-            <p>{data.job_description_validity}</p>
+          <div className="overview-card">
+            <div className="overview-icon">
+              <Target size={28} />
+            </div>
+            <h4>Job Matching</h4>
+            <p>
+              Comprehensive matching of skills, experience, and qualifications
+            </p>
           </div>
-        </Card>
+          <div className="overview-card">
+            <div className="overview-icon">
+              <Lightbulb size={28} />
+            </div>
+            <h4>Smart Recommendations</h4>
+            <p>Actionable insights for resume improvement and career growth</p>
+          </div>
+          <div className="overview-card">
+            <div className="overview-icon">
+              <Zap size={28} />
+            </div>
+            <h4>Instant Results</h4>
+            <p>Quick analysis with detailed feedback and scoring</p>
+          </div>
+        </div>
       </div>
     );
   };
@@ -242,7 +347,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
 
     return (
       <div className="space-y-6">
-        <Card title="Technical Skills" icon={Code}>
+        <Card
+          title="Technical Skills"
+          icon={Code}
+          badge={`${data.resume_analysis_report.strengths_analysis.technical_skills.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.strengths_analysis.technical_skills
@@ -251,7 +360,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Project Portfolio" icon={Award}>
+        <Card
+          title="Project Portfolio"
+          icon={Award}
+          badge={`${data.resume_analysis_report.strengths_analysis.project_portfolio.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.strengths_analysis.project_portfolio
@@ -260,7 +373,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Educational Background" icon={BookOpen}>
+        <Card
+          title="Educational Background"
+          icon={BookOpen}
+          badge={`${data.resume_analysis_report.strengths_analysis.educational_background.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.strengths_analysis
@@ -278,7 +395,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
 
     return (
       <div className="space-y-6">
-        <Card title="Critical Gaps Against Job Description" icon={AlertCircle}>
+        <Card
+          title="Critical Gaps Against Job Description"
+          icon={AlertCircle}
+          badge={`${data.resume_analysis_report.weaknesses_analysis.critical_gaps_against_job_description.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.weaknesses_analysis
@@ -288,7 +409,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Technical Deficiencies" icon={XCircle}>
+        <Card
+          title="Technical Deficiencies"
+          icon={XCircle}
+          badge={`${data.resume_analysis_report.weaknesses_analysis.technical_deficiencies.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.weaknesses_analysis
@@ -298,7 +423,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Resume Presentation Issues" icon={AlertCircle}>
+        <Card
+          title="Resume Presentation Issues"
+          icon={AlertCircle}
+          badge={`${data.resume_analysis_report.weaknesses_analysis.resume_presentation_issues.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.weaknesses_analysis
@@ -308,7 +437,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Soft Skills Gaps" icon={Users}>
+        <Card
+          title="Soft Skills Gaps"
+          icon={Users}
+          badge={`${data.resume_analysis_report.weaknesses_analysis.soft_skills_gaps.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.weaknesses_analysis.soft_skills_gaps
@@ -400,11 +533,19 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
 
     return (
       <div className="space-y-6">
-        <Card title="Resume Improvement Priority" icon={TrendingUp}>
+        <Card
+          title="Resume Improvement Priority"
+          icon={TrendingUp}
+          badge={`${data.resume_improvement_priority.length} items`}
+        >
           <ListItem items={data.resume_improvement_priority} />
         </Card>
 
-        <Card title="Immediate Resume Additions" icon={Lightbulb}>
+        <Card
+          title="Immediate Resume Additions"
+          icon={Lightbulb}
+          badge={`${data.resume_analysis_report.improvement_recommendations.immediate_resume_additions.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.improvement_recommendations
@@ -413,7 +554,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Immediate Priority Actions" icon={Target}>
+        <Card
+          title="Immediate Priority Actions"
+          icon={Target}
+          badge={`${data.resume_analysis_report.improvement_recommendations.immediate_priority_actions.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.improvement_recommendations
@@ -422,7 +567,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Short-term Development Goals" icon={BookOpen}>
+        <Card
+          title="Short-term Development Goals"
+          icon={BookOpen}
+          badge={`${data.resume_analysis_report.improvement_recommendations.short_term_development_goals.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.improvement_recommendations
@@ -431,7 +580,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Medium-term Objectives" icon={TrendingUp}>
+        <Card
+          title="Medium-term Objectives"
+          icon={TrendingUp}
+          badge={`${data.resume_analysis_report.improvement_recommendations.medium_term_objectives.length} items`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.improvement_recommendations
@@ -457,6 +610,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
               .replace(/_/g, " ")
               .replace(/\b\w/g, (l) => l.toUpperCase())}
             icon={Users}
+            badge={`${suggestions.length} suggestions`}
           >
             <ListItem items={suggestions} />
           </Card>
@@ -470,6 +624,17 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
 
     return (
       <div className="space-y-6">
+        <div className="assessment-hero">
+          <div className="assessment-hero-content">
+            <div className="assessment-hero-header">
+              <div className="assessment-hero-icon">
+                <Award size={32} />
+              </div>
+              <h2 className="assessment-hero-title">Final Assessment</h2>
+            </div>
+          </div>
+        </div>
+
         <Card title="Final Assessment" icon={CheckCircle}>
           <div className="space-y-4">
             <div className="section-feedback-item">
@@ -511,7 +676,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           </div>
         </Card>
 
-        <Card title="Key Interview Areas" icon={Target}>
+        <Card
+          title="Key Interview Areas"
+          icon={Target}
+          badge={`${data.resume_analysis_report.final_assessment.key_interview_areas.length} areas`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.final_assessment.key_interview_areas
@@ -519,7 +688,11 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           />
         </Card>
 
-        <Card title="Onboarding Requirements" icon={Users}>
+        <Card
+          title="Onboarding Requirements"
+          icon={Users}
+          badge={`${data.resume_analysis_report.final_assessment.onboarding_requirements.length} requirements`}
+        >
           <ListItem
             items={
               data.resume_analysis_report.final_assessment
@@ -532,20 +705,64 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
   };
 
   const tabs = [
-    { id: "overview", label: "Overview", icon: User },
-    { id: "strengths", label: "Strengths", icon: CheckCircle },
-    { id: "weaknesses", label: "Weaknesses", icon: AlertCircle },
-    { id: "section-feedback", label: "Section Feedback", icon: BookOpen },
-    { id: "improvements", label: "Improvements", icon: TrendingUp },
-    { id: "skills", label: "Skills Enhancement", icon: Users },
-    { id: "assessment", label: "Final Assessment", icon: Award },
+    {
+      id: "overview",
+      label: "Overview",
+      icon: User,
+      count: undefined,
+    },
+    {
+      id: "strengths",
+      label: "Strengths",
+      icon: CheckCircle,
+      count:
+        data?.resume_analysis_report?.strengths_analysis?.technical_skills
+          ?.length,
+    },
+    {
+      id: "weaknesses",
+      label: "Weaknesses",
+      icon: AlertCircle,
+      count:
+        data?.resume_analysis_report?.weaknesses_analysis
+          ?.critical_gaps_against_job_description?.length,
+    },
+    {
+      id: "section-feedback",
+      label: "Section Feedback",
+      icon: BookOpen,
+      count: Object.keys(
+        data?.resume_analysis_report?.section_wise_detailed_feedback || {}
+      ).length,
+    },
+    {
+      id: "improvements",
+      label: "Improvements",
+      icon: TrendingUp,
+      count: data?.resume_improvement_priority?.length,
+    },
+    {
+      id: "skills",
+      label: "Skills Enhancement",
+      icon: Users,
+      count: Object.keys(
+        data?.resume_analysis_report?.soft_skills_enhancement_suggestions || {}
+      ).length,
+    },
+    {
+      id: "assessment",
+      label: "Final Assessment",
+      icon: Award,
+      count: undefined,
+    },
   ];
 
   if (loading) {
     return (
-      <div className="resume-analysis-container">
+      <div className="view-details-container">
         <div className="loading-container">
           <div className="loading-spinner"></div>
+          <p>Loading analysis data...</p>
         </div>
       </div>
     );
@@ -553,7 +770,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
 
   if (error) {
     return (
-      <div className="resume-analysis-container">
+      <div className="view-details-container">
         <div className="error-container">
           <AlertCircle className="error-icon" size={48} />
           <p className="error-message">{error}</p>
@@ -568,7 +785,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
 
   if (!data) {
     return (
-      <div className="resume-analysis-container">
+      <div className="view-details-container">
         <div className="error-container">
           <AlertCircle className="error-icon" size={48} />
           <p className="error-message">No analysis data available</p>
@@ -578,30 +795,20 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
   }
 
   return (
-    <div className="resume-analysis-container">
-      <div className="resume-analysis-header">
-        <div className="resume-analysis-header-content">
-          <div className="resume-analysis-title">
+    <div className="view-details-container">
+      <div className="view-details-header">
+        <div className="view-details-header-content">
+          <div className="view-details-title">
             <h1>Resume Analysis Dashboard</h1>
-          </div>
-          <div className="resume-analysis-header-actions">
-            <Link
-              to="/resumechecker"
-              onClick={resetAnalysis}
-              className="header-button"
-            >
-              <Plus size={18} />
-              New Analysis
-            </Link>
-            <Link to="/dashboard" className="header-button">
-              <BarChart3 size={18} />
-              View Dashboard
-            </Link>
+            <p className="view-details-subtitle">
+              Comprehensive analysis for{" "}
+              {data.resume_analysis_report.candidate_information.name}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="resume-analysis-main">
+      <div className="view-details-main">
         <div className="tab-container">
           {tabs.map((tab) => (
             <TabButton
@@ -611,6 +818,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
               icon={tab.icon}
               active={activeTab === tab.id}
               onClick={setActiveTab}
+              count={tab.count}
             />
           ))}
         </div>
@@ -629,4 +837,4 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
   );
 };
 
-export default ResumeAnalysisUI;
+export default ViewDetailsUI2;

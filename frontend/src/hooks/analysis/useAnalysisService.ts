@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnalysisService } from '../../services/AnalysisService';
 import { AnalysisResult } from '../../types';
 
@@ -21,10 +22,16 @@ interface UseAnalysisServiceProps {
 }
 
 export const useAnalysisService = (props: UseAnalysisServiceProps) => {
+  const navigate = useNavigate();
+
   const analysisService = useMemo(() => {
     return new AnalysisService({
       ...props,
       setShowAuthModal: () => {}, // No-op for this hook
+      onAnalysisComplete: (analysisId: string) => {
+        // Navigate to analysis details page with seamless transition
+        navigate(`/dashboard/analysis/${analysisId}`);
+      },
       getLatestState: () => ({
         user: props.user,
         resumeFile: props.resumeFile,
@@ -48,6 +55,7 @@ export const useAnalysisService = (props: UseAnalysisServiceProps) => {
     props.setAnalysisProgress,
     props.setCurrentStageIndex,
     props.setCurrentStep,
+    navigate,
   ]);
 
   const startAnalysis = useCallback(() => {

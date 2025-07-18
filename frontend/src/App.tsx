@@ -29,7 +29,6 @@ import "./components/analysis/analysis.css";
 import "./styles/pages/resume-checker.css";
 import "./components/job-description/job-description.css";
 
-
 function App() {
   return (
     <AppProvider>

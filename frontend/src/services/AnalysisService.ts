@@ -24,6 +24,8 @@ interface AnalysisServiceProps {
   setCurrentStageIndex: (index: number) => void;
   setShowAuthModal: (show: boolean) => void;
   setCurrentStep: (step: string) => void;
+  // Add navigation callback for seamless transitions
+  onAnalysisComplete?: (analysisId: string) => void;
   // Add getter functions to get latest state
   getLatestState: () => {
     user: any;
@@ -44,12 +46,11 @@ export class AnalysisService {
   }
 
   public analysisStages: AnalysisStage[] = [
-    { id: 1, text: "Parsing resume content...", completed: false },
-    { id: 2, text: "Extracting key information...", completed: false },
-    { id: 3, text: "Analyzing job requirements...", completed: false },
-    { id: 4, text: "Matching skills and experience...", completed: false },
-    { id: 5, text: "Generating improvement suggestions...", completed: false },
-    { id: 6, text: "Finalizing analysis report...", completed: false }
+    { id: 1, text: "Preparing analysis", completed: false },
+    { id: 2, text: "Uploading files", completed: false },
+    { id: 3, text: "Processing with AI", completed: false },
+    { id: 4, text: "Finalizing results", completed: false },
+    { id: 5, text: "Analysis complete", completed: false },
   ];
 
   public async startAnalysis(): Promise<void> {
@@ -80,7 +81,8 @@ export class AnalysisService {
       setAnalysisProgress,
       setCurrentStageIndex,
       setShowAuthModal,
-      setCurrentStep
+      setCurrentStep,
+      onAnalysisComplete
     } = this.props;
 
     try {
@@ -161,7 +163,7 @@ export class AnalysisService {
       // Stage 1: Preparing analysis
       setCurrentStageIndex(0);
       setAnalysisProgress(10);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Stage 2: Uploading files
       setCurrentStageIndex(1);
@@ -184,8 +186,8 @@ export class AnalysisService {
         throw new Error('Resume file is required. Please upload a resume file and try again.');
       }
       
-      // Add a small delay to ensure state is fully synchronized
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Minimal delay to ensure state is synchronized
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       if (resumeFile) {
         console.log('Using current files for analysis:', {
@@ -219,7 +221,7 @@ export class AnalysisService {
       // Stage 4: Finalizing results
       setCurrentStageIndex(3);
       setAnalysisProgress(90);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Complete
       setAnalysisProgress(100);
@@ -270,9 +272,17 @@ export class AnalysisService {
       localStorage.removeItem('hasPendingAnalysis');
       setRequiresAuth(false);
 
-      // Redirect to analysis details page to show the full detailed results
-      console.log('Analysis completed successfully, redirecting to analysis details...');
-      window.location.href = `/dashboard/analysis/${analysisResponse.analysisId}`;
+      // Add a smooth transition delay before navigation for better UX
+      console.log('Analysis completed successfully, preparing for navigation...');
+      
+      // Show completion state briefly before navigating
+      setCurrentStageIndex(4);
+      setAnalysisProgress(100);
+      
+      // Smooth transition to results page
+      setTimeout(() => {
+        onAnalysisComplete?.(analysisResponse.analysisId);
+      }, 800); // Longer delay for smoother transition
 
     } catch (error) {
       console.error('Analysis failed:', error);

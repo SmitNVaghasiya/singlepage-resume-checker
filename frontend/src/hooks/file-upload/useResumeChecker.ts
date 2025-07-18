@@ -2,11 +2,14 @@ import { useAppContext } from "../../contexts/AppContext";
 import { useAnalysisState, useAnalysisService } from "../analysis";
 import { useStepNavigation, useDebugUtils, useStateMonitoring } from "../shared";
 import { useFileReconstruction } from "./useFileReconstruction";
+import { useNavigate } from "react-router-dom";
 
 // Import the AnalysisStep type from AppContext
 type AnalysisStep = "upload" | "job-description" | "analyze";
 
 export const useResumeChecker = () => {
+  const navigate = useNavigate();
+  
   const {
     user,
     currentStep,
@@ -100,7 +103,7 @@ export const useResumeChecker = () => {
   });
 
   const handleViewDashboard = () => {
-    window.location.href = "/dashboard";
+    navigate("/dashboard");
   };
 
   return {

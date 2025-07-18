@@ -1,160 +1,300 @@
-/* Analysis Loading Styles */
-.analysis-loading {
-  text-align: center;
-  padding: 1.5rem 0;
+/* Analysis Loading Styles - Ultra Compact Design */
+.analysis-progress-section {
+  margin: 1rem 3rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
 }
 
-.loading-header {
-  margin-bottom: 2rem;
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }
 
-.loading-header h2 {
-  color: #333;
-  font-size: 1.6rem;
-  margin-bottom: 0.4rem;
+.progress-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.progress-percentage {
+  font-size: 1.1rem;
   font-weight: 700;
+  color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.loading-header p {
-  color: #666;
-  font-size: 1rem;
-}
-
-/* Progress Container */
-.progress-container {
-  margin-bottom: 2rem;
+.progress-bar-container {
   position: relative;
 }
 
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: #e0e0e0;
+  background: #e2e8f0;
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 0.8rem;
+  position: relative;
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #667eea, #764ba2);
   border-radius: 3px;
-  transition: width 0.3s ease;
-  animation: progressGlow 2s ease-in-out infinite alternate;
+  transition: width 0.5s ease;
+  position: relative;
+  z-index: 2;
 }
 
-@keyframes progressGlow {
-  from {
-    box-shadow: 0 0 4px rgba(102, 126, 234, 0.4);
-  }
-  to {
-    box-shadow: 0 0 15px rgba(102, 126, 234, 0.7);
-  }
+.progress-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: progressShimmer 2s ease-in-out infinite;
+  z-index: 1;
 }
 
-.progress-text {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #667eea;
+/* Stages Section */
+.analysis-stages-section {
+  margin: 0 3rem 1rem 3rem;
 }
 
-/* Analysis Stages */
 .analysis-stages {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  max-width: 380px;
-  margin: 0 auto;
+  gap: 0.5rem;
 }
 
-.stage {
+.analysis-stage {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.8rem;
-  border-radius: 8px;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
   transition: all 0.3s ease;
-  background: #f8f9fa;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
-.stage.active {
-  background: linear-gradient(135deg, #667eea20, #764ba220);
-  transform: translateX(8px);
+.analysis-stage:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.stage.completed {
-  background: #4caf5020;
+.analysis-stage.active {
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  border-color: #667eea;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
-.stage-indicator {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+.analysis-stage.completed {
+  background: linear-gradient(135deg, #10b98115, #05966915);
+  border-color: #10b981;
+}
+
+.analysis-stage.pending {
+  background: #f1f5f9;
+  opacity: 0.7;
+}
+
+.stage-icon-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 0.8rem;
-  background: #ddd;
-  color: #666;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
   transition: all 0.3s ease;
 }
 
-.stage.active .stage-indicator {
-  background: #667eea;
-  color: white;
-  animation: pulse 1s ease-in-out infinite;
+.stage-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
-.stage.completed .stage-indicator {
-  background: #4caf50;
-  color: white;
+.stage-icon.completed {
+  color: #10b981;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+.stage-icon.active {
+  color: #667eea;
+  animation: spin 1s linear infinite;
+}
+
+.stage-icon.pending {
+  color: #94a3b8;
+}
+
+.stage-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .stage-text {
-  color: #333;
+  font-size: 0.8rem;
   font-weight: 500;
-  font-size: 0.9rem;
+  color: #1e293b;
+  margin: 0;
+}
+
+.stage-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.status-dot {
+  width: 4px;
+  height: 4px;
+  background: #667eea;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-text {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.status-text.completed {
+  color: #10b981;
+}
+
+/* Loading Animation */
+.loading-animation {
+  margin: 0 3rem 1rem 3rem;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  background: #667eea;
+  border-radius: 50%;
+  animation: loadingBounce 1.4s ease-in-out infinite both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0s;
 }
 
 /* Responsive Design */
-@media (max-width: 480px) {
-  .analysis-stages {
-    gap: 0.4rem;
+@media (max-width: 768px) {
+  .analysis-progress-section,
+  .analysis-stages-section,
+  .loading-animation {
+    margin-left: 2rem;
+    margin-right: 2rem;
   }
 
-  .stage {
+  .analysis-stage {
     padding: 0.6rem;
+  }
+
+  .stage-icon-container {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .analysis-progress-section,
+  .analysis-stages-section,
+  .loading-animation {
+    margin-left: 1.5rem;
+    margin-right: 1.5rem;
+  }
+
+  .analysis-stage {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.4rem;
+    padding: 0.6rem;
+  }
+
+  .stage-content {
+    align-items: center;
+  }
+
+  .stage-icon-container {
+    width: 24px;
+    height: 24px;
   }
 }
 
 /* Dark Mode Styles */
-.dark .loading-header h2 {
-  color: #f1f5f9;
+.dark .analysis-progress-section {
+  background: #334155;
+  border-color: #475569;
 }
 
-.dark .loading-header p {
-  color: #94a3b8;
+.dark .progress-label {
+  color: #cbd5e1;
 }
 
 .dark .progress-bar {
-  background: #334155;
+  background: #475569;
 }
 
-.dark .progress-text {
-  color: #cbd5e1;
+.dark .analysis-stage {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .analysis-stage.active {
+  background: linear-gradient(135deg, #667eea20, #764ba220);
+}
+
+.dark .analysis-stage.completed {
+  background: linear-gradient(135deg, #10b98120, #05966920);
+}
+
+.dark .analysis-stage.pending {
+  background: #475569;
 }
 
 .dark .stage-text {
-  color: #cbd5e1;
+  color: #f1f5f9;
+}
+
+.dark .status-text {
+  color: #94a3b8;
+}
+
+.dark .stage-icon.pending {
+  color: #64748b;
 }

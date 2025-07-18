@@ -48,7 +48,7 @@ const AnalysisDetailsPage: React.FC = () => {
   // Don't render the page if still loading auth state
   if (isAuthLoading) {
     return (
-      <div className="analysis-details-page-full">
+      <div className="analysis-details-page-full loading">
         <div className="analysis-loading">
           <div className="loading-spinner"></div>
           <p>Loading...</p>
@@ -64,7 +64,7 @@ const AnalysisDetailsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="analysis-details-page-full">
+      <div className="analysis-details-page-full loading">
         <AnalysisLoading
           analysisProgress={80}
           currentStageIndex={0}
@@ -92,7 +92,17 @@ const AnalysisDetailsPage: React.FC = () => {
 
   return (
     <div className="analysis-details-page-full">
-      {analysis && <ResumeAnalysisUI analysisId={id!} />}
+      {analysis && (
+        <div
+          style={{
+            animation: "fadeInUp 1.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            opacity: 0,
+            animationFillMode: "forwards",
+          }}
+        >
+          <ResumeAnalysisUI analysisId={id!} />
+        </div>
+      )}
     </div>
   );
 };

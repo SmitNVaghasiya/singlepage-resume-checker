@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import { AnalysisResult } from "../types";
 import { InlineProgressSteps } from "../components/ui";
@@ -9,6 +10,8 @@ import { AnalysisService } from "../services/AnalysisService";
 import "../styles/pages/resume-checker.css";
 
 const ResumeCheckerPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const {
     user,
     currentStep,
@@ -54,6 +57,10 @@ const ResumeCheckerPage: React.FC = () => {
         setCurrentStageIndex,
         setShowAuthModal: () => {}, // No-op
         setCurrentStep: (step: string) => setCurrentStep(step as any),
+        onAnalysisComplete: (analysisId: string) => {
+          // Navigate to analysis details page with seamless transition
+          navigate(`/dashboard/analysis/${analysisId}`);
+        },
         // Add getter function to get latest state
         getLatestState: () => ({
           user,
@@ -78,6 +85,7 @@ const ResumeCheckerPage: React.FC = () => {
       setIsAnalyzing,
       setAnalysisProgress,
       setCurrentStageIndex,
+      navigate,
     ]
   );
 
@@ -360,8 +368,15 @@ const ResumeCheckerPage: React.FC = () => {
   ]);
 
   return (
-    <div className="resume-checker-page">
-      <div className="container">
+    <div className={`resume-checker-page ${isAnalyzing ? "loading" : ""}`}>
+      <div
+        className="container"
+        style={{
+          animation: "fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1)",
+          opacity: 0,
+          animationFillMode: "forwards",
+        }}
+      >
         {/* Step 1: Resume Upload */}
         {currentStep === "upload" && (
           <ResumeUploadStep

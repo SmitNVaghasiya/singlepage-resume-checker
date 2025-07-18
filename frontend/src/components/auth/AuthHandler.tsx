@@ -3,7 +3,6 @@ import { useAppContext } from "../../contexts/AppContext";
 import { AuthModal } from "./";
 
 interface AuthHandlerProps {
-  showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
   onStartAnalysis: () => void;
 }
@@ -16,10 +15,10 @@ export const useAuthHandler = (props: AuthHandlerProps) => {
   // Handle successful authentication
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
-    // Automatically start analysis with uploaded files
+    // Automatically start analysis with uploaded files - smoother transition
     setTimeout(() => {
       onStartAnalysis();
-    }, 500);
+    }, 600); // Longer delay for smoother transition
   };
 
   // Handle auth modal close

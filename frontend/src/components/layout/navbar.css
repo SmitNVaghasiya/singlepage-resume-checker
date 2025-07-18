@@ -215,17 +215,6 @@
   animation: dropIn 0.2s ease-out;
 }
 
-@keyframes dropIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .user-menu-header {
   padding: 1rem 1.25rem;
   background: #f8fafc;
