@@ -117,13 +117,51 @@ class Server {
     }));
 
     // CORS configuration
-    this.app.use(cors({
-      origin: this.normalizeOrigins(config.corsOrigin),
+    const corsOptions = {
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+
+        const allowedOrigins = this.normalizeOrigins(config.corsOrigin);
+        
+        // If CORS_ORIGIN is '*' or not set, allow all origins
+        if (allowedOrigins === '*' || allowedOrigins.length === 0) {
+          callback(null, true);
+          return;
+        }
+
+        // Check if origin is in allowed list
+        if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        // For production, also allow Vercel preview URLs
+        if (config.nodeEnv === 'production') {
+          const vercelPatterns = [
+            /^https:\/\/.*\.vercel\.app$/,
+            /^https:\/\/.*\.vercel\.app\/.*$/
+          ];
+          
+          if (vercelPatterns.some(pattern => pattern.test(origin))) {
+            callback(null, true);
+            return;
+          }
+        }
+
+        logger.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
       optionsSuccessStatus: 200,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
-    }));
+    };
+
+    this.app.use(cors(corsOptions));
   }
 
   private setupRequestMiddleware(): void {
