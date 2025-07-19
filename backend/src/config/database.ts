@@ -29,16 +29,15 @@ class Database {
       logger.info(`Attempting to connect to MongoDB: ${mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
       
       await mongoose.connect(mongoUri, {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 30000, // Increased timeout for Atlas
+        maxPoolSize: config.nodeEnv === 'production' ? 1 : 10, // Reduced for serverless
+        serverSelectionTimeoutMS: 30000,
         socketTimeoutMS: 45000,
         bufferCommands: true,
-        // Add these options for better Atlas compatibility
         retryWrites: true,
         w: 'majority',
-        // Connection pool settings
-        minPoolSize: 1,
-        maxIdleTimeMS: 30000,
+        // Connection pool settings optimized for serverless
+        minPoolSize: config.nodeEnv === 'production' ? 0 : 1,
+        maxIdleTimeMS: config.nodeEnv === 'production' ? 10000 : 30000,
         // Timeout settings
         connectTimeoutMS: 30000,
         // Heartbeat settings
