@@ -11,8 +11,19 @@ from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
 from app.middleware import rate_limit_middleware
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging to reduce verbosity
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.INFO),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Suppress verbose PyMongo debug logs
+logging.getLogger("pymongo").setLevel(logging.WARNING)
+logging.getLogger("motor").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -188,7 +199,7 @@ if __name__ == "__main__":
             host=settings.host,
             port=settings.port,
             reload=True,
-            log_level="info"
+            log_level="warning"
         )
     except KeyboardInterrupt:
         print("\n🛑 Server stopped by user")

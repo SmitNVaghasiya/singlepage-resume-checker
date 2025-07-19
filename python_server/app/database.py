@@ -4,7 +4,16 @@ from loguru import logger
 from urllib.parse import quote_plus
 from .config import settings
 from .models import AnalysisDocument
+import sys
 
+# Configure loguru to be less verbose
+logger.remove()  # Remove default handler
+logger.add(
+    sys.stderr,
+    level="INFO",
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    colorize=True
+)
 
 class Database:
     client: Optional[motor.motor_asyncio.AsyncIOMotorClient] = None
@@ -23,31 +32,18 @@ async def connect_to_mongo():
         # For MongoDB Atlas, use the database name from settings
         database_name = settings.mongodb_database
         
-        # If the URL contains username/password, ensure they are properly encoded
-        # (Commented out to avoid double-encoding since the .env already has encoded values)
-        # if '@' in mongodb_url and '://' in mongodb_url:
-        #     protocol_part = mongodb_url.split('://')[0] + '://'
-        #     rest_part = mongodb_url.split('://')[1]
-        #     if '@' in rest_part:
-        #         auth_part = rest_part.split('@')[0]
-        #         host_part = rest_part.split('@')[1]
-        #         if ':' in auth_part:
-        #             username, password = auth_part.split(':', 1)
-        #             encoded_username = quote_plus(username)
-        #             encoded_password = quote_plus(password)
-        #             mongodb_url = f"{protocol_part}{encoded_username}:{encoded_password}@{host_part}"
-        
-        logger.info(f"Connecting to MongoDB with URL: {mongodb_url.split('@')[0]}@*** (database: {database_name})")
+        # Log connection attempt without exposing credentials
+        logger.info(f"Connecting to MongoDB database: {database_name}")
         
         db.client = motor.motor_asyncio.AsyncIOMotorClient(mongodb_url)
         db.database = db.client[database_name]
         
         # Test the connection
         await db.client.admin.command('ping')
-        logger.info(f"Connected to MongoDB: {database_name}")
+        logger.info(f"✅ Connected to MongoDB: {database_name}")
         
     except Exception as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
+        logger.error(f"❌ Failed to connect to MongoDB: {e}")
         raise
 
 
@@ -55,7 +51,7 @@ async def close_mongo_connection():
     """Close database connection"""
     if db.client:
         db.client.close()
-        logger.info("Disconnected from MongoDB")
+        logger.info("✅ MongoDB connection closed")
 
 
 async def get_collection():
@@ -73,11 +69,11 @@ async def save_analysis(analysis_doc: AnalysisDocument) -> str:
         doc_dict.pop('_id', None)
         
         result = await collection.insert_one(doc_dict)
-        logger.info(f"Analysis saved with ID: {result.inserted_id}")
+        logger.info(f"✅ Analysis saved with ID: {result.inserted_id}")
         return str(result.inserted_id)
         
     except Exception as e:
-        logger.error(f"Failed to save analysis: {e}")
+        logger.error(f"❌ Failed to save analysis: {e}")
         raise
 
 
@@ -100,7 +96,7 @@ async def get_analysis_by_id(analysis_id: str) -> Optional[AnalysisDocument]:
         return None
         
     except Exception as e:
-        logger.error(f"Failed to get analysis: {e}")
+        logger.error(f"❌ Failed to get analysis: {e}")
         raise
 
 
@@ -116,7 +112,7 @@ async def update_analysis(analysis_id: str, update_data: dict) -> bool:
         return result.modified_count > 0
         
     except Exception as e:
-        logger.error(f"Failed to update analysis: {e}")
+        logger.error(f"❌ Failed to update analysis: {e}")
         raise
 
 
@@ -129,7 +125,7 @@ async def delete_analysis(analysis_id: str) -> bool:
         return result.deleted_count > 0
         
     except Exception as e:
-        logger.error(f"Failed to delete analysis: {e}")
+        logger.error(f"❌ Failed to delete analysis: {e}")
         raise
 
 

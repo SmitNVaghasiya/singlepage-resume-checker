@@ -20,4 +20,7 @@ services:
         description: Comma-separated list of allowed CORS origins
         value: "*"
       - key: PYTHON_VERSION
-        value: 3.11 
+        value: 3.11
+      - key: LOG_LEVEL
+        description: Logging level (INFO, WARNING, ERROR)
+        value: INFO 
