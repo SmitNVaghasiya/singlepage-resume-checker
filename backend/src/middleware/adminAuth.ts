@@ -71,7 +71,7 @@ export const authenticateAdmin = async (req: AdminRequest, res: Response, next: 
 };
 
 // Simplified permission check - admin has all permissions
-export const requirePermission = (permission: string) => {
+export const requirePermission = (_permission: string) => {
   return (req: AdminRequest, res: Response, next: NextFunction): void => {
     if (!req.admin) {
       res.status(401).json({
@@ -87,7 +87,7 @@ export const requirePermission = (permission: string) => {
 };
 
 // Simplified role check - admin has all roles
-export const requireRole = (roles: string[]) => {
+export const requireRole = (_roles: string[]) => {
   return (req: AdminRequest, res: Response, next: NextFunction): void => {
     if (!req.admin) {
       res.status(401).json({

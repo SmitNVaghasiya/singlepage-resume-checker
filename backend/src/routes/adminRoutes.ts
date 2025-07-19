@@ -1,12 +1,12 @@
 import express from 'express';
-import { authenticateAdmin, requirePermission, requireRole } from '../middleware/adminAuth';
+import { authenticateAdmin, requirePermission } from '../middleware/adminAuth';
 import * as adminController from '../controllers/adminController';
 import { rateLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 
 // Admin authentication
-router.post('/login', rateLimiter, adminController.adminLogin);
+router.post('/login', rateLimiter(), adminController.adminLogin);
 router.get('/me', authenticateAdmin, adminController.getCurrentAdmin);
 
 // User management (requires view_users permission)

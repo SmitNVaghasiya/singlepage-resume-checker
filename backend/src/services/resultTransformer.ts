@@ -350,13 +350,4 @@ export class ResultTransformer {
     
     return hasNewFormatIndicators;
   }
-
-  /**
-   * Safely get a nested property with fallback
-   */
-  private static getNestedProperty(obj: any, path: string[], fallback: any = null): any {
-    return path.reduce((current, key) => {
-      return current && typeof current === 'object' && key in current ? current[key] : fallback;
-    }, obj);
-  }
 } 

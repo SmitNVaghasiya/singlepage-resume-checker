@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Admin, IAdmin } from '../models/Admin';
-import { User, IUser } from '../models/User';
-import { Analysis, IAnalysis } from '../models/Analysis';
+import { User } from '../models/User';
+import { Analysis } from '../models/Analysis';
 import { logger } from '../utils/logger';
 import { config } from '../config/config';
 
@@ -292,7 +292,7 @@ export const getDashboardStats = async (req: AdminRequest, res: Response): Promi
     
     if (timeRange && timeRange !== 'all') {
       const now = new Date();
-      let startTime: Date;
+      let startTime: Date = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Default value
       
       switch (timeRange) {
         case '1h':
@@ -452,7 +452,7 @@ export const getAnalysesStats = async (req: AdminRequest, res: Response): Promis
     // Apply time-based filtering
     if (timeRange && timeRange !== 'all') {
       const now = new Date();
-      let startTime: Date;
+      let startTime: Date = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Default value
       
       switch (timeRange) {
         case '1h':
@@ -504,8 +504,8 @@ export const getAnalysesStats = async (req: AdminRequest, res: Response): Promis
 
     // Transform data for frontend
     const transformedAnalyses = analyses.map(analysis => ({
-      id: analysis._id.toString(),
-      userId: analysis.userId?.username || 'Unknown',
+      id: (analysis._id as any).toString(),
+      userId: typeof analysis.userId === 'object' && analysis.userId ? (analysis.userId as any).username || 'Unknown' : 'Unknown',
       jobTitle: analysis.result?.jobTitle || 'N/A',
       industry: analysis.result?.industry || 'N/A',
       status: analysis.status,
@@ -565,13 +565,20 @@ export const getAnalysisById = async (req: AdminRequest, res: Response): Promise
 };
 
 // System Health
-export const getSystemHealth = async (req: AdminRequest, res: Response): Promise<void> => {
+export const getSystemHealth = async (_req: AdminRequest, res: Response): Promise<void> => {
   try {
+    // Database health check
+    let dbStatus = 'unknown';
+    try {
+      const dbStatusResult = await Analysis.db?.db?.admin().ping();
+      dbStatus = dbStatusResult ? 'healthy' : 'unhealthy';
+    } catch (error) {
+      dbStatus = 'error';
+      logger.error('Database health check failed:', error);
+    }
+
     const memoryUsage = process.memoryUsage();
     const uptime = process.uptime();
-
-    // Database connection status
-    const dbStatus = await Analysis.db.db.admin().ping();
 
     res.status(200).json({
       success: true,
@@ -586,7 +593,7 @@ export const getSystemHealth = async (req: AdminRequest, res: Response): Promise
           external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`
         },
         database: {
-          status: dbStatus ? 'connected' : 'disconnected'
+          status: dbStatus
         }
       }
     });
@@ -603,14 +610,13 @@ export const getSystemHealth = async (req: AdminRequest, res: Response): Promise
 // Data Export
 export const exportData = async (req: AdminRequest, res: Response): Promise<void> => {
   try {
-    const { type, format, timeRange, startDate, endDate } = req.query;
+    const { type, timeRange, startDate, endDate, format = 'csv' } = req.query;
     
     let dateFilter: any = {};
     
-    // Apply time-based filtering
     if (timeRange && timeRange !== 'all') {
       const now = new Date();
-      let startTime: Date;
+      let startTime: Date = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Default value
       
       switch (timeRange) {
         case '1h':
@@ -656,49 +662,37 @@ export const exportData = async (req: AdminRequest, res: Response): Promise<void
     let data: any[] = [];
     let filename = '';
 
-    switch (type) {
-      case 'users':
-        const users = await User.find().select('-password -emailVerificationToken -passwordResetToken');
-        data = users.map(user => ({
-          id: user._id.toString(),
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          status: user.status,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }));
-        filename = `users_export_${new Date().toISOString().split('T')[0]}`;
-        break;
+    if (type === 'users') {
+      const users = await User.find(dateFilter)
+        .select('-password -emailVerificationToken -passwordResetToken')
+        .sort({ createdAt: -1 })
+        .exec();
 
-      case 'analyses':
-        const analyses = await Analysis.find(dateFilter).populate('userId', 'username email');
-        data = analyses.map(analysis => ({
-          id: analysis._id.toString(),
-          userId: analysis.userId?.username || 'Unknown',
-          jobTitle: analysis.result?.jobTitle || 'N/A',
-          industry: analysis.result?.industry || 'N/A',
-          status: analysis.status,
-          overallScore: analysis.result?.overallScore || 'N/A',
-          createdAt: analysis.createdAt,
-          completedAt: analysis.completedAt
-        }));
-        filename = `analyses_export_${new Date().toISOString().split('T')[0]}`;
-        break;
+      data = users.map(user => ({
+        id: (user._id as any).toString(),
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        status: user.status,
+        createdAt: user.createdAt
+      }));
+      filename = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (type === 'analyses') {
+      const analyses = await Analysis.find(dateFilter)
+        .populate('userId', 'username email fullName')
+        .sort({ createdAt: -1 })
+        .exec();
 
-      case 'stats':
-        // Export dashboard statistics
-        const stats = await getDashboardStatsData(dateFilter);
-        data = [stats];
-        filename = `stats_export_${new Date().toISOString().split('T')[0]}`;
-        break;
-
-      default:
-        res.status(400).json({
-          success: false,
-          message: 'Invalid export type'
-        });
-        return;
+      data = analyses.map(analysis => ({
+        id: (analysis._id as any).toString(),
+        userId: typeof analysis.userId === 'object' && analysis.userId ? (analysis.userId as any).username || 'Unknown' : 'Unknown',
+        jobTitle: analysis.result?.jobTitle || 'N/A',
+        industry: analysis.result?.industry || 'N/A',
+        status: analysis.status,
+        overallScore: analysis.result?.overallScore || 'N/A',
+        createdAt: analysis.createdAt
+      }));
+      filename = `analyses_export_${new Date().toISOString().split('T')[0]}.csv`;
     }
 
     let exportData = '';
@@ -811,23 +805,4 @@ const convertToCSV = (data: any[]): string => {
   }
   
   return csvRows.join('\n');
-};
-
-// Helper function to get dashboard stats data
-const getDashboardStatsData = async (dateFilter: any) => {
-  const totalUsers = await User.countDocuments();
-  const totalAnalyses = await Analysis.countDocuments(dateFilter);
-  const completedAnalyses = await Analysis.countDocuments({ 
-    ...dateFilter,
-    status: 'completed' 
-  });
-  const successRate = totalAnalyses > 0 ? (completedAnalyses / totalAnalyses) * 100 : 0;
-
-  return {
-    totalUsers,
-    totalAnalyses,
-    completedAnalyses,
-    successRate: Math.round(successRate * 100) / 100,
-    exportDate: new Date().toISOString()
-  };
 }; 

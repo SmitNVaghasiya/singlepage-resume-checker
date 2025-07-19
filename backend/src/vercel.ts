@@ -3,7 +3,7 @@ import { config } from './config/config';
 import { logger } from './utils/logger';
 
 // Serverless-compatible server creation
-export default async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any): Promise<void> {
   try {
     const app = await createServer({
       enableDatabase: true,
@@ -11,13 +11,13 @@ export default async function handler(req: any, res: any) {
     });
 
     // Handle the request using the Express app
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       app(req, res, (err: any) => {
         if (err) {
           logger.error('Request handling error:', err);
           reject(err);
         } else {
-          resolve(undefined);
+          resolve();
         }
       });
     });

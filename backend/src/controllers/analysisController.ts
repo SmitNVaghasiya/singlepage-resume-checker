@@ -90,7 +90,7 @@ export const analysisController = {
    * GET /api/analyses/stats
    * Get analysis statistics
    */
-  getAnalysisStats: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getAnalysisStats: async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const stats = await analysisService.getAnalysisStats();
       
@@ -239,7 +239,7 @@ export const analysisController = {
    * GET /api/analyses/health
    * Check database health
    */
-  getDatabaseHealth: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getDatabaseHealth: async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const health = await database.checkHealth();
       

@@ -32,7 +32,6 @@ class ResumeController {
   // Analyze resume against job description
   public analyzeResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const startTime = Date.now();
       const { jobDescriptionText } = req.body;
       const files = req.files as MulterFiles;
 
@@ -591,29 +590,6 @@ class ResumeController {
       return 'Binary file - will be processed by AI service';
     }
   }
-
-  private async storeAnalysisResults(analysisId: string, result: any): Promise<void> {
-    const enhancedResult = {
-      ...result,
-      completedAt: new Date().toISOString(),
-    };
-
-    // Store in cache only - Python server handles all database operations
-    await cacheService.setAnalysisResult(analysisId, enhancedResult);
-    
-    logger.info('Analysis results stored in cache - Python server handles database persistence', {
-      analysisId,
-      resultKeys: Object.keys(result || {}),
-      hasRequiredFields: {
-        overallScore: typeof result?.overallScore === 'number',
-        matchPercentage: typeof result?.matchPercentage === 'number',
-        jobTitle: typeof result?.jobTitle === 'string',
-        industry: typeof result?.industry === 'string'
-      }
-    });
-  }
-
-  // REMOVED: fixMissingRequiredFields method - no longer needed since we don't save to backend database
 
   private async completeAnalysis(analysisId: string, result: any): Promise<void> {
     await this.updateAnalysisStatus(analysisId, {

@@ -121,7 +121,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 };
 
 // Optional authentication - doesn't fail if no token provided
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const optionalAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];

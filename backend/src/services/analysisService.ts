@@ -1,4 +1,4 @@
-import { Analysis, IAnalysis, IAnalysisResult } from '../models/Analysis';
+import { Analysis, IAnalysis } from '../models/Analysis';
 import { logger } from '../utils/logger';
 import { z } from 'zod';
 

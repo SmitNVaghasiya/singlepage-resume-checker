@@ -20,17 +20,6 @@ interface ErrorResponse {
 }
 
 class ErrorHandler {
-  private static readonly ERROR_CODES = {
-    VALIDATION_ERROR: 'VALIDATION_ERROR',
-    AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR',
-    AUTHORIZATION_ERROR: 'AUTHORIZATION_ERROR',
-    RATE_LIMIT_ERROR: 'RATE_LIMIT_ERROR',
-    FILE_ERROR: 'FILE_ERROR',
-    DATABASE_ERROR: 'DATABASE_ERROR',
-    EXTERNAL_API_ERROR: 'EXTERNAL_API_ERROR',
-    INTERNAL_ERROR: 'INTERNAL_ERROR',
-  } as const;
-
   public static handle(
     err: ErrorWithStatus,
     req: Request,
@@ -184,7 +173,7 @@ class ErrorHandler {
   }
 
   private static handleTimeoutError(
-    err: ErrorWithStatus,
+    _err: ErrorWithStatus,
     baseResponse: ErrorResponse
   ): ErrorResponse {
     return {
@@ -220,17 +209,17 @@ class ErrorHandler {
   }
 
   private static logError(
-    err: ErrorWithStatus,
+    _err: ErrorWithStatus,
     req: Request,
     requestId?: string
   ): void {
     const errorContext = {
       error: {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        status: err.status || err.statusCode,
-        stack: err.stack,
+        name: _err.name,
+        message: _err.message,
+        code: _err.code,
+        status: _err.status || _err.statusCode,
+        stack: _err.stack,
       },
       request: {
         id: requestId,

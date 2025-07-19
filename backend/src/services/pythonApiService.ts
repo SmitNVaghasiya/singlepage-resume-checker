@@ -118,7 +118,7 @@ class PythonResponseTransformer {
   public static transform(
     pythonResponse: PythonApiResponse,
     resumeFile?: Express.Multer.File,
-    jobDescriptionFile?: Express.Multer.File
+    _jobDescriptionFile?: Express.Multer.File
   ): IAnalysisResult {
     const report = pythonResponse.resume_analysis_report;
     
