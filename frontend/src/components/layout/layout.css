@@ -3,24 +3,13 @@
 /* App Layout */
 .app-container {
   min-height: 100vh;
-  background: linear-gradient(
-    to bottom right,
-    #f8fafc,
-    #f1f5f9,
-    #e2e8f0
-  ) !important;
+  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9, #e2e8f0);
   display: flex;
   flex-direction: column;
 }
 
-/* Force light theme - disable dark mode */
 .dark .app-container {
-  background: linear-gradient(
-    to bottom right,
-    #f8fafc,
-    #f1f5f9,
-    #e2e8f0
-  ) !important;
+  background: linear-gradient(to bottom right, #0f172a, #1e293b, #334155);
 }
 
 .main-content {
@@ -35,16 +24,15 @@
 
 /* Hero Section */
 .hero-header {
-  background: linear-gradient(135deg, #1e293b, #1e40af, #6366f1) !important;
-  color: white !important;
+  background: linear-gradient(135deg, #1e293b, #1e40af, #6366f1);
+  color: white;
   padding: 2.5rem 0;
   margin-bottom: 2rem;
 }
 
-/* Force light theme - disable dark mode */
 .dark .hero-header {
-  background: linear-gradient(135deg, #1e293b, #1e40af, #6366f1) !important;
-  color: white !important;
+  background: linear-gradient(135deg, #0f172a, #1e40af, #6366f1);
+  color: white;
 }
 
 .hero-header-content {

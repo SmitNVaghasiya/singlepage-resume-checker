@@ -18,6 +18,8 @@ interface Config {
   redisPort: number;
   redisPassword?: string;
   mongoUri: string;
+  jwtSecret: string;
+  jwtExpiresIn: string;
   logLevel: string;
   logDir: string;
   clusterWorkers: number;
@@ -49,6 +51,10 @@ export const config: Config = {
 
   // MongoDB
   mongoUri: process.env.MONGO_URI || process.env.MONGODB_URL || 'mongodb://localhost:27017/resume_analyzer',
+
+  // JWT Configuration
+  jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
 
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',

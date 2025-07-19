@@ -11,6 +11,9 @@ A sophisticated AI-powered resume analysis system using Groq's LLaMA model. This
 - **Database Integration**: MongoDB integration for storing analysis results
 - **Detailed Feedback**: Provides scores, strengths, weaknesses, and actionable recommendations
 - **RESTful API**: FastAPI-based with automatic documentation and error handling
+- **Rate Limiting**: In-memory rate limiting with daily request limits
+- **Input Validation**: Comprehensive file size, page count, and content length validation
+- **Enhanced Security**: AI-based security validation and input sanitization
 
 ## 🚀 Quick Start
 
@@ -70,60 +73,81 @@ A sophisticated AI-powered resume analysis system using Groq's LLaMA model. This
 
 ### 1. Analyze Resume
 
-**POST** `/analyze-resume`
+**POST** `/api/v1/analyze`
 
 Comprehensively analyze a resume against a job description.
 
 **Parameters:**
 
-- `resume_file` (file): Resume file (PDF, DOCX, or TXT)
-- `job_description_file` (file, optional): Job description file
+- `resume` (file): Resume file (PDF, DOCX, or TXT)
+- `job_description` (file, optional): Job description file
 - `job_description_text` (string, optional): Job description as text
+- `user_id` (string, optional): User ID if authenticated
+
+**Limits:**
+
+- File size: Maximum 5MB
+- PDF/DOCX pages: Maximum 7 pages
+- Job description: 50-1000 words
+- Resume tokens: Maximum 8000 words
+- Daily requests: 15 per IP address
 
 **Example:**
 
 ```bash
-curl -X POST "http://localhost:8000/analyze-resume" \
-  -F "resume_file=@resume.pdf" \
+curl -X POST "http://localhost:8000/api/v1/analyze" \
+  -F "resume=@resume.pdf" \
   -F "job_description_text=Software Engineer position requiring Python, FastAPI, and AI/ML experience..."
 ```
 
 ### 2. Get Analysis Status
 
-**GET** `/analysis/status/{analysis_id}`
+**GET** `/api/v1/status/{analysis_id}`
 
 Get the status of an analysis by ID.
 
 ### 3. Get Analysis Result
 
-**GET** `/analysis/result/{analysis_id}`
+**GET** `/api/v1/result/{analysis_id}`
 
 Get the complete analysis result by ID.
 
 ### 4. Health Check
 
-**GET** `/health`
+**GET** `/api/v1/health`
 
-Comprehensive health check including service status.
+Comprehensive health check including service status, rate limiting stats, and system information.
+
+**GET** `/api/v1/health/simple`
+
+Simple health check for load balancers and monitoring.
 
 ### 5. API Documentation
 
 - **Interactive Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🛡️ Response Validation System
+## 🛡️ Security & Validation Features
 
-The application includes a comprehensive validation system that ensures AI responses match the exact schema:
+### Rate Limiting
 
-### Validation Features:
+- **Daily Limits**: 15 requests per IP address per day (configurable)
+- **Rate Limit Headers**: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+- **Exempt Endpoints**: Health checks and documentation are not rate limited
 
-1. **Required Fields**: Validates all mandatory fields are present
-2. **Data Types**: Ensures correct data types (strings, integers, arrays)
-3. **Nested Structure**: Validates complex nested object structures
-4. **Value Ranges**: Checks numeric values are within expected ranges (0-100)
-5. **String Values**: Validates enum-like string values ("Valid"/"Invalid", etc.)
-6. **Array Contents**: Ensures arrays contain meaningful content
-7. **Pydantic Validation**: Final validation using Pydantic models
+### Input Validation
+
+- **File Size**: Maximum 5MB per file
+- **Page Limits**: Maximum 7 pages for PDF and DOCX files
+- **Content Length**: Job descriptions must be 50-1000 words
+- **Token Limits**: Resumes limited to 8000 words
+- **File Types**: Only PDF, DOCX, and TXT files allowed
+
+### Security Validation
+
+- **AI-Based Security**: Groq AI validates content for malicious inputs
+- **Prompt Injection Protection**: Detects and blocks system prompt extraction attempts
+- **Content Sanitization**: Validates content is professional and job-related
 
 ## 📋 Response Format
 
@@ -250,12 +274,15 @@ The application includes a comprehensive validation system that ensures AI respo
 - `GROQ_MODEL`: AI model to use (default: llama3-70b-8192)
 - `MONGODB_URL`: MongoDB connection string (optional)
 - `MONGODB_DATABASE`: MongoDB database name (default: resume_analyzer)
+- `MAX_REQUESTS_PER_DAY`: Daily rate limit per IP (default: 15)
 
-### File Processing
+### Validation Limits
 
-- **PDF**: Uses pdfplumber and PyPDF2 with intelligent fallback
-- **DOCX**: Extracts from paragraphs and tables
-- **TXT**: Multi-encoding support with auto-detection
+- **File Size**: 5MB maximum
+- **PDF Pages**: 7 pages maximum
+- **DOCX Pages**: 7 pages maximum (estimated)
+- **Job Description**: 50-1000 words
+- **Resume Tokens**: 8000 words maximum
 
 ## 🧪 Testing
 
@@ -264,6 +291,21 @@ The application includes a comprehensive validation system that ensures AI respo
 1. Start server: `python main.py`
 2. Visit: http://localhost:8000/docs
 3. Use interactive documentation to test endpoints
+
+### Automated Testing
+
+Run the test script to verify improvements:
+
+```bash
+python test_improvements.py
+```
+
+This will test:
+
+- Health check functionality
+- Rate limiting
+- Input validation
+- Error handling
 
 ## 📝 API Usage Examples
 
@@ -275,8 +317,8 @@ import requests
 # Analyze resume
 with open('resume.pdf', 'rb') as resume_file:
     response = requests.post(
-        'http://localhost:8000/analyze-resume',
-        files={'resume_file': resume_file},
+        'http://localhost:8000/api/v1/analyze',
+        files={'resume': resume_file},
         data={'job_description_text': 'Python developer position requiring FastAPI, AI/ML experience...'}
     )
 
@@ -293,10 +335,10 @@ with open('resume.pdf', 'rb') as resume_file:
 
 ```javascript
 const formData = new FormData();
-formData.append("resume_file", resumeFile);
+formData.append("resume", resumeFile);
 formData.append("job_description_text", jobDescriptionText);
 
-fetch("http://localhost:8000/analyze-resume", {
+fetch("http://localhost:8000/api/v1/analyze", {
   method: "POST",
   body: formData,
 })
@@ -321,19 +363,30 @@ fetch("http://localhost:8000/analyze-resume", {
    - Ensure `.env` file exists with proper API key
    - Verify API key is not placeholder text
 
-2. **"Failed to extract text from PDF"**
+2. **"Rate limit exceeded"**
+
+   - Daily limit of 15 requests per IP reached
+   - Wait until tomorrow or contact support for increased limits
+
+3. **"File too large"**
+
+   - Reduce file size to under 5MB
+   - Compress PDF or reduce image quality
+
+4. **"Job description too short/long"**
+
+   - Ensure job description is between 50-1000 words
+   - Add more details or trim content as needed
+
+5. **"Failed to extract text from PDF"**
 
    - PDF might be image-based or corrupted
    - Try different PDF processing tool or convert to text
 
-3. **"Job description validation failed"**
+6. **"Job description validation failed"**
 
    - Ensure job description contains actual job-related content
    - Avoid personal messages or non-professional text
-
-4. **"Response validation failed"**
-   - AI returned malformed response
-   - Check Groq API status and try again
 
 ### Debug Mode
 
@@ -341,23 +394,25 @@ Enable detailed logging by setting log level to DEBUG in the code.
 
 ### Health Check
 
-Visit `/health` endpoint to verify all services are running correctly.
+Visit `/api/v1/health` endpoint to verify all services are running correctly.
 
 ## 📚 Project Structure
 
 ```
 python_server/
-├── main.py                 # FastAPI application (includes startup checks)
+├── main.py                 # FastAPI application (clean, focused on initialization)
 ├── app/
 │   ├── models.py          # Pydantic models (defines response schema)
-│   ├── file_processor.py  # File handling utilities
+│   ├── file_processor.py  # File handling utilities with validation
 │   ├── groq_service.py    # AI service integration
-│   ├── config.py          # Configuration settings
-│   └── database.py        # Database operations
+│   ├── config.py          # Configuration settings with validation limits
+│   ├── database.py        # Database operations
+│   └── middleware.py      # Rate limiting middleware
 ├── routes/
-│   ├── analysis_routes.py # Analysis endpoints
-│   └── health_routes.py   # Health check endpoints
-├── requirements.txt       # Dependencies
+│   ├── analysis_routes.py # Analysis endpoints with validation
+│   └── health_routes.py   # Enhanced health check endpoints
+├── requirements.txt       # Dependencies including psutil
+├── test_improvements.py   # Test script for new features
 ├── response_schema.json   # Example response schema
 ├── sample_response.json   # Example response
 └── README.md             # This file
@@ -366,10 +421,12 @@ python_server/
 ## 🔒 Security Features
 
 - **Input Validation**: Comprehensive file and content validation
+- **Rate Limiting**: Daily request limits per IP address
 - **Prompt Injection Protection**: AI validates job descriptions
 - **Schema Enforcement**: Strict response format validation
 - **Error Handling**: Detailed error reporting without exposing internals
 - **File Safety**: Secure file processing with type detection
+- **Content Sanitization**: Validates content is professional and job-related
 
 ## 🚀 Performance Features
 
@@ -377,16 +434,17 @@ python_server/
 - **Efficient Validation**: Multi-layer validation system
 - **Async Processing**: FastAPI async capabilities
 - **Database Integration**: MongoDB for result storage
+- **Rate Limiting**: Prevents abuse and ensures fair usage
+- **Input Limits**: Prevents resource exhaustion
 
 ## 📈 Monitoring
 
-The application logs comprehensive information:
+The application provides comprehensive monitoring:
 
-- Request processing steps
-- File processing results
-- AI API interactions
-- Validation outcomes
-- Error details
+- **Health Checks**: Detailed service status and system metrics
+- **Rate Limiting Stats**: Track request patterns and limits
+- **Validation Metrics**: Monitor input validation results
+- **Error Tracking**: Detailed error logging with correlation IDs
 
 ## 🤝 Contributing
 
@@ -407,7 +465,8 @@ For issues and questions:
 1. Check the troubleshooting section
 2. Review logs for detailed error information
 3. Check API documentation at `/docs`
+4. Run the test script to verify functionality
 
 ---
 
-**Note**: This is a professional-grade AI system. Always ensure you have proper permissions before analyzing resumes and follow data privacy guidelines.
+**Note**: This is a professional-grade AI system with comprehensive security and validation features. Always ensure you have proper permissions before analyzing resumes and follow data privacy guidelines.

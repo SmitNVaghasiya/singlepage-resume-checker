@@ -9,25 +9,51 @@ import {
   LogOut,
   UserPlus,
   Settings,
+  Shield,
+  BarChart3,
 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
+import { useAdmin } from "../../contexts/AdminContext";
 
 const Navbar: React.FC = () => {
   const { resetAnalysis, user, logout } = useAppContext();
+  const {
+    admin,
+    isAuthenticated: isAdminAuthenticated,
+    logout: adminLogout,
+  } = useAdmin();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Force light theme always
-    document.documentElement.classList.remove("dark");
-  }, [theme]);
+    // Initialize theme from localStorage or system preference
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+      .matches
+      ? "dark"
+      : "light";
+    const currentTheme = savedTheme || systemTheme;
+
+    setTheme(currentTheme);
+    applyTheme(currentTheme);
+  }, []);
+
+  const applyTheme = (newTheme: "light" | "dark") => {
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("theme", newTheme);
+  };
 
   const toggleTheme = () => {
-    // Disable theme toggle - force light theme
-    setTheme("light");
-    localStorage.setItem("theme", "light");
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    applyTheme(newTheme);
   };
 
   const handleLogout = async () => {
@@ -36,24 +62,37 @@ const Navbar: React.FC = () => {
     navigate("/");
   };
 
+  const handleAdminLogout = async () => {
+    adminLogout();
+    setShowAdminMenu(false);
+    navigate("/");
+  };
+
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (!target.closest(".user-menu-container")) {
+      if (
+        !target.closest(".user-menu-container") &&
+        !target.closest(".admin-menu-container")
+      ) {
         setShowUserMenu(false);
+        setShowAdminMenu(false);
       }
     };
 
-    if (showUserMenu) {
+    if (showUserMenu || showAdminMenu) {
       document.addEventListener("click", handleClickOutside);
       return () => document.removeEventListener("click", handleClickOutside);
     }
-  }, [showUserMenu]);
+  }, [showUserMenu, showAdminMenu]);
 
   const navItems = [
     { path: "/", label: "Homepage" },
-    { path: "/dashboard", label: "Dashboard" },
+    {
+      path: isAdminAuthenticated ? "/admin/dashboard" : "/dashboard",
+      label: "Dashboard",
+    },
     { path: "/contact", label: "Contact" },
   ] as const;
 
@@ -85,8 +124,45 @@ const Navbar: React.FC = () => {
           ))}
 
           <div className="navbar-actions">
-            {/* Authentication */}
-            {user ? (
+            {/* Admin Authentication */}
+            {isAdminAuthenticated ? (
+              <div className="admin-menu-container">
+                <button
+                  className="navbar-admin-btn"
+                  onClick={() => setShowAdminMenu(!showAdminMenu)}
+                >
+                  <Shield />
+                  <span className="admin-name">{admin?.username}</span>
+                  <span className="admin-badge">Admin</span>
+                </button>
+
+                {showAdminMenu && (
+                  <div className="admin-menu">
+                    <div className="admin-menu-header">
+                      <p className="admin-email">{admin?.email}</p>
+                      <p className="admin-role">Administrator</p>
+                    </div>
+                    <div className="admin-menu-divider"></div>
+                    <Link
+                      to="/admin/dashboard"
+                      className="admin-menu-item"
+                      onClick={() => setShowAdminMenu(false)}
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      Admin Dashboard
+                    </Link>
+                    <div className="admin-menu-divider"></div>
+                    <button
+                      className="admin-menu-item"
+                      onClick={handleAdminLogout}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : user ? (
               <div className="user-menu-container">
                 <button
                   className="navbar-user-btn"

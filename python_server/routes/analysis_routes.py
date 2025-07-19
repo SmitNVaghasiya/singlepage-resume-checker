@@ -11,6 +11,7 @@ from app.file_processor import extract_text_from_file, FileProcessor
 from app.groq_service import GroqService
 from app.models import ResumeAnalysisResponse, ErrorResponse, AnalysisDocument, AnalysisStatus
 from app.database import save_analysis, get_analysis_by_id, update_analysis
+from app.config import settings
 
 router = APIRouter(tags=["analysis"])
 
@@ -32,6 +33,13 @@ async def analyze_resume(
     - Section-wise feedback
     - Improvement recommendations
     - Final assessment with hiring recommendations
+    
+    **Limits:**
+    - File size: Maximum 5MB
+    - PDF/DOCX pages: Maximum 7 pages
+    - Job description: 50-1000 words
+    - Resume tokens: Maximum 8000 words
+    - Daily requests: 15 per IP address
     """
     start_time = time.time()
     
@@ -68,7 +76,7 @@ async def analyze_resume(
                 ).dict()
             )
         
-        # Extract text from resume
+        # Extract text from resume with validation
         resume_text, resume_success, resume_file_type = FileProcessor.process_file(
             resume_content, resume.filename or "resume"
         )
@@ -130,9 +138,9 @@ async def analyze_resume(
         else:
             job_description_text_final = job_description_text.strip()
         
-        # Validate job description content
-        job_desc_valid, job_desc_validation_msg = FileProcessor.validate_content(
-            job_description_text_final, "job description"
+        # Validate job description content with specific validation
+        job_desc_valid, job_desc_validation_msg = FileProcessor.validate_job_description_content(
+            job_description_text_final
         )
         if not job_desc_valid:
             return JSONResponse(
@@ -151,14 +159,28 @@ async def analyze_resume(
         groq_service = GroqService()
         analysis_result = groq_service.analyze_resume(resume_text, job_description_text_final)
         
-        # Check if job description validation failed
+        # Check for AI-based security validation first
+        if analysis_result.get("security_validation") == "Failed":
+            security_error = analysis_result.get("security_error", "Security threat detected")
+            logger.warning(f"AI detected security threat: {security_error}")
+            return JSONResponse(
+                status_code=403,  # Forbidden for security issues
+                content=ErrorResponse(
+                    error="security_validation_failed",
+                    message="Content blocked for security reasons",
+                    details=security_error
+                ).dict()
+            )
+        
+        # Check if job description validation failed (but no security threats)
         if analysis_result.get("job_description_validity") == "Invalid":
+            validation_error = analysis_result.get("validation_error", "Invalid job description format")
             return JSONResponse(
                 status_code=400,
                 content=ErrorResponse(
                     error="invalid_job_description",
                     message="Job description validation failed",
-                    details=analysis_result.get("validation_error", "Invalid job description format")
+                    details=validation_error
                 ).dict()
             )
         
@@ -231,32 +253,11 @@ async def analyze_resume(
 
 @router.get("/status/{analysis_id}", response_model=AnalysisStatus)
 async def get_analysis_status(analysis_id: str):
-    """Get the status of an analysis by ID"""
+    """Get analysis status by analysis ID"""
     try:
-        analysis_doc = await get_analysis_by_id(analysis_id)
+        logger.info(f"Checking analysis status for ID: {analysis_id}")
         
-        if not analysis_doc:
-            raise HTTPException(status_code=404, detail="Analysis not found")
-        
-        return AnalysisStatus(
-            analysis_id=analysis_doc.analysis_id,
-            status=analysis_doc.status,
-            message="Analysis completed successfully" if analysis_doc.status == "completed" else "Analysis in progress",
-            progress=100 if analysis_doc.status == "completed" else 50,
-            result=analysis_doc.analysis_result if analysis_doc.status == "completed" else None
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting analysis status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get analysis status")
-
-
-@router.get("/result/{analysis_id}", response_model=Union[ResumeAnalysisResponse, ErrorResponse])
-async def get_analysis_result(analysis_id: str):
-    """Get the complete analysis result by ID"""
-    try:
+        # Get analysis from database
         analysis_doc = await get_analysis_by_id(analysis_id)
         
         if not analysis_doc:
@@ -264,7 +265,46 @@ async def get_analysis_result(analysis_id: str):
                 status_code=404,
                 content=ErrorResponse(
                     error="analysis_not_found",
-                    message="Analysis not found"
+                    message=f"Analysis with ID {analysis_id} not found"
+                ).dict()
+            )
+        
+        # Return the analysis status
+        return {
+            "analysis_id": analysis_id,
+            "status": analysis_doc.status,
+            "message": f"Analysis is {analysis_doc.status}",
+            "progress": 100 if analysis_doc.status == "completed" else 0,
+            "result": analysis_doc.analysis_result if analysis_doc.status == "completed" else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking analysis status: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                error="internal_server_error",
+                message="Failed to check analysis status",
+                details=str(e)
+            ).dict()
+        )
+
+
+@router.get("/result/{analysis_id}", response_model=Union[ResumeAnalysisResponse, ErrorResponse])
+async def get_analysis_result(analysis_id: str):
+    """Get complete analysis result by analysis ID"""
+    try:
+        logger.info(f"Fetching analysis result for ID: {analysis_id}")
+        
+        # Get analysis from database
+        analysis_doc = await get_analysis_by_id(analysis_id)
+        
+        if not analysis_doc:
+            return JSONResponse(
+                status_code=404,
+                content=ErrorResponse(
+                    error="analysis_not_found",
+                    message=f"Analysis with ID {analysis_id} not found"
                 ).dict()
             )
         
@@ -273,18 +313,20 @@ async def get_analysis_result(analysis_id: str):
                 status_code=400,
                 content=ErrorResponse(
                     error="analysis_not_completed",
-                    message="Analysis is not yet completed"
+                    message=f"Analysis with ID {analysis_id} is not completed (status: {analysis_doc.status})"
                 ).dict()
             )
         
+        # Return the complete analysis result
         return analysis_doc.analysis_result
         
     except Exception as e:
-        logger.error(f"Error getting analysis result: {e}")
+        logger.error(f"Error fetching analysis result: {str(e)}")
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(
                 error="internal_server_error",
-                message="Failed to get analysis result"
+                message="Failed to fetch analysis result",
+                details=str(e)
             ).dict()
         ) 

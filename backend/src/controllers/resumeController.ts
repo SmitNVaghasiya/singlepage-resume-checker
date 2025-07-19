@@ -87,7 +87,7 @@ class ResumeController {
       this.logAnalysisRequest('pending', resumeFile, jobDescriptionFile, finalJobDescriptionText);
 
       // Start async processing and get the Python server's analysis ID
-      const pythonAnalysisId = await this.processAnalysisAsync(resumeFile, jobDescriptionFile, finalJobDescriptionText);
+      const pythonAnalysisId = await this.processAnalysisAsync(resumeFile, jobDescriptionFile, finalJobDescriptionText, (req as any).userId);
 
       // Return immediate response with the Python server's analysis ID
       res.status(202).json({
@@ -445,20 +445,22 @@ class ResumeController {
   private async processAnalysisAsync(
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
-    jobDescriptionText?: string
+    jobDescriptionText?: string,
+    userId?: string
   ): Promise<string> {
     try {
       // Call Python API for analysis first to get the analysis ID
       const result = await pythonApiService.analyzeResume(
         resumeFile,
         jobDescriptionFile,
-        jobDescriptionText
+        jobDescriptionText,
+        userId
       );
 
       const pythonAnalysisId = result.analysis_id;
 
       // Create a record in backend database with Python's analysis ID
-      await this.createInitialAnalysisRecord(pythonAnalysisId, resumeFile, jobDescriptionFile, jobDescriptionText);
+      await this.createInitialAnalysisRecord(pythonAnalysisId, resumeFile, jobDescriptionFile, jobDescriptionText, userId);
 
       // Update initial status using Python's analysis ID
       await this.updateAnalysisStatus(pythonAnalysisId, {
@@ -550,7 +552,8 @@ class ResumeController {
     analysisId: string,
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
-    jobDescriptionText?: string
+    jobDescriptionText?: string,
+    userId?: string
   ): Promise<void> {
     try {
       // Extract text from resume file for storage
@@ -562,13 +565,15 @@ class ResumeController {
         resumeFilename: resumeFile.originalname,
         jobDescriptionFilename: jobDescriptionFile?.originalname,
         resumeText: resumeText,
-        jobDescriptionText: jobDescriptionText
+        jobDescriptionText: jobDescriptionText,
+        userId: userId // Add user ID if authenticated
       });
 
       logger.info('Created analysis record in backend database', {
         analysisId,
         resumeFilename: resumeFile.originalname,
-        jobDescriptionFilename: jobDescriptionFile?.originalname || 'Text Input'
+        jobDescriptionFilename: jobDescriptionFile?.originalname || 'Text Input',
+        userId: userId || 'anonymous'
       });
     } catch (error) {
       logger.warn('Failed to create analysis record in backend database:', {

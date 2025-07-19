@@ -321,17 +321,17 @@
   color: #94a3b8 !important;
 }
 
-/* Force dark theme for any white backgrounds */
+/* Dark theme styles for homepage */
 .dark .homepage-modern {
-  background: #0f172a !important;
+  background: #0f172a;
 }
 
 .dark .section-header {
-  background: transparent !important;
+  background: transparent;
 }
 
 .dark .container {
-  background: transparent !important;
+  background: transparent;
 }
 
 .advantages-grid {

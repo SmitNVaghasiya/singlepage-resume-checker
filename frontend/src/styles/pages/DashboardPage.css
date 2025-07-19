@@ -931,9 +931,9 @@
   }
 }
 
-/* ===== FORCE LIGHT THEME ===== */
+/* Dark theme styles for dashboard */
 .dark .dashboard-page {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
 
 .dark .stat-card,
@@ -941,8 +941,8 @@
 .dark .empty-state,
 .dark .modal-container,
 .dark .analysis-section {
-  background: #ffffff !important;
-  border-color: #e5e7eb;
+  background: #1e293b;
+  border-color: #334155;
 }
 
 .dark .stat-value,
@@ -951,11 +951,10 @@
 .dark .modal-title,
 .dark .file-name,
 .dark .stat-number,
-.dark .section-title,
 .dark .meta-value,
 .dark .analysis-text,
 .dark .feedback-text {
-  color: #1f2937 !important;
+  color: #f1f5f9;
 }
 
 .dark .stat-label,
@@ -965,7 +964,7 @@
 .dark .stat-title,
 .dark .stat-subtitle,
 .dark .meta-label {
-  color: #6b7280 !important;
+  color: #94a3b8;
 }
 
 .dark .history-table thead {
@@ -1012,47 +1011,47 @@
   color: white;
 }
 
-/* Additional dark theme overrides for dashboard elements */
+/* Additional dark theme styles for dashboard elements */
 .dark .modal-stat-card,
 .dark .file-meta,
 .dark .section-header {
-  background: #334155 !important;
+  background: #334155;
 }
 
 .dark .file-icon-wrapper {
-  background: #475569 !important;
+  background: #475569;
 }
 
 .dark .search-input {
-  background: #334155 !important;
-  border-color: #475569 !important;
-  color: #f1f5f9 !important;
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
 }
 
 .dark .search-input::placeholder {
-  color: #94a3b8 !important;
+  color: #94a3b8;
 }
 
 .dark .modal-content {
-  background: #1e293b !important;
+  background: #1e293b;
 }
 
 .dark .item-count {
-  background: #475569 !important;
-  color: #cbd5e1 !important;
+  background: #475569;
+  color: #cbd5e1;
 }
 
 .dark .feedback-item {
-  border-color: #475569 !important;
+  border-color: #475569;
 }
 
 .dark .feedback-item:hover {
-  background: #334155 !important;
+  background: #334155;
 }
 
 .dark .feedback-item.success {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .dark .feedback-item.warning {

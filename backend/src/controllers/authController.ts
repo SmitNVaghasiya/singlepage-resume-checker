@@ -3,6 +3,7 @@ import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 
 import { User, IUser } from '../models/User';
+import { Admin, IAdmin } from '../models/Admin';
 import { emailService } from '../services/emailService';
 import { emailValidationService } from '../services/emailValidationService';
 import { logger } from '../utils/logger';
@@ -272,7 +273,83 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Find user by email or username with timeout
+    // First, check if it's an admin login
+    const admin = await Admin.findOne({
+      $or: [
+        { email: emailOrUsername.toLowerCase() },
+        { username: emailOrUsername }
+      ]
+    }).exec() as IAdmin | null;
+
+    if (admin) {
+      // Check if admin account is active and not locked
+      if (!admin.isActive) {
+        res.status(401).json({
+          success: false,
+          message: 'Account is deactivated'
+        });
+        return;
+      }
+
+      if (admin.isLocked()) {
+        res.status(401).json({
+          success: false,
+          message: 'Account is temporarily locked'
+        });
+        return;
+      }
+
+      // Check admin password
+      const isAdminPasswordValid = await admin.comparePassword(password);
+      if (isAdminPasswordValid) {
+        // Reset login attempts on successful login
+        admin.loginAttempts = 0;
+        admin.lockUntil = undefined;
+        admin.lastLogin = new Date();
+        await admin.save();
+
+        // Generate admin JWT token
+        const adminToken = jwt.sign(
+          { adminId: admin._id },
+          process.env.JWT_SECRET || 'fallback-secret',
+          { expiresIn: '24h' }
+        );
+
+        logger.info(`Admin logged in: ${admin.email}`);
+
+        res.status(200).json({
+          success: true,
+          message: 'Admin login successful',
+          isAdmin: true,
+          admin: {
+            id: admin._id,
+            username: admin.username,
+            email: admin.email,
+            fullName: admin.fullName
+          },
+          token: adminToken
+        });
+        return;
+      } else {
+        // Increment login attempts for admin
+        admin.loginAttempts += 1;
+        
+        // Lock account after 5 failed attempts for 15 minutes
+        if (admin.loginAttempts >= 5) {
+          admin.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+        
+        await admin.save();
+
+        res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+        return;
+      }
+    }
+
+    // If not admin, proceed with regular user login
     const user = await Promise.race([
       User.findOne({
         $or: [
@@ -329,6 +406,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
       success: true,
       message: 'Login successful',
+      isAdmin: false,
       user: {
         id: user._id,
         username: user.username,

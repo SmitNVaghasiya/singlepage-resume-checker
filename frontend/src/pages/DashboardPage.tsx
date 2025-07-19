@@ -240,7 +240,7 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="stat-content">
               <div className="stat-value">{averageMatchRate}%</div>
-              <div className="stat-label">Avg Match Rate</div>
+              <div className="stat-label">Success Rate</div>
             </div>
           </div>
         </div>

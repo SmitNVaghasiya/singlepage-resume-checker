@@ -5,8 +5,9 @@ import {
   AnalysisStatus,
   AnalysisHistoryItem 
 } from '../types';
+import { config } from '../utils/config';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = config.api.baseUrl;
 
 export interface User {
   id: string;
@@ -30,8 +31,16 @@ export interface RegisterRequest {
 }
 
 export interface LoginResponse {
-  user: User;
+  user?: User;
+  admin?: {
+    id: string;
+    username: string;
+    email: string;
+    fullName: string;
+  };
   token: string;
+  isAdmin?: boolean;
+  message?: string;
 }
 
 export interface RegisterResponse {

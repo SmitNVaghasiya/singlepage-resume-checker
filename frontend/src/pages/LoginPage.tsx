@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { apiService } from "../services/api";
 import { useAppContext } from "../contexts/AppContext";
+import { useAdmin } from "../contexts/AdminContext";
+import { AdminUser } from "../services/AdminService";
 import "../styles/pages/AuthPages.css";
 
 interface LoginForm {
@@ -24,6 +26,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setUser, user, isAuthLoading } = useAppContext();
+  const { setAdminData } = useAdmin();
   const [loginForm, setLoginForm] = useState<LoginForm>({
     emailOrUsername: "",
     password: "",
@@ -103,15 +106,27 @@ const LoginPage: React.FC = () => {
 
     try {
       const response = await apiService.login(loginForm);
-      setUser(response.user);
-      localStorage.setItem("authToken", response.token);
 
-      // Check for redirect parameter
-      const redirectTo = searchParams.get("redirect");
-      if (redirectTo) {
-        navigate(redirectTo);
+      // Check if it's an admin login
+      if (response.isAdmin && response.admin) {
+        // Handle admin login - the backend already authenticated successfully
+        // We just need to set up the admin context properly
+        setAdminData(response.admin as AdminUser, response.token);
+
+        // Navigate to admin dashboard
+        navigate("/admin/dashboard");
       } else {
-        navigate("/dashboard");
+        // Handle regular user login
+        setUser(response.user || null);
+        localStorage.setItem("authToken", response.token);
+
+        // Check for redirect parameter
+        const redirectTo = searchParams.get("redirect");
+        if (redirectTo) {
+          navigate(redirectTo);
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (error) {
       setServerError(

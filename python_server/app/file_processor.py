@@ -6,6 +6,8 @@ from docx import Document
 import PyPDF2
 import pdfplumber
 import filetype
+from .config import settings
+# Static security validation removed - now using AI-based validation
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,6 +35,57 @@ class FileProcessor:
         except Exception as e:
             logger.error(f"Error detecting file type: {str(e)}")
             return 'unknown'
+    
+    @staticmethod
+    def validate_file_size(file_content: bytes, filename: str) -> Tuple[bool, str]:
+        """Validate file size"""
+        file_size = len(file_content)
+        max_size = settings.max_file_size
+        
+        if file_size > max_size:
+            size_mb = file_size / (1024 * 1024)
+            max_mb = max_size / (1024 * 1024)
+            return False, f"File '{filename}' is too large ({size_mb:.1f}MB). Maximum allowed size is {max_mb}MB."
+        
+        return True, "File size is acceptable"
+    
+    @staticmethod
+    def validate_pdf_pages(file_content: bytes, filename: str) -> Tuple[bool, str]:
+        """Validate PDF page count"""
+        try:
+            with pdfplumber.open(io.BytesIO(file_content)) as pdf:
+                page_count = len(pdf.pages)
+                max_pages = settings.max_pdf_pages
+                
+                if page_count > max_pages:
+                    return False, f"PDF '{filename}' has too many pages ({page_count}). Maximum allowed is {max_pages} pages."
+                
+                return True, f"PDF has {page_count} pages (within limit)"
+        except Exception as e:
+            logger.warning(f"Could not validate PDF pages for {filename}: {e}")
+            return True, "Could not validate page count, proceeding"
+    
+    @staticmethod
+    def validate_docx_pages(file_content: bytes, filename: str) -> Tuple[bool, str]:
+        """Validate DOCX page count (approximate)"""
+        try:
+            doc = Document(io.BytesIO(file_content))
+            
+            # Approximate page count based on paragraph count and content
+            paragraph_count = len(doc.paragraphs)
+            table_count = len(doc.tables)
+            
+            # Rough estimation: ~500 words per page, ~5 words per paragraph
+            estimated_pages = max(1, (paragraph_count * 5 + table_count * 100) // 500)
+            max_pages = settings.max_docx_pages
+            
+            if estimated_pages > max_pages:
+                return False, f"DOCX '{filename}' appears to have too many pages (estimated {estimated_pages}). Maximum allowed is {max_pages} pages."
+            
+            return True, f"DOCX estimated {estimated_pages} pages (within limit)"
+        except Exception as e:
+            logger.warning(f"Could not validate DOCX pages for {filename}: {e}")
+            return True, "Could not validate page count, proceeding"
     
     @staticmethod
     def extract_text_from_pdf(file_content: bytes) -> Tuple[str, bool]:
@@ -159,14 +212,26 @@ class FileProcessor:
         if not file_content:
             return "Error: Empty file", False, "unknown"
         
+        # Validate file size first
+        size_valid, size_msg = FileProcessor.validate_file_size(file_content, filename)
+        if not size_valid:
+            return size_msg, False, "unknown"
+        
         file_type = FileProcessor.detect_file_type(file_content, filename)
         logger.info(f"Processing file: {filename}, detected type: {file_type}")
         
+        # Validate page count based on file type
         if file_type == 'pdf':
+            pages_valid, pages_msg = FileProcessor.validate_pdf_pages(file_content, filename)
+            if not pages_valid:
+                return pages_msg, False, file_type
             text, success = FileProcessor.extract_text_from_pdf(file_content)
             return text, success, file_type
         
         elif file_type == 'docx':
+            pages_valid, pages_msg = FileProcessor.validate_docx_pages(file_content, filename)
+            if not pages_valid:
+                return pages_msg, False, file_type
             text, success = FileProcessor.extract_text_from_docx(file_content)
             return text, success, file_type
         
@@ -193,7 +258,47 @@ class FileProcessor:
         if alphanumeric_chars < len(text) * 0.3:  # At least 30% should be alphanumeric
             return False, f"Error: {content_type} contains too many non-readable characters"
         
+        # Check token limits
+        words = text.split()
+        if content_type == "resume" and len(words) > settings.max_resume_tokens:
+            return False, f"Error: {content_type} is too long (maximum {settings.max_resume_tokens} words allowed)"
+        
+        if content_type == "job description":
+            if len(words) > settings.max_job_description_words:
+                return False, f"Error: {content_type} is too long (maximum {settings.max_job_description_words} words allowed)"
+            elif len(words) < settings.min_job_description_words:
+                return False, f"Error: {content_type} is too short (minimum {settings.min_job_description_words} words required)"
+        
+        # Security validation is now handled by AI in the groq_service
+        # This basic validation ensures content is readable and meaningful
         return True, "Valid content"
+    
+    @staticmethod
+    def validate_job_description_content(text: str) -> Tuple[bool, str]:
+        """Specific validation for job description content"""
+        if not text or not text.strip():
+            return False, "Error: Job description is empty"
+        
+        words = text.split()
+        word_count = len(words)
+        
+        # Check word count limits
+        if word_count < settings.min_job_description_words:
+            return False, f"Error: Job description is too short. Minimum {settings.min_job_description_words} words required, got {word_count}."
+        
+        if word_count > settings.max_job_description_words:
+            return False, f"Error: Job description is too long. Maximum {settings.max_job_description_words} words allowed, got {word_count}."
+        
+        # Check for meaningful content
+        if word_count < 50:
+            return False, "Error: Job description appears to be too short for meaningful analysis"
+        
+        # Check if it's mostly special characters
+        alphanumeric_chars = sum(c.isalnum() for c in text)
+        if alphanumeric_chars < len(text) * 0.3:
+            return False, "Error: Job description contains too many non-readable characters"
+        
+        return True, f"Valid job description ({word_count} words)"
 
 
 # Async wrapper for FastAPI compatibility

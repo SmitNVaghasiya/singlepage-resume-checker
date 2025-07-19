@@ -110,6 +110,7 @@ class AnalysisService {
     jobDescriptionFilename?: string;
     resumeText: string;
     jobDescriptionText?: string;
+    userId?: string;
   }): Promise<IAnalysis> {
     try {
       // Validate input

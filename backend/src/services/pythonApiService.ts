@@ -425,7 +425,8 @@ class PythonApiService {
   public async analyzeResume(
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
-    jobDescriptionText?: string
+    jobDescriptionText?: string,
+    userId?: string
   ): Promise<{ analysis_id: string; status: string }> {
     const requestId = this.generateRequestId();
     const startTime = Date.now();
@@ -439,7 +440,7 @@ class PythonApiService {
 
     try {
       // Build form data
-      const formData = this.buildFormData(resumeFile, jobDescriptionFile, jobDescriptionText);
+      const formData = this.buildFormData(resumeFile, jobDescriptionFile, jobDescriptionText, userId);
       
       // Make request to Python API
       const response = await this.makeRequestWithRetry('/analyze-resume', formData);
@@ -482,7 +483,8 @@ class PythonApiService {
   private buildFormData(
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
-    jobDescriptionText?: string
+    jobDescriptionText?: string,
+    userId?: string
   ): FormData {
     const formData = new FormData();
     
@@ -500,6 +502,11 @@ class PythonApiService {
       });
     } else if (jobDescriptionText) {
       formData.append('job_description_text', jobDescriptionText);
+    }
+
+    // Add user ID if provided
+    if (userId) {
+      formData.append('user_id', userId);
     }
 
     return formData;

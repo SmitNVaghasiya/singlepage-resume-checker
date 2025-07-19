@@ -9,14 +9,17 @@ class Settings(BaseSettings):
     # Server Configuration
     host: str = "0.0.0.0"
     port: int = 8000
-    debug: bool = True
+    debug: bool = False
     
     # MongoDB Configuration
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_database: str = "resume_analyzer"
     mongodb_collection: str = "analyses"
     
-    # Use MONGO_URI from environment
+    # CORS Configuration
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    
+    # Use environment variables
     @field_validator("mongodb_url", mode="before")
     @classmethod
     def _validate_mongodb_url(cls, v):
@@ -25,13 +28,32 @@ class Settings(BaseSettings):
             return mongodb_url
         return v
     
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _validate_cors_origins(cls, v):
+        cors_origins = os.getenv("CORS_ORIGINS")
+        if cors_origins:
+            return cors_origins
+        return v
+    
     # Groq AI Configuration
     groq_api_key: str = ""
     groq_model: str = "llama3-8b-8192"
     
     # File Processing
-    max_file_size: int = 10485760  # 10MB
+    max_file_size: int = 5242880  # 5MB (reduced from 10MB)
     allowed_extensions: Any = ["pdf", "doc", "docx", "txt"]
+    
+    # Input Validation Limits
+    max_resume_tokens: int = 8000  # Maximum tokens for resume text
+    max_job_description_tokens: int = 2000  # Maximum tokens for job description
+    max_job_description_words: int = 1000  # Maximum words for job description
+    min_job_description_words: int = 50  # Minimum words for job description
+    max_pdf_pages: int = 7  # Maximum pages for PDF files
+    max_docx_pages: int = 7  # Maximum pages for DOCX files
+    
+    # Rate Limiting
+    max_requests_per_day: int = 15  # Daily request limit per IP
     
     # Logging
     log_level: str = "INFO"
