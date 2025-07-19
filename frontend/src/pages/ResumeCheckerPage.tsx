@@ -61,6 +61,10 @@ const ResumeCheckerPage: React.FC = () => {
           // Navigate to analysis details page with seamless transition
           navigate(`/dashboard/analysis/${analysisId}`);
         },
+        onAuthRequired: () => {
+          // Navigate to login page with redirect parameter
+          navigate('/login?redirect=/resumechecker');
+        },
         // Add getter function to get latest state
         getLatestState: () => ({
           user,

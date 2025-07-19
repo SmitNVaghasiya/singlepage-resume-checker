@@ -1,4 +1,4 @@
-  import { apiService } from './api';
+import { apiService } from './api';
 
 export interface AdminUser {
   id: string;
@@ -81,7 +81,15 @@ class AdminService {
   private authToken: string | null = null;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/admin';
+    // Normalize the base URL to prevent double slashes
+    // Use the same environment variable pattern as main API service for consistency
+    this.baseUrl = (import.meta.env.VITE_API_BASE_URL?.replace('/api', '/api/admin') || 'https://singlepage-resume-checker-backend.vercel.app/api/admin').replace(/\/+$/, '');
+  }
+
+  // Helper method to construct API URLs properly
+  private getApiUrl(endpoint: string): string {
+    const cleanEndpoint = endpoint.replace(/^\/+/, ''); // Remove leading slashes
+    return `${this.baseUrl}/${cleanEndpoint}`;
   }
 
   private getAuthToken(): string {
@@ -98,7 +106,7 @@ class AdminService {
 
   // Authentication
   async login(username: string, password: string): Promise<{ token: string; admin: any }> {
-    const response = await fetch(`${this.baseUrl}/login`, {
+    const response = await fetch(this.getApiUrl('login'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -117,7 +125,7 @@ class AdminService {
   }
 
   async getCurrentAdmin(): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/me`, {
+    const response = await fetch(this.getApiUrl('me'), {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -147,7 +155,7 @@ class AdminService {
     if (search) params.append('search', search);
     if (status) params.append('status', status);
 
-    const response = await fetch(`${this.baseUrl}/users?${params}`, {
+    const response = await fetch(`${this.getApiUrl('users')}?${params}`, {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -163,7 +171,7 @@ class AdminService {
   }
 
   async getUserById(userId: string): Promise<User> {
-    const response = await fetch(`${this.baseUrl}/users/${userId}`, {
+    const response = await fetch(this.getApiUrl(`users/${userId}`), {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -179,7 +187,7 @@ class AdminService {
   }
 
   async updateUserStatus(userId: string, status: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/users/${userId}/status`, {
+    const response = await fetch(this.getApiUrl(`users/${userId}/status`), {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -203,7 +211,7 @@ class AdminService {
     if (customDateRange?.startDate) params.append('startDate', customDateRange.startDate);
     if (customDateRange?.endDate) params.append('endDate', customDateRange.endDate);
 
-    const response = await fetch(`${this.baseUrl}/stats/dashboard?${params}`, {
+    const response = await fetch(`${this.getApiUrl('stats/dashboard')}?${params}`, {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -235,7 +243,7 @@ class AdminService {
     if (customDateRange?.startDate) params.append('startDate', customDateRange.startDate);
     if (customDateRange?.endDate) params.append('endDate', customDateRange.endDate);
 
-    const response = await fetch(`${this.baseUrl}/stats/analyses?${params}`, {
+    const response = await fetch(`${this.getApiUrl('stats/analyses')}?${params}`, {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -251,7 +259,7 @@ class AdminService {
   }
 
   async getAnalysisById(analysisId: string): Promise<Analysis> {
-    const response = await fetch(`${this.baseUrl}/analyses/${analysisId}`, {
+    const response = await fetch(this.getApiUrl(`analyses/${analysisId}`), {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -282,7 +290,7 @@ class AdminService {
     if (customDateRange?.startDate) params.append('startDate', customDateRange.startDate);
     if (customDateRange?.endDate) params.append('endDate', customDateRange.endDate);
 
-    const response = await fetch(`${this.baseUrl}/export?${params}`, {
+    const response = await fetch(`${this.getApiUrl('export')}?${params}`, {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'
@@ -298,7 +306,7 @@ class AdminService {
 
   // Bulk Operations
   async bulkUpdateUsers(userIds: string[], action: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/users/bulk`, {
+    const response = await fetch(this.getApiUrl('users/bulk'), {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -314,7 +322,7 @@ class AdminService {
 
   // System Health
   async getSystemHealth(): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/health`, {
+      const response = await fetch(this.getApiUrl('health'), {
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'

@@ -84,7 +84,8 @@ class ApiService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = API_BASE_URL;
+    // Normalize the base URL to prevent double slashes
+    this.baseUrl = API_BASE_URL.replace(/\/+$/, ''); // Remove trailing slashes
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -95,8 +96,14 @@ class ApiService {
     };
   }
 
+  // Helper method to construct API URLs properly
+  private getApiUrl(endpoint: string): string {
+    const cleanEndpoint = endpoint.replace(/^\/+/, ''); // Remove leading slashes
+    return `${this.baseUrl}/${cleanEndpoint}`;
+  }
+
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await fetch(`${this.baseUrl}/auth/login`, {
+    const response = await fetch(this.getApiUrl('auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -117,7 +124,7 @@ class ApiService {
   }
 
   async register(userData: RegisterRequest): Promise<RegisterResponse> {
-    const response = await fetch(`${this.baseUrl}/auth/register`, {
+    const response = await fetch(this.getApiUrl('auth/register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -139,7 +146,7 @@ class ApiService {
 
   async logout(): Promise<void> {
     try {
-      await fetch(`${this.baseUrl}/auth/logout`, {
+      await fetch(this.getApiUrl('auth/logout'), {
         method: 'POST',
         headers: this.getAuthHeaders(),
       });
@@ -149,7 +156,7 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<User> {
-    const response = await fetch(`${this.baseUrl}/auth/me`, {
+    const response = await fetch(this.getApiUrl('auth/me'), {
       headers: this.getAuthHeaders(),
     });
 
@@ -162,7 +169,7 @@ class ApiService {
   }
 
   async sendOtp(email: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/send-otp`, {
+    const response = await fetch(this.getApiUrl('auth/send-otp'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -177,7 +184,7 @@ class ApiService {
   }
 
   async updateProfile(profileData: UpdateProfileRequest): Promise<User> {
-    const response = await fetch(`${this.baseUrl}/auth/profile`, {
+    const response = await fetch(this.getApiUrl('auth/profile'), {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(profileData),
@@ -193,7 +200,7 @@ class ApiService {
   }
 
   async updatePassword(passwordData: UpdatePasswordRequest): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/password`, {
+    const response = await fetch(this.getApiUrl('auth/password'), {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(passwordData),
@@ -208,7 +215,7 @@ class ApiService {
   }
 
   async updateNotificationSettings(settings: NotificationSettings): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/notifications`, {
+    const response = await fetch(this.getApiUrl('auth/notifications'), {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(settings),
@@ -223,7 +230,7 @@ class ApiService {
   }
 
   async deleteAccount(): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/account`, {
+    const response = await fetch(this.getApiUrl('auth/account'), {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });
@@ -237,7 +244,7 @@ class ApiService {
   }
 
   async exportUserData(): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/auth/export`, {
+    const response = await fetch(this.getApiUrl('auth/export'), {
       headers: this.getAuthHeaders(),
     });
 
@@ -259,7 +266,7 @@ class ApiService {
       formData.append('jobDescriptionText', request.jobDescriptionText);
     }
 
-    const response = await fetch(`${this.baseUrl}/resume/analyze`, {
+    const response = await fetch(this.getApiUrl('resume/analyze'), {
       method: 'POST',
       body: formData,
       headers: {
@@ -289,7 +296,7 @@ class ApiService {
   }
 
   async getAnalysisStatus(analysisId: string): Promise<AnalysisStatus> {
-    const response = await fetch(`${this.baseUrl}/resume/analysis/${analysisId}/status`, {
+    const response = await fetch(this.getApiUrl(`resume/analysis/${analysisId}/status`), {
       headers: this.getAuthHeaders(),
     });
 
@@ -306,7 +313,7 @@ class ApiService {
     status: string; 
     result: AnalysisResult 
   }> {
-    const response = await fetch(`${this.baseUrl}/resume/analysis/${analysisId}/result`, {
+    const response = await fetch(this.getApiUrl(`resume/analysis/${analysisId}/result`), {
       headers: this.getAuthHeaders(),
     });
 
@@ -368,7 +375,7 @@ class ApiService {
       sortOrder,
     });
 
-    const response = await fetch(`${this.baseUrl}/resume/history?${params}`, {
+    const response = await fetch(`${this.getApiUrl('resume/history')}?${params}`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -381,7 +388,7 @@ class ApiService {
   }
 
   async submitContactForm(formData: ContactFormData): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/contact`, {
+    const response = await fetch(this.getApiUrl('contact'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
@@ -396,7 +403,7 @@ class ApiService {
   }
 
   async exportAnalysisReport(analysisId: string, exportData: ExportReportRequest): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/analyses/${analysisId}/export`, {
+    const response = await fetch(this.getApiUrl(`analyses/${analysisId}/export`), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(exportData),
@@ -411,7 +418,7 @@ class ApiService {
   }
 
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    const response = await fetch(`${this.baseUrl}/health`);
+    const response = await fetch(this.getApiUrl('health'));
     
     if (!response.ok) {
       throw new Error('Health check failed');
@@ -421,7 +428,7 @@ class ApiService {
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/forgot-password`, {
+    const response = await fetch(this.getApiUrl('auth/forgot-password'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -436,7 +443,7 @@ class ApiService {
   }
 
   async resetPassword(token: string, newPassword: string, confirmPassword: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/reset-password`, {
+      const response = await fetch(this.getApiUrl('auth/reset-password'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, newPassword, confirmPassword }),

@@ -32,6 +32,10 @@ export const useAnalysisService = (props: UseAnalysisServiceProps) => {
         // Navigate to analysis details page with seamless transition
         navigate(`/dashboard/analysis/${analysisId}`);
       },
+      onAuthRequired: () => {
+        // Navigate to login page with redirect parameter
+        navigate('/login?redirect=/resumechecker');
+      },
       getLatestState: () => ({
         user: props.user,
         resumeFile: props.resumeFile,

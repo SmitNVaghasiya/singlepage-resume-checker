@@ -26,6 +26,8 @@ interface AnalysisServiceProps {
   setCurrentStep: (step: string) => void;
   // Add navigation callback for seamless transitions
   onAnalysisComplete?: (analysisId: string) => void;
+  // Add navigation callback for auth redirect
+  onAuthRequired?: () => void;
   // Add getter functions to get latest state
   getLatestState: () => {
     user: any;
@@ -82,7 +84,8 @@ export class AnalysisService {
       setCurrentStageIndex,
       setShowAuthModal,
       setCurrentStep,
-      onAnalysisComplete
+      onAnalysisComplete,
+      onAuthRequired
     } = this.props;
 
     try {
@@ -148,7 +151,7 @@ export class AnalysisService {
         localStorage.setItem('hasPendingAnalysis', 'true');
         
         // Redirect to login page
-        window.location.href = '/login?redirect=/resumechecker';
+        onAuthRequired?.();
         return;
       }
 
