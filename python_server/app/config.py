@@ -8,7 +8,7 @@ from pydantic import field_validator
 class Settings(BaseSettings):
     # Server Configuration
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = int(os.getenv("PORT", 8000))
     debug: bool = False
     
     # MongoDB Configuration

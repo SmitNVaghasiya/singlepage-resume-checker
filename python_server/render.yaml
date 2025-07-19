@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-resume-analyzer-api
+    env: python
+    plan: free
+    rootDir: python_server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        description: Your Groq API key for AI analysis
+        required: true
+      - key: GROQ_MODEL
+        description: Groq model to use (default: llama3-8b-8192)
+        value: llama3-8b-8192
+      - key: MONGODB_URL
+        description: MongoDB connection string
+        required: true
+      - key: CORS_ORIGINS
+        description: Comma-separated list of allowed CORS origins
+        value: "*"
+      - key: PYTHON_VERSION
+        value: 3.11 
