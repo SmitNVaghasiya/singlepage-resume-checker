@@ -41,7 +41,7 @@ JWT_EXPIRES_IN=7d
 NODE_ENV=production
 
 # Security - CORS Configuration
-CORS_ORIGIN=https://singlepage-resume-checker-6ppaqdnzt-smit-vaghasiyas-projects.vercel.app
+CORS_ORIGIN=https://singlepage-resume-checker.vercel.app
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=60000

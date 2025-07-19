@@ -139,14 +139,21 @@ class Server {
           return;
         }
 
-        // For production, also allow Vercel preview URLs
+        // For production, allow specific Vercel domains
         if (config.nodeEnv === 'production') {
-          const vercelPatterns = [
-            /^https:\/\/.*\.vercel\.app$/,
-            /^https:\/\/.*\.vercel\.app\/.*$/
+          const allowedVercelDomains = [
+            'https://singlepage-resume-checker.vercel.app',
+            'https://singlepage-resume-checker-backend-psxxoaojd.vercel.app',
+            'https://singlepage-resume-checker-backend.vercel.app'
           ];
           
-          if (vercelPatterns.some(pattern => pattern.test(origin))) {
+          if (allowedVercelDomains.includes(origin)) {
+            callback(null, true);
+            return;
+          }
+          
+          // Also allow any vercel.app subdomain for flexibility
+          if (origin.includes('.vercel.app')) {
             callback(null, true);
             return;
           }
@@ -162,6 +169,15 @@ class Server {
     };
 
     this.app.use(cors(corsOptions));
+
+    // Handle preflight OPTIONS requests explicitly
+    this.app.options('*', (req, res) => {
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.status(200).end();
+    });
   }
 
   private setupRequestMiddleware(): void {
@@ -226,6 +242,41 @@ class Server {
   }
 
   private setupRoutes(): void {
+    // Simple health check endpoint
+    this.app.get('/health', async (_req, res) => {
+      try {
+        const healthCheck: any = {
+          status: 'Backend is running successfully',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime()
+        };
+
+        // Check database connection
+        if (this.isDatabaseConnected) {
+          try {
+            const dbHealth = await database.checkHealth();
+            if (dbHealth.status === 'connected') {
+              healthCheck.database = 'Database is working';
+            } else {
+              healthCheck.database = 'Database connection issue';
+            }
+          } catch (error) {
+            healthCheck.database = 'Database connection error';
+          }
+        } else {
+          healthCheck.database = 'Database not connected';
+        }
+
+        res.status(200).json(healthCheck);
+      } catch (error) {
+        res.status(500).json({
+          status: 'Backend error',
+          timestamp: new Date().toISOString(),
+          error: 'Health check failed'
+        });
+      }
+    });
+
     // Health checks (no rate limiting)
     this.app.use('/api/health', healthRoutes);
 

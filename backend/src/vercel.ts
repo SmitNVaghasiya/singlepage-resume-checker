@@ -23,7 +23,11 @@ export default async function handler(req: any, res: any): Promise<void> {
     });
   } catch (error) {
     logger.error('Server creation error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'Failed to initialize server',
+      timestamp: new Date().toISOString()
+    });
   }
 }
 
@@ -39,6 +43,7 @@ if (process.env.NODE_ENV !== 'production') {
       const port = config.port;
       app.listen(port, () => {
         logger.info(`Development server listening on port ${port}`);
+        logger.info(`Health check available at: http://localhost:${port}/api/health`);
       });
     } catch (error) {
       logger.error('Failed to start development server:', error);

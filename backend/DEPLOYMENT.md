@@ -24,7 +24,7 @@ NODE_ENV=production
 
 # Security - CORS Configuration
 # Your frontend URL from Vercel
-CORS_ORIGIN=https://singlepage-resume-checker-6ppaqdnzt-smit-vaghasiyas-projects.vercel.app
+CORS_ORIGIN=https://singlepage-resume-checker.vercel.app
 
 # Rate Limiting (More restrictive for production)
 RATE_LIMIT_WINDOW_MS=60000
@@ -50,7 +50,7 @@ EMAIL_FROM="AI Resume Checker" <noreply@airesumechecker.com>
 ### 1. CORS Configuration ✅
 
 ```env
-CORS_ORIGIN=https://singlepage-resume-checker-6ppaqdnzt-smit-vaghasiyas-projects.vercel.app
+CORS_ORIGIN=https://singlepage-resume-checker.vercel.app
 ```
 
 - **Only your frontend URL** - no need for localhost in production
