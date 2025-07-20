@@ -5,7 +5,7 @@
   "main": "dist/vercel.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
-    "build": "tsc && cp src/vercel.ts dist/vercel.js",
+    "build": "tsc",
     "build:vercel": "tsc && cp src/vercel.ts dist/vercel.js",
     "start": "node dist/index.js",
     "start:prod": "node dist/index.js",

@@ -30,7 +30,7 @@ class InMemoryCacheService {
   private cache: Map<string, CacheItem<any>>;
   private defaultTTL: number = 3600000; // 1 hour in milliseconds
   private stats: { hits: number; misses: number };
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval?: NodeJS.Timeout;
 
   constructor() {
     this.cache = new Map();
