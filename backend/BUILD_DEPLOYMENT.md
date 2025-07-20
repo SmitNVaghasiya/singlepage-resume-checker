@@ -64,25 +64,13 @@ NODE_ENV=production
 
 ### 2. Vercel Configuration
 
-The `vercel.json` file is already configured correctly:
+Vercel will automatically detect and configure the deployment based on:
 
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "dist/vercel.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "dist/vercel.js"
-    }
-  ]
-}
-```
+- The `api/vercel.ts` file (serverless function handler)
+- The `package.json` build scripts
+- The `dist` output directory
+
+No manual `vercel.json` configuration is needed.
 
 ### 3. Deploy
 
@@ -168,7 +156,7 @@ node test-health-endpoint.js
 1. **404 Not Found**
 
    - Check if vercel.js file exists in dist/
-   - Verify vercel.json routing configuration
+   - Verify Vercel auto-generated configuration
 
 2. **500 Internal Server Error**
 

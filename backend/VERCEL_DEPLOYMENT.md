@@ -170,9 +170,9 @@ vercel logs --follow
    - Ensure HTTPS URLs
 
 4. **Function Timeouts**
-   - Increase maxDuration in vercel.json
    - Optimize database queries
    - Implement request caching
+   - Consider function configuration in Vercel dashboard
 
 ### **Debug Mode**
 
