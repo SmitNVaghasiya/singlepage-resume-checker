@@ -2,21 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/vercel.ts",
+      "src": "dist/vercel.js",
       "use": "@vercel/node",
       "config": {
         "maxDuration": 30
       }
     }
   ],
+  "buildCommand": "npm run build:vercel",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "src/vercel.ts"
+      "destination": "dist/vercel.js"
     },
     {
       "source": "/(.*)",
-      "destination": "src/vercel.ts"
+      "destination": "dist/vercel.js"
     }
   ],
   "headers": [
