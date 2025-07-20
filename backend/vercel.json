@@ -9,14 +9,14 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "dist/vercel.js"
+      "source": "/api/(.*)",
+      "destination": "dist/vercel.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "dist/vercel.js"
+      "source": "/(.*)",
+      "destination": "dist/vercel.js"
     }
   ],
   "headers": [
