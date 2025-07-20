@@ -1,5 +1,4 @@
 import { createServer } from '../src/server';
-import { config } from '../src/config/config';
 import { logger } from '../src/utils/logger';
 
 // Global variable to cache the Express app instance
