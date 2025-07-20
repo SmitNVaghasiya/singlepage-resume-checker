@@ -1,4 +1,20 @@
 {
+  "version": 2,
   "buildCommand": "npm run vercel-build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "functions": {
+    "api/vercel.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/vercel"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/vercel"
+    }
+  ]
 } 
