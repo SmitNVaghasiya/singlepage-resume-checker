@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "dist/vercel.js",
+      "src": "src/vercel.ts",
       "use": "@vercel/node",
       "config": {
         "maxDuration": 30
@@ -12,11 +12,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "dist/vercel.js"
+      "destination": "src/vercel.ts"
     },
     {
       "source": "/(.*)",
-      "destination": "dist/vercel.js"
+      "destination": "src/vercel.ts"
     }
   ],
   "headers": [
