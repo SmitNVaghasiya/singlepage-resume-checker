@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
-    "build:vercel": "tsc && npm run copy-api",
-    "copy-api": "node copy-api.js",
+    "build:vercel": "tsc",
     "start": "node dist/index.js",
     "start:prod": "node dist/index.js",
     "vercel-build": "npm run build:vercel",
