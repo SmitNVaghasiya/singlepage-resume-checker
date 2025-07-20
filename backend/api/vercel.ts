@@ -1,6 +1,6 @@
-import { createServer } from './server';
-import { config } from './config/config';
-import { logger } from './utils/logger';
+import { createServer } from '../src/server';
+import { config } from '../src/config/config';
+import { logger } from '../src/utils/logger';
 
 // Global variable to cache the Express app instance
 let cachedApp: any = null;
@@ -39,28 +39,4 @@ export default async function handler(req: any, res: any): Promise<void> {
       requestId: req.headers['x-request-id'] || 'unknown'
     });
   }
-}
-
-// For local development only
-if (process.env.NODE_ENV !== 'production') {
-  const startServer = async () => {
-    try {
-      const app = await createServer({
-        enableDatabase: true,
-        enableRateLimit: true,
-        serverless: false
-      });
-
-      const port = config.port;
-      app.listen(port, () => {
-        logger.info(`Development server listening on port ${port}`);
-        logger.info(`Health check available at: http://localhost:${port}/api/health`);
-      });
-    } catch (error) {
-      logger.error('Failed to start development server:', error);
-      process.exit(1);
-    }
-  };
-
-  startServer();
 } 

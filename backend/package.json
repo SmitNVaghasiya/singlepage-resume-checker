@@ -2,7 +2,7 @@
   "name": "resume-checker-backend",
   "version": "1.0.0",
   "description": "High-performance backend for resume analysis",
-  "main": "dist/vercel.js",
+  "main": "dist/api/vercel.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
