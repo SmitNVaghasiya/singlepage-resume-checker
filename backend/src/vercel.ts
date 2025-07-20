@@ -7,7 +7,8 @@ export default async function handler(req: any, res: any): Promise<void> {
   try {
     const app = await createServer({
       enableDatabase: true,
-      enableRateLimit: true
+      enableRateLimit: true,
+      serverless: true // Add serverless flag
     });
 
     // Handle the request using the Express app
@@ -31,13 +32,14 @@ export default async function handler(req: any, res: any): Promise<void> {
   }
 }
 
-// For local development
+// For local development only
 if (process.env.NODE_ENV !== 'production') {
   const startServer = async () => {
     try {
       const app = await createServer({
         enableDatabase: true,
-        enableRateLimit: true
+        enableRateLimit: true,
+        serverless: false
       });
 
       const port = config.port;

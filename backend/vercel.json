@@ -41,5 +41,10 @@
   ],
   "env": {
     "NODE_ENV": "production"
+  },
+  "functions": {
+    "dist/vercel.js": {
+      "maxDuration": 30
+    }
   }
 } 

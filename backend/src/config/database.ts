@@ -17,7 +17,7 @@ class Database {
     return Database.instance;
   }
 
-  public async connect(): Promise<void> {
+  public async connect(serverless: boolean = false): Promise<void> {
     if (this.isConnected) {
       logger.info('Already connected to MongoDB');
       return;
@@ -29,19 +29,19 @@ class Database {
       logger.info(`Attempting to connect to MongoDB: ${mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
       
       await mongoose.connect(mongoUri, {
-        maxPoolSize: config.nodeEnv === 'production' ? 1 : 10, // Reduced for serverless
+        maxPoolSize: serverless ? 1 : (config.nodeEnv === 'production' ? 1 : 10),
         serverSelectionTimeoutMS: 30000,
         socketTimeoutMS: 45000,
         bufferCommands: true,
         retryWrites: true,
         w: 'majority',
         // Connection pool settings optimized for serverless
-        minPoolSize: config.nodeEnv === 'production' ? 0 : 1,
-        maxIdleTimeMS: config.nodeEnv === 'production' ? 10000 : 30000,
+        minPoolSize: serverless ? 0 : (config.nodeEnv === 'production' ? 0 : 1),
+        maxIdleTimeMS: serverless ? 5000 : (config.nodeEnv === 'production' ? 10000 : 30000),
         // Timeout settings
         connectTimeoutMS: 30000,
         // Heartbeat settings
-        heartbeatFrequencyMS: 10000,
+        heartbeatFrequencyMS: serverless ? 5000 : 10000,
         // Server selection settings
         localThresholdMS: 15
       });

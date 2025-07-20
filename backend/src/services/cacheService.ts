@@ -36,11 +36,13 @@ class InMemoryCacheService {
     this.cache = new Map();
     this.stats = { hits: 0, misses: 0 };
     
-    // Clean up expired items every 5 minutes
-    this.cleanupInterval = setInterval(() => this.cleanupExpired(), 300000);
-    
-    // Handle process cleanup
-    process.on('beforeExit', () => this.cleanup());
+    // Clean up expired items every 5 minutes (skip in serverless)
+    if (!process.env.VERCEL) {
+      this.cleanupInterval = setInterval(() => this.cleanupExpired(), 300000);
+      
+      // Handle process cleanup
+      process.on('beforeExit', () => this.cleanup());
+    }
   }
 
   // Set item in cache with TTL

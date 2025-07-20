@@ -32,11 +32,11 @@ export const config: Config = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // Python API
-  pythonApiUrl: process.env.PYTHON_API_URL || 'http://localhost:8000',
+  pythonApiUrl: process.env.PYTHON_API_URL || 'https://singlepage-resume-checker.onrender.com' || 'http://localhost:8000',
   pythonApiTimeout: parseInt(process.env.PYTHON_API_TIMEOUT || '30000', 10),
 
   // Security
-  corsOrigin: process.env.CORS_ORIGIN?.split(',') || '*',
+  corsOrigin: process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim().replace(/\/$/, '')) || '*',
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
 

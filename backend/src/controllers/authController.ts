@@ -909,7 +909,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     logger.info(`Password reset token generated for: ${user.email}, expires at: ${resetTokenExpires}`);
 
     // Send password reset email
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL || 'https://singlepage-resume-checker.vercel.app'}/reset-password?token=${resetToken}`;
     const emailSent = await emailService.sendPasswordResetEmail(user.email, user.username, resetLink);
     
     if (!emailSent) {

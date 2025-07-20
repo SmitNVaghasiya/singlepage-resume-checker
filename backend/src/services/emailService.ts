@@ -53,7 +53,7 @@ class EmailService {
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_FROM || '"AI Resume Checker" <noreply@airesumechecker.com>',
+        from: process.env.EMAIL_FROM || '"AI Resume Checker" <smitvaghasiya11280@gmail.com>',
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -176,7 +176,7 @@ class EmailService {
             </ul>
             
             <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" class="button">
+              <a href="${process.env.FRONTEND_URL || 'https://singlepage-resume-checker.vercel.app'}/dashboard" class="button">
                 Get Started Now
               </a>
             </div>

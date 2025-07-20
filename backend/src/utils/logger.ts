@@ -3,9 +3,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { config } from '../config/config';
 
-// Ensure log directory exists
+// Ensure log directory exists (skip in serverless environment)
 const logDir = path.join(process.cwd(), config.logDir);
-if (!fs.existsSync(logDir)) {
+if (!fs.existsSync(logDir) && process.env.NODE_ENV !== 'production') {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
@@ -33,8 +33,8 @@ export const logger = winston.createLogger({
   ],
 });
 
-// Add file transports in production
-if (config.nodeEnv === 'production') {
+// Add file transports in production (but not in serverless)
+if (config.nodeEnv === 'production' && !process.env.VERCEL) {
   logger.add(
     new winston.transports.File({
       filename: path.join(logDir, 'error.log'),

@@ -1,4 +1,7 @@
 -------  Important tasks.
+-- There is 
+
+
 -- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.
 -- Improve the dashboard UI. and also add fetures like the download he report or export data.
 -- make the analsysis page ui better.

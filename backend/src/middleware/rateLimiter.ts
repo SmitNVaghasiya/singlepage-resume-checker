@@ -30,8 +30,8 @@ export const rateLimiter = (options: Partial<Options> = {}) => {
       });
     },
     skip: (req) => {
-      // Skip rate limiting for health checks
-      return req.path === '/api/health';
+      // Skip rate limiting for health checks and OPTIONS requests
+      return req.path.startsWith('/api/health') || req.method === 'OPTIONS';
     },
   });
 };

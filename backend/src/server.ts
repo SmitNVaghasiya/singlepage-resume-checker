@@ -19,6 +19,7 @@ import { database } from './config/database';
 interface ServerOptions {
   enableDatabase?: boolean;
   enableRateLimit?: boolean;
+  serverless?: boolean;
 }
 
 class Server {
@@ -32,12 +33,12 @@ class Server {
   }
 
   public async create(options: ServerOptions = {}): Promise<Express> {
-    const { enableDatabase = true, enableRateLimit = true } = options;
+    const { enableDatabase = true, enableRateLimit = true, serverless = false } = options;
 
     try {
       // Initialize database connection
       if (enableDatabase) {
-        await this.initializeDatabase();
+        await this.initializeDatabase(serverless);
       }
 
       // Setup middleware
@@ -46,12 +47,13 @@ class Server {
       this.setupBodyParsing();
       this.setupLogging();
       
+      // Setup routes BEFORE rate limiting
+      this.setupRoutes();
+      
       if (enableRateLimit) {
         this.setupRateLimiting();
       }
 
-      // Setup routes
-      this.setupRoutes();
       this.setupErrorHandling();
 
       logger.info('Server configuration completed successfully');
@@ -80,9 +82,9 @@ class Server {
     });
   }
 
-  private async initializeDatabase(): Promise<void> {
+  private async initializeDatabase(serverless: boolean = false): Promise<void> {
     try {
-      await database.connect();
+      await database.connect(serverless);
       
       // Check if the connection is actually active
       if (database.isConnectionActive()) {
@@ -242,42 +244,7 @@ class Server {
   }
 
   private setupRoutes(): void {
-    // Simple health check endpoint
-    this.app.get('/health', async (_req, res) => {
-      try {
-        const healthCheck: any = {
-          status: 'Backend is running successfully',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime()
-        };
-
-        // Check database connection
-        if (this.isDatabaseConnected) {
-          try {
-            const dbHealth = await database.checkHealth();
-            if (dbHealth.status === 'connected') {
-              healthCheck.database = 'Database is working';
-            } else {
-              healthCheck.database = 'Database connection issue';
-            }
-          } catch (error) {
-            healthCheck.database = 'Database connection error';
-          }
-        } else {
-          healthCheck.database = 'Database not connected';
-        }
-
-        res.status(200).json(healthCheck);
-      } catch (error) {
-        res.status(500).json({
-          status: 'Backend error',
-          timestamp: new Date().toISOString(),
-          error: 'Health check failed'
-        });
-      }
-    });
-
-    // Health checks (no rate limiting)
+    // Health checks (no rate limiting) - register BEFORE rate limiting
     this.app.use('/api/health', healthRoutes);
 
     // API routes
