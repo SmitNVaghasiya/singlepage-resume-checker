@@ -3,18 +3,18 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "functions": {
-    "vercel.js": {
+    "api/vercel.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/vercel"
+      "destination": "/api/vercel"
     },
     {
       "source": "/(.*)",
-      "destination": "/vercel"
+      "destination": "/api/vercel"
     }
   ]
 } 
