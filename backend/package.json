@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
-    "build:vercel": "tsc && cp src/vercel.ts dist/vercel.js",
+    "build:vercel": "tsc",
     "start": "node dist/index.js",
     "start:prod": "node dist/index.js",
     "lint": "eslint src/**/*.ts",

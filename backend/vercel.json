@@ -1,14 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "dist/vercel.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 30
-      }
-    }
-  ],
   "buildCommand": "npm run build:vercel",
   "rewrites": [
     {
