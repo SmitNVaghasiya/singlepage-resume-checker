@@ -16,7 +16,7 @@ import { useAppContext } from "../../contexts/AppContext";
 import { useAdmin } from "../../contexts/AdminContext";
 
 const Navbar: React.FC = () => {
-  const { resetAnalysis, user, logout } = useAppContext();
+  const { resetAnalysis, user, logout, isAuthLoading } = useAppContext();
   const {
     admin,
     isAuthenticated: isAdminAuthenticated,
@@ -87,14 +87,17 @@ const Navbar: React.FC = () => {
     }
   }, [showUserMenu, showAdminMenu]);
 
-  const navItems = [
-    { path: "/", label: "Homepage" },
-    {
-      path: isAdminAuthenticated ? "/admin/dashboard" : "/dashboard",
-      label: "Dashboard",
-    },
-    { path: "/contact", label: "Contact" },
-  ] as const;
+  const navItems = React.useMemo(
+    () => [
+      { path: "/", label: "Homepage" },
+      {
+        path: isAdminAuthenticated ? "/admin/dashboard" : "/dashboard",
+        label: "Dashboard",
+      },
+      { path: "/contact", label: "Contact" },
+    ],
+    [isAdminAuthenticated]
+  );
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -124,8 +127,35 @@ const Navbar: React.FC = () => {
           ))}
 
           <div className="navbar-actions">
-            {/* Admin Authentication */}
-            {isAdminAuthenticated ? (
+            {/* Auth Area: Show spinner while loading auth state */}
+            {isAuthLoading ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  minWidth: 100,
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  className="loading-spinner"
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    border: "3px solid #f3f3f3",
+                    borderTop: "3px solid #3498db",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite",
+                  }}
+                ></div>
+                <style>{`
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `}</style>
+              </div>
+            ) : isAdminAuthenticated ? (
               <div className="admin-menu-container">
                 <button
                   className="navbar-admin-btn"

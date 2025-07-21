@@ -9,6 +9,7 @@ import { AnalysisResult } from "../types";
 import { User, apiService } from "../services/api";
 import { usePasteHandler } from "../hooks/shared/usePasteHandler";
 import { base64ToFile, restoreFileFromAuth } from "../utils/fileValidation";
+import { useLocation } from "react-router-dom";
 
 type AnalysisStep = "upload" | "job-description" | "analyze";
 
@@ -79,6 +80,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Authentication state
   const [requiresAuth, setRequiresAuth] = useState(false);
 
+  const location = useLocation();
+
   // Initialize paste handler
   usePasteHandler({
     currentStep,
@@ -112,6 +115,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
+      // Only fetch history if authenticated, or if on dashboard/history page (for demo)
+      const isDashboardRoute = location.pathname.startsWith("/dashboard");
       if (token) {
         try {
           const currentUser = await apiService.getCurrentUser();
@@ -271,15 +276,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           console.warn("Failed to get current user:", error);
           localStorage.removeItem("authToken");
         }
-      } else {
-        // Load analysis history even without authentication (for demo purposes)
+      } else if (isDashboardRoute) {
+        // Load analysis history for demo purposes only on dashboard/history pages
         await loadAnalysisHistory();
       }
       setIsAuthLoading(false);
     };
 
     checkAuth();
-  }, []);
+  }, [location.pathname]);
 
   // Check for pending analysis when user state changes
   useEffect(() => {
@@ -504,7 +509,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 technical_deficiencies: [],
                 resume_presentation_issues: [],
                 soft_skills_gaps: [],
-                missing_essential_elements: [],
+                missing_essential_elements: {},
               },
               section_wise_detailed_feedback: {
                 contact_information: {
