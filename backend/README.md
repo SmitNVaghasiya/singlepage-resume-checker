@@ -386,3 +386,30 @@ For detailed API documentation, visit:
 ## 📄 License
 
 This project is licensed under the ISC License.
+
+---
+
+## 🚀 Deploying to Vercel (Quick Guide)
+
+1. **Install Vercel CLI:**
+   ```bash
+   npm i -g vercel
+   ```
+2. **Login to Vercel:**
+   ```bash
+   vercel login
+   ```
+3. **Deploy from backend directory:**
+   ```bash
+   cd backend
+   vercel --prod
+   ```
+4. **Set environment variables in Vercel dashboard:**
+   - Copy variables from `.env.example`.
+   - Make sure to set all required variables (see above).
+5. **Test health endpoint:**
+   ```bash
+   curl https://your-vercel-app.vercel.app/api/health
+   ```
+
+For more details, see `VERCEL_DEPLOYMENT.md`.

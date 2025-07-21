@@ -17,10 +17,35 @@ const logFormat = winston.format.combine(
   winston.format.json()
 );
 
+// Add a custom error format for production
+const prodErrorFormat = winston.format((info) => {
+  if (process.env.NODE_ENV === 'production' && info.level === 'error') {
+    // Remove stack traces and sensitive details
+    if (info.stack) delete info.stack;
+    if (
+      info.error &&
+      typeof info.error === 'object' &&
+      'message' in info.error &&
+      typeof (info.error as any).message === 'string'
+    ) {
+      info.error = (info.error as any).message;
+    } else if (info.error && typeof info.error === 'object') {
+      info.error = 'Error';
+    }
+    // Only keep message, level, timestamp, and requestId if present
+    const { message, level, timestamp, requestId } = info;
+    return { message, level, timestamp, requestId };
+  }
+  return info;
+});
+
 // Create the logger
 export const logger = winston.createLogger({
   level: config.logLevel,
-  format: logFormat,
+  format: winston.format.combine(
+    prodErrorFormat(),
+    logFormat
+  ),
   defaultMeta: { service: 'resume-checker-backend' },
   transports: [
     // Console transport
