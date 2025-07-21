@@ -443,7 +443,7 @@ class PythonApiService {
       const formData = this.buildFormData(resumeFile, jobDescriptionFile, jobDescriptionText, userId);
       
       // Make request to Python API
-      const response = await this.makeRequestWithRetry('/analyze-resume', formData);
+      const response = await this.makeRequestWithRetry('/analyze', formData);
       
       const responseTime = Date.now() - startTime;
       
@@ -642,7 +642,7 @@ class PythonApiService {
       logger.info('Checking analysis status from Python server API', { analysis_id });
       
       // Make API request to Python server to check status
-      const response = await this.client.get(`/analysis/${analysis_id}/status`);
+      const response = await this.client.get(`/status/${analysis_id}`);
       
       if (!response.data || !response.data.success) {
         throw new Error('Failed to check analysis status from Python server');
@@ -671,7 +671,7 @@ class PythonApiService {
       logger.info('Fetching complete analysis result from Python server API', { analysis_id });
       
       // Make API request to Python server to get the full analysis
-      const response = await this.client.get(`/analysis/${analysis_id}/result`);
+      const response = await this.client.get(`/result/${analysis_id}`);
       
       if (!response.data || !response.data.success) {
         throw new Error('Failed to fetch analysis result from Python server');
