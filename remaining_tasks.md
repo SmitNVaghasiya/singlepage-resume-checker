@@ -1,6 +1,10 @@
 -------  Important tasks.
 -- Make sure all the edpoints of the python backend are successfully and correctly connceted to the backend as right now backend is calling the wrong points when calling the analysis function.
 
+--- do not show data to every user show data to users only who have done the analysis.As corrrenlty when other user logged in it show all users data there even though user was newly logged in and do not have access to see other user data.
+
+-- If user trying with the temp id for the sign up give them error that do not use the temp mail use the original mail we have setup the logic and it is working just have to change the text what we show it.
+
 
 -- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.
 -- Improve the dashboard UI. and also add fetures like the download he report or export data.

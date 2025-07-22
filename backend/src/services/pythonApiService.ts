@@ -488,15 +488,15 @@ class PythonApiService {
   ): FormData {
     const formData = new FormData();
     
-    // Add resume file - Python API expects 'resume_file'
-    formData.append('resume_file', resumeFile.buffer, {
+    // Add resume file - Python API expects 'resume'
+    formData.append('resume', resumeFile.buffer, {
       filename: resumeFile.originalname,
       contentType: resumeFile.mimetype,
     });
 
     // Add job description (file or text, not both)
     if (jobDescriptionFile) {
-      formData.append('job_description_file', jobDescriptionFile.buffer, {
+      formData.append('job_description', jobDescriptionFile.buffer, {
         filename: jobDescriptionFile.originalname,
         contentType: jobDescriptionFile.mimetype,
       });
