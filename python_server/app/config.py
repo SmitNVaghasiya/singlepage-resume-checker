@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     @field_validator("allowed_extensions", mode="before")
     @classmethod
     def _validate_allowed_extensions(cls, v):
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return ["pdf", "docx", "txt"]
         if isinstance(v, str):
             return [ext.strip() for ext in v.split(",") if ext.strip()]
         return v
