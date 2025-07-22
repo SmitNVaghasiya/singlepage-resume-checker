@@ -240,47 +240,6 @@ class ResumeController {
         return;
       }
 
-      // Only try Python server if we don't have the data locally
-      if (!status) {
-        try {
-          const pythonStatus = await pythonApiService.checkAnalysisStatus(analysisId);
-          if (pythonStatus.status === 'completed') {
-            // Fetch complete analysis from Python server
-            const fullResult = await pythonApiService.fetchAnalysisResult(analysisId);
-            
-            // Store in cache for future requests
-            await cacheService.setAnalysisResult(analysisId, fullResult);
-            await cacheService.setAnalysisStatus(analysisId, {
-              status: 'completed',
-              progress: 100,
-              completedAt: new Date().toISOString()
-            });
-            
-            // Transform and return result
-            const transformedResult = this.transformResult(fullResult, analysisId);
-            res.json({
-              analysisId,
-              status: 'completed',
-              result: transformedResult,
-              retrievedAt: new Date().toISOString(),
-            });
-            return;
-          } else if (pythonStatus.status === 'processing') {
-            res.json({
-              analysisId,
-              status: 'processing',
-              message: 'Analysis is still in progress'
-            });
-            return;
-          }
-        } catch (pythonError) {
-          logger.warn('Failed to check Python server status:', { 
-            analysisId, 
-            error: extractErrorMessage(pythonError) 
-          });
-        }
-      }
-
       // If we have status but no result, try to fetch from Python server
       if (status?.status === 'completed' && !result) {
         try {

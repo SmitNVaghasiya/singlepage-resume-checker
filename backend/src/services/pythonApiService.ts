@@ -637,64 +637,6 @@ class PythonApiService {
 
   // REMOVED: fetchAnalysisFromDatabase method - no longer needed since we use API calls
 
-  public async checkAnalysisStatus(analysis_id: string): Promise<{ status: string; has_result: boolean }> {
-    try {
-      logger.info('Checking analysis status from Python server API', { analysis_id });
-      
-      // Make API request to Python server to check status
-      const response = await this.client.get(`/status/${analysis_id}`);
-      
-      if (!response.data || !response.data.success) {
-        throw new Error('Failed to check analysis status from Python server');
-      }
-      
-      return {
-        status: response.data.status,
-        has_result: response.data.has_result
-      };
-      
-    } catch (error) {
-      logger.error('Failed to check analysis status from Python server API', { 
-        analysis_id, 
-        error: extractErrorMessage(error) 
-      });
-      throw new Error(`Failed to check analysis status: ${extractErrorMessage(error)}`);
-    }
-  }
-
-  /**
-   * Fetch complete analysis result from Python server via API
-   * This method is called when backend needs the full analysis data
-   */
-  public async fetchAnalysisResult(analysis_id: string): Promise<any> {
-    try {
-      logger.info('Fetching complete analysis result from Python server API', { analysis_id });
-      
-      // Make API request to Python server to get the full analysis
-      const response = await this.client.get(`/result/${analysis_id}`);
-      
-      if (!response.data || !response.data.success) {
-        throw new Error('Failed to fetch analysis result from Python server');
-      }
-
-      // Transform the result to match our schema
-      const transformedResult = PythonResponseTransformer.transform(
-        response.data.analysis_result,
-        undefined, // We don't have file objects here, but transformer can handle it
-        undefined
-      );
-
-      return transformedResult;
-      
-    } catch (error) {
-      logger.error('Failed to fetch analysis result from Python server API', { 
-        analysis_id, 
-        error: extractErrorMessage(error) 
-      });
-      throw new Error(`Failed to fetch analysis result: ${extractErrorMessage(error)}`);
-    }
-  }
-
   public async checkHealth(): Promise<{ healthy: boolean; responseTime?: number; error?: string }> {
     try {
       const startTime = Date.now();

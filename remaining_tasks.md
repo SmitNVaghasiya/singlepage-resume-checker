@@ -1,4 +1,21 @@
 -------  Important tasks.
+# -- I have to change the analysis file code to newly refactored code but there is still issue it is not adding the user id in with the analysis report it generates. I have saved that code in other files so first of all solve this task. **1** -- ✅ Completed.
+  -- Make sure that to ask grok that it will generate the readme file according to all the task it is doing or newly added feature in the current readme file. **1.2**
+
+# -- Make sure that backend totally compatible with the newly refactored python file code. **2**
+#    -- First of find out all the files which are calling the backend for any task and specifically the analysis and make sure that they are properly integrated and connected with the correct Python endpoints.
+#   --- once this task is completed I will do this refactor the current backend just like the python code I have refactored. and make it faster and while keeping the all the functionality and if needed any other improvements or efficiency add it.**2.2** -- ✅ Mostly completed and testing remaining
+# -- Also remove if there are unnecessary files in the backend folder which are not necessary totally. -- ✅ Mostly completed and testing remaining
+
+# -- check how we are fetching the data as this is the process steps.
+#   -- Request analysis with the resume and document through Frontend -> receives and handled here and backend send to python for actual analysis-> This checks for all the conditions and than generates the response and saves to the backend. Now python tells the backend that analysis is completed.
+#   -- When python server sends message request is completed backend will fetch the data from the database and than it will send this data to the Frontend and finally to the user.
+#   -- So if we are fetching the data in the python server there is no need for this. so if there is code for fetching there remove this code. and make sure that after each requests are given by the backend it will receive the response which telling successfully job completed or if not than not completed and all the details backend can ask from the database as we are saving the response if the job is successful and if not we are saving why not or something other but we are definitely saving something so have to check it also if this is happening or not if yes no need to anything except improve or implement totally. **3** -- ✅ Mostly completed and testing remaining.
+ 
+-- Separate the admin module in the backend totally. **4**
+
+
+
 -- Make sure all the edpoints of the python backend are successfully and correctly connceted to the backend as right now backend is calling the wrong points when calling the analysis function.
 
 --- do not show data to every user show data to users only who have done the analysis.As corrrenlty when other user logged in it show all users data there even though user was newly logged in and do not have access to see other user data.

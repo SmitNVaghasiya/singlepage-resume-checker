@@ -457,6 +457,17 @@ class ApiService {
     return response.json();
   }
 
+  async getMyAnalyses(): Promise<any[]> {
+    const response = await fetch(this.getApiUrl('resume/my-analyses'), {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch your analyses');
+    }
+    return response.json();
+  }
+
   // Temporary file methods removed - frontend only approach
 }
 

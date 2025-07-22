@@ -3,10 +3,17 @@ from datetime import datetime, timedelta
 from typing import Dict, Tuple, Optional
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
-from loguru import logger
+import logging
+import os
+import jwt
+
 from app.models import ErrorResponse
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
+SECRET_KEY = os.getenv("JWT_SECRET", "your_jwt_secret")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 class RateLimiter:
     """In-memory rate limiter with daily limits"""
@@ -90,10 +97,8 @@ class RateLimiter:
         
         return True, None
 
-
 # Global rate limiter instance
 rate_limiter = RateLimiter()
-
 
 async def rate_limit_middleware(request: Request, call_next):
     """Rate limiting middleware"""
@@ -127,4 +132,19 @@ async def rate_limit_middleware(request: Request, call_next):
     response.headers["X-RateLimit-Remaining"] = str(rate_limiter.max_requests_per_day - daily_count)
     response.headers["X-RateLimit-Reset"] = str(int(time.time() + 86400 - (time.time() % 86400)))
     
-    return response 
+    return response
+
+def get_current_user_id(request: Request) -> str:
+    """Extract user_id from JWT in Authorization header."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="user_id missing in token")
+        return user_id
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
