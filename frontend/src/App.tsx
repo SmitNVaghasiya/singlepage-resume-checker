@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { AdminProvider, useAdmin } from "./contexts/AdminContext";
 import { Navbar, Footer } from "./components/layout";
@@ -114,50 +108,42 @@ function App() {
   return (
     <AppProvider>
       <AdminProvider>
-        <Router>
-          <ScrollToTop />
-          <div className="app-container">
-            <LayoutWrapper>
-              <main className="main-content">
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<HomePage />} />
-                  <Route
-                    path="/resumechecker"
-                    element={<ResumeCheckerPage />}
-                  />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route
-                    path="/reset-password"
-                    element={<ResetPasswordPage />}
-                  />
+        <ScrollToTop />
+        <div className="app-container">
+          <LayoutWrapper>
+            <main className="main-content">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<HomePage />} />
+                <Route path="/resumechecker" element={<ResumeCheckerPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-                  {/* User Routes - Protected from admin access */}
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route
-                    path="/dashboard/analysis/:id"
-                    element={<AnalysisDetailsPage />}
-                  />
-                  <Route
-                    path="/profile"
-                    element={<ProtectedUserRoute element={<ProfilePage />} />}
-                  />
+                {/* User Routes - Protected from admin access */}
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route
+                  path="/dashboard/analysis/:id"
+                  element={<AnalysisDetailsPage />}
+                />
+                <Route
+                  path="/profile"
+                  element={<ProtectedUserRoute element={<ProfilePage />} />}
+                />
 
-                  {/* Admin Routes */}
-                  <Route
-                    path="/admin/dashboard"
-                    element={<AdminDashboardPage />}
-                  />
+                {/* Admin Routes */}
+                <Route
+                  path="/admin/dashboard"
+                  element={<AdminDashboardPage />}
+                />
 
-                  {/* Error Routes */}
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </main>
-            </LayoutWrapper>
-          </div>
-        </Router>
+                {/* Error Routes */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </main>
+          </LayoutWrapper>
+        </div>
       </AdminProvider>
     </AppProvider>
   );

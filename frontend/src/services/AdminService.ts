@@ -342,6 +342,16 @@ class AdminService {
     this.authToken = null;
     localStorage.removeItem('adminToken');
   }
+
+  isAuthenticated(): boolean {
+    // Checks if adminToken exists in localStorage
+    return !!this.getAuthToken();
+  }
+
+  removeAuthToken(): void {
+    this.authToken = null;
+    localStorage.removeItem('adminToken');
+  }
 }
 
 export const adminService = new AdminService();

@@ -1,5 +1,5 @@
 -------  Important tasks.
--- There is 
+-- Make sure all the edpoints of the python backend are successfully and correctly connceted to the backend as right now backend is calling the wrong points when calling the analysis function.
 
 
 -- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.
