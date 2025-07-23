@@ -65,23 +65,7 @@ async def root():
         "health": "/api/v1/health"
     }
 
-@app.post("/analyze-resume")
-async def analyze_resume_redirect():
-    """Redirect /analyze-resume to /api/v1/analyze for backward compatibility"""
-    return RedirectResponse(url="/api/v1/analyze", status_code=307)
-
-@app.get("/analyze-resume")
-async def analyze_resume_info():
-    """Provide information about the correct endpoint"""
-    return JSONResponse(
-        status_code=200,
-        content={
-            "message": "This endpoint has been moved",
-            "correct_endpoint": "/api/v1/analyze",
-            "method": "POST",
-            "documentation": "/docs"
-        }
-    )
+# Removed problematic redirect endpoints that were causing 500 errors
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):

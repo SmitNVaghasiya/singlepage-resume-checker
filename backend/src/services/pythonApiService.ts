@@ -460,8 +460,7 @@ class PythonApiService {
         throw new Error(`Analysis failed: ${response.message || 'Unknown error'}`);
       }
 
-      // Return only status and analysisId - no need to fetch full result here
-      // Frontend will fetch the complete analysis separately when needed
+      // Return the response as expected by the backend
       return {
         analysisId: response.analysisId,
         status: response.status
@@ -506,10 +505,7 @@ class PythonApiService {
       formData.append('jobDescriptionText', jobDescriptionText); // <-- send the actual text
     }
 
-    // Add user ID if provided
-    if (userId) {
-      formData.append('userId', userId);
-    }
+    // Note: userId is extracted from JWT token by Python server, not needed in form data
 
     return formData;
   }

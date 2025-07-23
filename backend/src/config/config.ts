@@ -33,7 +33,7 @@ export const config: Config = {
 
   // Python API - Optimized for Vercel deployment
   pythonApiUrl: process.env.PYTHON_API_URL || 'https://singlepage-resume-checker.onrender.com',
-  pythonApiTimeout: parseInt(process.env.PYTHON_API_TIMEOUT || '30000', 10),
+  pythonApiTimeout: parseInt(process.env.PYTHON_API_TIMEOUT || '120000', 10), // Increased to 2 minutes
 
   // Security - Optimized for Vercel
   corsOrigin: process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim().replace(/\/$/, '')) || [

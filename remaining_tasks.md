@@ -180,3 +180,8 @@ Free analysis • No signup required • Instant results to the left side
 -- Add the file to keep the code consitencey like use only the camelCase in entier database or something like this based on how we have coded the whole project until now.
 
 -- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it.
+
+
+------------------- 24/07/2025 -------------------
+-- Still backend is calling the resume-analyzer build and also when i last time tried calling the python server it did not responded.
+--
