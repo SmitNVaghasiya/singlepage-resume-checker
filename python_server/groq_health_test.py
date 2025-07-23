@@ -11,8 +11,15 @@
 #     return result 
 
 from groq import Groq
+import os
 
-client = Groq(api_key="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")
+# Use environment variable instead of hardcoded API key
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    print("❌ GROQ_API_KEY environment variable not set")
+    exit(1)
+
+client = Groq(api_key=api_key)
 completion = client.chat.completions.create(
     model="llama3-70b-8192",
     messages=[
