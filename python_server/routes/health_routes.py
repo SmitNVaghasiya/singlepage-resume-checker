@@ -77,7 +77,7 @@ async def health_check():
             "min_job_description_words": settings.min_job_description_words,
             "max_pdf_pages": settings.max_pdf_pages,
             "max_docx_pages": settings.max_docx_pages,
-            "allowed_file_types": settings.allowed_extensions
+            "allowed_file_types": settings.allowed_extensions_list
         }
     }
     

@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Any
+from typing import List, Any, Union
 import os
+import json
 from pydantic import field_validator
 
 class Settings(BaseSettings):
@@ -44,7 +45,7 @@ class Settings(BaseSettings):
     
     # File Processing
     max_file_size: int = 5242880  # 5MB
-    allowed_extensions: List[str] = ["pdf", "docx", "txt"]
+    allowed_extensions: str = "pdf,docx,txt"  # Changed to str to avoid JSON parsing
     
     # Input Validation Limits
     max_resume_words: int = 8000  # Maximum words for resume text
@@ -59,20 +60,55 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     
+    # JWT Configuration
+    jwt_secret: str = os.getenv("JWT_SECRET", "your_jwt_secret")
+    jwt_expires_in: str = os.getenv("JWT_EXPIRES_IN", "30d")
+    
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if isinstance(self.allowed_extensions, str):
-            self.allowed_extensions = [ext.strip() for ext in self.allowed_extensions.split(",")]
+        # Convert allowed_extensions string to list after initialization
+        self._allowed_extensions_list = self._parse_allowed_extensions()
+
+    def _parse_allowed_extensions(self) -> List[str]:
+        """Parse allowed_extensions string into a list"""
+        if not self.allowed_extensions:
+            return ["pdf", "docx", "txt"]
+        
+        # Handle both JSON arrays and comma-separated strings
+        if self.allowed_extensions.startswith('[') and self.allowed_extensions.endswith(']'):
+            try:
+                parsed = json.loads(self.allowed_extensions)
+                if isinstance(parsed, list):
+                    return [ext.strip() for ext in parsed if ext.strip()]
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        # Treat as comma-separated string
+        return [ext.strip() for ext in self.allowed_extensions.split(",") if ext.strip()]
+
+    @property
+    def allowed_extensions_list(self) -> List[str]:
+        """Get allowed_extensions as a list"""
+        return self._allowed_extensions_list
 
     @field_validator("allowed_extensions", mode="before")
     @classmethod
     def _validate_allowed_extensions(cls, v):
+        # Handle None or empty values
         if v is None or (isinstance(v, str) and not v.strip()):
-            return ["pdf", "docx", "txt"]
+            return "pdf,docx,txt"
+        
+        # If it's already a string, return as is
         if isinstance(v, str):
-            return [ext.strip() for ext in v.split(",") if ext.strip()]
-        return v
+            return v.strip()
+        
+        # If it's a list, convert to comma-separated string
+        if isinstance(v, list):
+            return ",".join([str(ext).strip() for ext in v if ext.strip()])
+        
+        # Fallback to default
+        return "pdf,docx,txt"
 
 settings = Settings()

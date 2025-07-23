@@ -15,11 +15,11 @@ class FileProcessor:
     def detect_file_type(file_content: bytes, filename: str) -> str:
         try:
             kind = filetype.guess(file_content)
-            if kind and kind.extension.lower() in settings.allowed_extensions:
+            if kind and kind.extension.lower() in settings.allowed_extensions_list:
                 return kind.extension.lower()
             if filename:
                 extension = filename.lower().split('.')[-1]
-                if extension in settings.allowed_extensions:
+                if extension in settings.allowed_extensions_list:
                     return extension
             return 'unknown'
         except Exception as e:
@@ -181,7 +181,7 @@ class FileProcessor:
             text, success = FileProcessor.extract_text_from_txt(file_content)
             return text, success, file_type if file_type != 'unknown' else 'txt'
         else:
-            return f"Error: Unsupported file type '{file_type}'. Allowed types: {', '.join(settings.allowed_extensions)}.", False, file_type
+            return f"Error: Unsupported file type '{file_type}'. Allowed types: {', '.join(settings.allowed_extensions_list)}.", False, file_type
     
     @staticmethod
     def validate_content(text: str, content_type: str = "document") -> Tuple[bool, str]:

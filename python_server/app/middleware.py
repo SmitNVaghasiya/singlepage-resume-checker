@@ -12,7 +12,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-SECRET_KEY = os.getenv("JWT_SECRET", "your_jwt_secret")
+SECRET_KEY = settings.jwt_secret
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 class RateLimiter:
