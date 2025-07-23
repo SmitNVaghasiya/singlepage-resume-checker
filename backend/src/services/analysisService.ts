@@ -10,7 +10,7 @@ export class AnalysisServiceError extends Error {
   }
 }
 
-// Status enum for better type safety
+// status enum for better type safety
 export enum AnalysisStatus {
   PROCESSING = 'processing',
   COMPLETED = 'completed',

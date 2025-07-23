@@ -164,3 +164,19 @@ Free analysis • No signup required • Instant results to the left side
 # Predictive analytics: No trend predictions
 # Custom reports: No customizable report generation
 # Data visualization: Limited chart/graph capabilities
+
+
+
+
+23/07/2025
+----  Read main readme file and also the api file and readme file in backend server.
+# -- make sure whole backend is connected to the python server correctly. and also check is backend is fetching the data directly from the mongodb when python server sends the response that request is analysed corrected or not. As our functionality is like this we are saving the data directely using the python server and sends the minimal response saying success or failure and than backend fetches the data from the mongodb database directly for this backend do not have to go to the python server for the access of data to make it more robust and put less load on the python server.f this is not the case tell me which are the file not working correctly and give the location for all those file along with small but detailed explaination why it is not doing this or how to solve it or what it is doing and why. -- ✅ this is working correctly.
+
+# -- make sure whole backend is connected to the python server correctly. and also check is backend is fetching the data directly from the mongodb when python server sends the response that request is analysed corrected or not. As our functionality is like this we are saving the data directely using the python server and sends the minimal response saying success or failure and than backend fetches the data from the mongodb database directly for this backend do not have to go to the python server for the access of data to make it more robust and put less load on the python server.
+#   -- now check why we have uncommented this code as i commented this code because this code was conflicting with the explaination i just gave you so why we uncommented can you find out and to do this you can anlyse other folders also. -- ✅ this is working correctly.
+
+-- Test the ui improvement done for the mobile responsiveness.
+
+-- Add the file to keep the code consitencey like use only the camelCase in entier database or something like this based on how we have coded the whole project until now.
+
+-- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it.

@@ -110,8 +110,8 @@ const DashboardPage: React.FC = () => {
         analysis.analyzedAt,
         analysis.createdAt,
         analysis.updatedAt,
-        (analysis as any).created_at,
-        (analysis as any).updated_at,
+        (analysis as any).createdAt,
+        (analysis as any).updatedAt,
       ];
 
       for (const dateField of dateFields) {

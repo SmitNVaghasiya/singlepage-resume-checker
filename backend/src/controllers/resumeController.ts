@@ -85,8 +85,11 @@ class ResumeController {
       // Log analysis request
       this.logAnalysisRequest('pending', resumeFile, jobDescriptionFile, finalJobDescriptionText);
 
+      // Get JWT from request headers
+      const userJwt = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer /, '') : undefined;
+
       // Start async processing and get the Python server's analysis ID
-      const pythonAnalysisId = await this.processAnalysisAsync(resumeFile, jobDescriptionFile, finalJobDescriptionText, (req as any).userId);
+      const pythonAnalysisId = await this.processAnalysisAsync(resumeFile, jobDescriptionFile, finalJobDescriptionText, (req as any).userId, userJwt);
 
       // Return immediate response with the Python server's analysis ID
       res.status(202).json({
@@ -121,21 +124,21 @@ class ResumeController {
       // If not in cache, check Python server directly
       if (!status) {
         try {
-          const pythonStatus = await pythonApiService.checkAnalysisStatus(analysisId);
-          status = {
-            status: pythonStatus.status as 'processing' | 'completed' | 'failed',
-            progress: pythonStatus.status === 'completed' ? 100 : 50,
-            currentStage: pythonStatus.status === 'completed' ? 'Analysis completed' : 'Processing analysis',
-            startedAt: new Date().toISOString(),
-            ...(pythonStatus.status === 'completed' && { completedAt: new Date().toISOString() })
-          };
-          
-          // Cache the status
-          await cacheService.setAnalysisStatus(analysisId, status);
-        } catch (pythonError) {
-          logger.warn('Failed to check Python server status:', { 
-            analysisId, 
-            error: extractErrorMessage(pythonError) 
+          const analysisDoc = await analysisService.getAnalysisByAnalysisId(analysisId);
+          if (analysisDoc) {
+            status = {
+              status: analysisDoc.status as 'processing' | 'completed' | 'failed',
+              progress: analysisDoc.status === 'completed' ? 100 : 50,
+              currentStage: analysisDoc.status === 'completed' ? 'Analysis completed' : 'Processing analysis',
+              startedAt: (analysisDoc as any).startedAt ? new Date((analysisDoc as any).startedAt).toISOString() : new Date().toISOString(),
+              ...(analysisDoc.status === 'completed' && { completedAt: analysisDoc.completedAt ? new Date(analysisDoc.completedAt).toISOString() : new Date().toISOString() })
+            };
+            await cacheService.setAnalysisStatus(analysisId, status);
+          }
+        } catch (dbError) {
+          logger.warn('Failed to check analysis status from MongoDB:', {
+            analysisId,
+            error: extractErrorMessage(dbError)
           });
         }
       }
@@ -240,15 +243,18 @@ class ResumeController {
         return;
       }
 
-      // If we have status but no result, try to fetch from Python server
+      // If we have status but no result, try to fetch from MongoDB
       if (status?.status === 'completed' && !result) {
         try {
-          result = await pythonApiService.fetchAnalysisResult(analysisId);
-          await cacheService.setAnalysisResult(analysisId, result);
+          const analysisDoc = await analysisService.getAnalysisByAnalysisId(analysisId);
+          if (analysisDoc && analysisDoc.result) {
+            result = analysisDoc.result;
+            await cacheService.setAnalysisResult(analysisId, result);
+          }
         } catch (fetchError) {
-          logger.warn('Failed to fetch analysis result from Python server:', { 
-            analysisId, 
-            error: extractErrorMessage(fetchError) 
+          logger.warn('Failed to fetch analysis result from MongoDB:', {
+            analysisId,
+            error: extractErrorMessage(fetchError)
           });
         }
       }
@@ -404,7 +410,8 @@ class ResumeController {
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string,
-    userId?: string
+    userId?: string,
+    userJwt?: string // <-- Add userJwt param
   ): Promise<string> {
     try {
       // Call Python API for analysis first to get the analysis ID
@@ -412,85 +419,66 @@ class ResumeController {
         resumeFile,
         jobDescriptionFile,
         jobDescriptionText,
-        userId
+        userId,
+        userJwt // <-- Pass userJwt
       );
 
-      const pythonAnalysisId = result.analysis_id;
+      const pythonAnalysisId = result.analysisId;
 
-      // Create a record in backend database with Python's analysis ID
-      await this.createInitialAnalysisRecord(pythonAnalysisId, resumeFile, jobDescriptionFile, jobDescriptionText, userId);
-
-      // Update initial status using Python's analysis ID
-      await this.updateAnalysisStatus(pythonAnalysisId, {
-        status: 'processing',
-        startedAt: new Date().toISOString(),
-        progress: 10,
-        currentStage: 'Extracting resume content...',
-      });
-
-      // Update progress - job description analysis
-      await this.updateAnalysisStatus(pythonAnalysisId, {
-        status: 'processing',
-        progress: 25,
-        currentStage: 'Analyzing job requirements...',
-      });
-
-      // Update progress - finalizing
-      await this.updateAnalysisStatus(pythonAnalysisId, {
-        status: 'processing',
-        progress: 90,
-        currentStage: 'Finalizing analysis report...',
-      });
-
-      // Fetch the complete result from Python server
-      try {
-        const fullResult = await pythonApiService.fetchAnalysisResult(pythonAnalysisId);
-        
-        // Store complete result in backend database
-        await analysisService.updateAnalysisResult(pythonAnalysisId, fullResult);
-        
-        // Store in cache for future requests
-        await cacheService.setAnalysisResult(pythonAnalysisId, fullResult);
-        await cacheService.setAnalysisStatus(pythonAnalysisId, {
-          status: 'completed',
-          progress: 100,
-          completedAt: new Date().toISOString()
-        });
-        
-        logger.info('Analysis completed and stored in backend database', {
-          pythonAnalysisId: pythonAnalysisId,
-          status: 'completed'
-        });
-      } catch (fetchError) {
-        logger.warn('Failed to fetch complete result from Python server, storing minimal result:', {
-          pythonAnalysisId: pythonAnalysisId,
-          error: extractErrorMessage(fetchError)
-        });
-        
-        // Store minimal result in cache
-        await cacheService.setAnalysisResult(pythonAnalysisId, {
-          analysis_id: pythonAnalysisId,
-          status: result.status,
-          completedAt: new Date().toISOString()
-        });
+      // DO NOT create or write analysis records in MongoDB here.
+      // Only poll MongoDB for the full result (wait for Python server to write it)
+      const maxWaitMs = 15000; // 15 seconds max
+      const pollIntervalMs = 1000; // 1 second
+      let waited = 0;
+      let fullResult = null;
+      while (waited < maxWaitMs) {
+        const analysisDoc = await analysisService.getAnalysisByAnalysisId(pythonAnalysisId);
+        if (analysisDoc && analysisDoc.result && Object.keys(analysisDoc.result).length > 3) { // Heuristic: more than minimal keys
+          fullResult = analysisDoc.result;
+          break;
+        }
+        await new Promise(res => setTimeout(res, pollIntervalMs));
+        waited += pollIntervalMs;
       }
 
-      // Complete analysis
-      await this.completeAnalysis(pythonAnalysisId, { status: result.status });
+      if (!fullResult) {
+        // Mark as failed in cache and log error (do not update DB)
+        await cacheService.setAnalysisStatus(pythonAnalysisId, {
+          status: 'failed',
+          currentStage: 'Failed to fetch full analysis report from database',
+          progress: 0,
+          startedAt: new Date().toISOString(),
+        });
+        logger.error('Failed to fetch full analysis report from MongoDB after Python completion', {
+          pythonAnalysisId
+        });
+        throw new Error('Full analysis report not found in database after waiting');
+      }
+
+      // Store complete result in cache for future requests
+      await cacheService.setAnalysisResult(pythonAnalysisId, fullResult);
+      await cacheService.setAnalysisStatus(pythonAnalysisId, {
+        status: 'completed',
+        progress: 100,
+        completedAt: new Date().toISOString()
+      });
+
+      logger.info('Analysis completed and available in backend cache', {
+        pythonAnalysisId: pythonAnalysisId,
+        status: 'completed'
+      });
+
+      // No DB write for analysis report here
 
       // Log the Python server's analysis ID for reference
       logger.info('Analysis completed with Python server analysis ID', {
         pythonAnalysisId: pythonAnalysisId,
-        status: result.status
+        status: 'completed'
       });
 
       return pythonAnalysisId;
 
     } catch (error) {
-      // If we have a Python analysis ID, update it to failed status
-      if (error && typeof error === 'object' && 'analysis_id' in error) {
-        await this.handleAnalysisError((error as any).analysis_id, error);
-      }
       throw error; // Re-throw to be caught by the caller
     }
   }

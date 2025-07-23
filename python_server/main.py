@@ -13,9 +13,12 @@ from app.middleware import rate_limit_middleware
 from app.models import ErrorResponse
 
 logging.basicConfig(
-    level=getattr(logging, settings.log_level, logging.INFO),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO,  # or settings.log_level
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
+logging.getLogger().setLevel(logging.INFO)
+logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+logging.getLogger("uvicorn.error").setLevel(logging.INFO)
 logging.getLogger("pymongo").setLevel(logging.WARNING)
 logging.getLogger("motor").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)

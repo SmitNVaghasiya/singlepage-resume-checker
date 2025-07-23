@@ -6,6 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 import logging
+import asyncio
 
 from app.file_processor import extract_text_from_file, FileProcessor
 from app.groq_service import GroqService
@@ -18,41 +19,40 @@ router = APIRouter(tags=["analysis"])
 logger = logging.getLogger(__name__)
 
 async def perform_analysis(
-    analysis_id: str,
+    analysisId: str,
     resume_text: str,
-    job_description_text: str,
-    user_id: str,
-    resume_filename: str,
-    job_description_filename: Optional[str]
+    # jobDescriptionFilename: str,
+    userId: str,
+    resumeFilename: str,
+    jobDescriptionFilename: Optional[str]
 ):
     start_time = time.time()
     groq_service = GroqService()
-    analysis_result = groq_service.analyze_resume(resume_text, job_description_text)
+    result = groq_service.analyze_resume(resume_text, jobDescriptionFilename)
     
-    if analysis_result.get("security_validation") == "Failed":
-        security_error = analysis_result.get("security_error", "Security threat detected")
+    if result.get("security_validation") == "Failed":
+        security_error = result.get("security_error", "Security threat detected")
         logger.warning(f"AI detected security threat: {security_error}")
-        await update_analysis(analysis_id, {"status": "failed", "error": security_error})
+        await update_analysis(analysisId, {"status": "failed", "error": security_error})
         return
     
-    if analysis_result.get("job_description_validity") == "Invalid":
-        validation_error = analysis_result.get("validation_error", "Invalid job description")
+    if result.get("job_description_validity") == "Invalid":
+        validation_error = result.get("validation_error", "Invalid job description")
         logger.warning(f"Job description invalid: {validation_error}")
-        await update_analysis(analysis_id, {"status": "failed", "error": validation_error})
+        await update_analysis(analysisId, {"status": "failed", "error": validation_error})
         return
     
-    processing_time = time.time() - start_time
+    processingTime = time.time() - start_time
     analysis_doc = AnalysisDocument(
-        analysis_id=analysis_id,
-        user_id=user_id,
-        resume_filename=resume_filename,
-        job_description_filename=job_description_filename,
-        job_description_text=job_description_text if not job_description_filename else None,
-        analysis_result=ResumeAnalysisResponse(**analysis_result),
+        analysisId=analysisId,
+        userId=userId,
+        resumeFilename=resumeFilename,
+        jobDescriptionFilename=jobDescriptionFilename,
+        result=ResumeAnalysisResponse(**result),
         status="completed",
-        processing_time=processing_time,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        processingTime=processingTime,
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow()
     )
     await save_analysis(analysis_doc)
 
@@ -60,8 +60,9 @@ async def perform_analysis(
 async def analyze_resume(
     resume: UploadFile = File(..., description="Resume file (PDF/DOCX/TXT)"),
     job_description: Optional[UploadFile] = File(None, description="Job description file"),
-    job_description_text: Optional[str] = Form(None, description="Job description raw text"),
-    user_id: str = Depends(get_current_user_id),
+    jobDescriptionFilename: Optional[str] = Form(None, description="Job description filename"),
+    jobDescriptionText: Optional[str] = Form(None, description="Job description raw text"),
+    userId: str = Depends(get_current_user_id),
 ):
     """
     Analyze resume against job description (file or raw text).
@@ -81,9 +82,9 @@ async def analyze_resume(
     - Resume tokens: Maximum 8000 words
     - Daily requests: 15 per IP address
     """
-    if not job_description and not job_description_text:
+    if not job_description and not jobDescriptionText:
         raise HTTPException(status_code=400, detail="Either job_description file or text must be provided")
-    if job_description and job_description_text:
+    if job_description and jobDescriptionText:
         raise HTTPException(status_code=400, detail="Provide either job_description file OR text, not both")
     
     resume_text = await extract_text_from_file(resume)
@@ -92,84 +93,49 @@ async def analyze_resume(
         raise HTTPException(status_code=400, detail=resume_msg)
     
     job_description_text_final = ""
-    job_description_filename = None
+    jobDescriptionFilename = None
+    
     if job_description:
+        # Process job description file
         job_desc_text = await extract_text_from_file(job_description)
         job_desc_valid, job_desc_msg = FileProcessor.validate_job_description_content(job_desc_text)
         if not job_desc_valid:
             raise HTTPException(status_code=400, detail=job_desc_msg)
         job_description_text_final = job_desc_text
-        job_description_filename = job_description.filename
+        jobDescriptionFilename = job_description.filename
     else:
-        job_description_text_final = job_description_text.strip()
+        # Process job description text
+        if not jobDescriptionText or not jobDescriptionText.strip():
+            raise HTTPException(status_code=400, detail="Job description text cannot be empty")
+        job_description_text_final = jobDescriptionText.strip()
         job_desc_valid, job_desc_msg = FileProcessor.validate_job_description_content(job_description_text_final)
         if not job_desc_valid:
             raise HTTPException(status_code=400, detail=job_desc_msg)
     
-    analysis_id = str(uuid4())
+    analysisId = str(uuid4())
+    groq_service = GroqService()
+    result = await asyncio.to_thread(
+        groq_service.analyze_resume, resume_text, job_description_text_final
+    )
+    if not result:
+        raise HTTPException(status_code=500, detail="AI analysis failed, no result returned")
+    
+    # Save the analysis result
     analysis_doc = AnalysisDocument(
-        analysis_id=analysis_id,
-        user_id=user_id,
-        resume_filename=resume.filename,
-        job_description_filename=job_description_filename,
-        job_description_text=job_description_text if not job_description_filename else None,
-        analysis_result=None,
-        status="pending",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        analysisId=analysisId,
+        userId=userId,
+        resumeFilename=resume.filename,
+        jobDescriptionFilename=jobDescriptionFilename,
+        jobDescriptionText=jobDescriptionText if not job_description else None,
+        result=ResumeAnalysisResponse(**result),
+        status="completed",
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow()
     )
     await save_analysis(analysis_doc)
-    
-    perform_analysis(
-        analysis_id,
-        resume_text,
-        job_description_text_final,
-        user_id,
-        resume.filename,
-        job_description_filename
-    )
-    
     return AnalysisStatus(
-        analysis_id=analysis_id,
-        status="pending",
-        message="Analysis is being processed",
-        progress=0
+        analysisId=analysisId,
+        status="completed",
+        message="Analysis completed successfully",
+        progress=100
     )
-
-# @router.get("/status/{analysis_id}", response_model=AnalysisStatus)
-# async def get_analysis_status(analysis_id: str, user_id: str = Depends(get_current_user_id)):
-#     """Get analysis status by analysis ID, only if owned by current user"""
-#     analysis_doc = await get_analysis_by_id(analysis_id)
-#     if not analysis_doc:
-#         raise HTTPException(status_code=404, detail=f"Analysis with ID {analysis_id} not found")
-#     if analysis_doc.user_id != user_id:
-#         raise HTTPException(status_code=403, detail="You do not have access to this analysis.")
-#     return AnalysisStatus(
-#         analysis_id=analysis_id,
-#         status=analysis_doc.status,
-#         message=f"Analysis is {analysis_doc.status}",
-#         progress=100 if analysis_doc.status == "completed" else 0,
-#         result=analysis_doc.analysis_result if analysis_doc.status == "completed" else None
-#     )
-
-# @router.get("/result/{analysis_id}", response_model=Union[ResumeAnalysisResponse, ErrorResponse])
-# async def get_analysis_result(analysis_id: str, user_id: str = Depends(get_current_user_id)):
-#     """Get complete analysis result by analysis ID, only if owned by current user"""
-#     analysis_doc = await get_analysis_by_id(analysis_id)
-#     if not analysis_doc:
-#         raise HTTPException(status_code=404, detail=f"Analysis with ID {analysis_id} not found")
-#     if analysis_doc.user_id != user_id:
-#         raise HTTPException(status_code=403, detail="You do not have access to this analysis.")
-#     if analysis_doc.status != "completed":
-#         raise HTTPException(status_code=400, detail=f"Analysis with ID {analysis_id} is not completed (status: {analysis_doc.status})")
-#     return analysis_doc.analysis_result
-
-# @router.get("/my-analyses", response_model=List[AnalysisDocument])
-# async def get_my_analyses(user_id: str = Depends(get_current_user_id)):
-#     """Get all analyses for the authenticated user"""
-#     try:
-#         analyses = await get_analyses_by_user_id(user_id)
-#         return analyses
-#     except Exception as e:
-#         logger.error(f"Error fetching analyses for user {user_id}: {str(e)}")
-#         raise HTTPException(status_code=500, detail="Failed to fetch analyses")

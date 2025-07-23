@@ -29,29 +29,38 @@
 
 ## 🏗️ System Architecture
 
-The project follows a **microservices architecture** with three main components:
+The project follows a **microservices architecture** with three main components and a decoupled, async data flow:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │  Python AI      │
-│   (React/TS)    │◄──►│   (Node.js)     │◄──►│   Server        │
-│                 │    │                 │    │   (FastAPI)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │   MongoDB       │
-                    │   Database      │
-                    └─────────────────┘
+┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+│   Frontend    │    │   Backend     │    │  Python AI    │
+│ (React/TS)    │◄──►│ (Node.js/TS)  │◄──►│  Server       │
+│               │    │ (Express)     │    │ (FastAPI)     │
+└───────────────┘    └───────────────┘    └───────────────┘
+        │                    │                    │
+        └────────────────────┼────────────────────┘
+                             │
+                ┌─────────────────────┐
+                │      MongoDB        │
+                │ (Python server owns │
+                │   analysis data)    │
+                └─────────────────────┘
 ```
+
+**Data Flow:**
+
+- The **frontend** collects resume and job description (file or text) and sends them to the **backend**.
+- The **backend** validates/authenticates, then forwards the files/text (with user JWT) to the **Python AI server**.
+- The **Python server** performs AI analysis, stores results in MongoDB, and returns an analysis ID/status.
+- The **backend** polls MongoDB (owned by Python server) for analysis results and returns them to the frontend.
+- The **backend does not write analysis results directly**; it only reads them after the Python server completes analysis.
 
 ### Technology Stack
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
 - **Backend**: Node.js, Express, TypeScript, JWT Authentication
 - **AI Server**: Python, FastAPI, Groq AI Integration
-- **Database**: MongoDB with Mongoose ODM
+- **Database**: MongoDB (owned by Python server, accessed read-only by backend)
 - **File Processing**: PDF, DOCX, TXT support
 
 ## 💾 Data Storage & Privacy
@@ -244,6 +253,13 @@ We implement a **soft delete approach** for user accounts to ensure data preserv
 
 ## 🔧 Backend Modules
 
+### Backend Role in Analysis (Post-Refactor)
+
+- The backend acts as a **proxy/manager** for analysis requests.
+- It authenticates users, validates files, and forwards requests to the Python server (with user JWT).
+- **It does not write analysis results to the database**; it only reads results after the Python server stores them.
+- The backend polls MongoDB (owned by the Python server) for completed analysis results and returns them to the frontend.
+
 ### 1. Authentication Controller (`/backend/src/controllers/authController.ts`)
 
 **Purpose**: Handle all authentication-related operations
@@ -302,38 +318,103 @@ We implement a **soft delete approach** for user accounts to ensure data preserv
 
 ### Purpose
 
-The Python server handles the core AI/ML analysis using Groq AI for natural language processing and resume analysis.
+The Python server handles the core AI/ML analysis using Groq AI for natural language processing and resume analysis. It is a fully async, secure, and robust microservice, responsible for all analysis logic and result storage.
 
-### Key Components
+### Key Features (Post-Refactor)
 
-#### 1. Analysis Engine (`/python_server/app/groq_service.py`)
+- **Advanced AI Analysis**: Uses Groq's LLaMA3 model for deep, structured resume analysis
+- **Multi-format Support**: Handles PDF, DOCX, and TXT files with fallback extraction
+- **AI-Powered Validation**: Validates job descriptions and resumes for content, security, and professionalism
+- **Comprehensive Response Schema**: Returns detailed, section-wise feedback, scores, and recommendations
+- **Strict Input Validation**: Enforces file size, page count, and word count limits
+- **Async Processing**: All major operations are async for performance
+- **Database Integration**: MongoDB async integration for storing analysis results
+- **Rate Limiting**: In-memory, per-IP daily request limits (default: 15)
+- **JWT Authentication**: All analysis endpoints require a valid JWT (userId claim)
+- **RESTful API**: FastAPI-based with automatic docs and error handling
+- **Enhanced Security**: AI-based security validation, prompt injection protection, and input sanitization
 
-- **Groq AI Integration**: Advanced language model for analysis
-- **Resume Parsing**: Extract structured data from resumes
-- **Job Description Analysis**: Process and understand job requirements
-- **Matching Algorithm**: Intelligent skill and keyword matching
+### Main Endpoints
 
-#### 2. File Processing (`/python_server/app/file_processor.py`)
+- `POST /api/v1/analyze` — Analyze a resume against a job description (file or text)
+- `GET /api/v1/status/{analysisId}` — Get status of an analysis (auth required)
+- `GET /api/v1/result/{analysisId}` — Get full analysis result (auth required)
+- `GET /api/v1/my-analyses` — List all analyses for the authenticated user
+- `GET /api/v1/health` — Health check (service, DB, AI, rate limit stats)
 
-- **PDF Processing**: Extract text from PDF files
-- **DOCX Processing**: Handle Word documents
-- **Text Extraction**: OCR for image-based documents
-- **Format Validation**: Ensure file compatibility
+**All endpoints (except health/docs) require JWT Bearer token.**
 
-#### 3. Database Integration (`/python_server/app/database.py`)
+### Validation & Limits
 
-- **MongoDB Connection**: Store analysis results
-- **Data Models**: Pydantic models for data validation
-- **Analysis Storage**: Save complete analysis data
+- **File size:** Max 5MB
+- **PDF/DOCX pages:** Max 7
+- **Resume tokens:** Max 8000 words
+- **Job description:** 50–1000 words
+- **Allowed file types:** pdf, docx, txt
+- **Rate limit:** 15 requests per IP per day (configurable)
 
-### Analysis Features
+### Security
 
-- **Keyword Matching**: Identify relevant keywords
-- **Skill Analysis**: Technical, soft, and industry skills
-- **Experience Assessment**: Years of experience analysis
-- **Resume Quality**: Formatting and content evaluation
-- **Competitive Analysis**: Market positioning insights
-- **Improvement Recommendations**: Actionable feedback
+- **AI-based validation**: All content is checked for prompt injection, malicious input, and professionalism
+- **Strict schema enforcement**: All responses match a detailed JSON schema
+- **JWT authentication**: All analysis endpoints require a valid JWT
+- **Error handling**: Detailed, user-friendly error messages
+
+### Example Response Schema
+
+```json
+{
+  "job_description_validity": "Valid",
+  "resume_validity": "Valid",
+  "resume_eligibility": "Eligible",
+  "score_out_of_100": 77,
+  "short_conclusion": "Candidate is a promising fit for the role with some room for polish.",
+  "chance_of_selection_percentage": 70,
+  "resume_improvement_priority": [
+    "Add TensorFlow or PyTorch experience to resume",
+    "Fix grammar and formatting issues",
+    "Add GitHub links to projects",
+    "Include specific technical details in AI/ML projects"
+  ],
+  "overall_fit_summary": "Resume shows strong Python foundation and genuine AI/ML interest with practical projects, but lacks explicit mention of deep learning frameworks (TensorFlow/PyTorch) and detailed technical implementation metrics in existing AI projects.",
+  "resume_analysis_report": {
+    /* ... see python_server/response_schema.json ... */
+  }
+}
+```
+
+### Project Structure
+
+```
+python_server/
+├── main.py                 # FastAPI app (init, middleware, error handling)
+├── app/
+│   ├── models.py           # Pydantic models (response, DB)
+│   ├── file_processor.py   # File handling, validation
+│   ├── groq_service.py     # AI service integration
+│   ├── config.py           # Config, validation limits
+│   ├── database.py         # DB operations
+│   └── middleware.py       # Rate limiting, JWT extraction
+├── routes/
+│   ├── analysis_routes.py  # Analysis endpoints
+│   └── health_routes.py    # Health endpoints
+├── requirements.txt        # Dependencies
+├── response_schema.json    # Example response schema
+├── sample_response.json    # Example response
+└── README.md               # Python server docs
+```
+
+### Environment Variables
+
+- `GROQ_API_KEY`: Groq API key (required)
+- `GROQ_MODEL`: AI model (default: llama3-8b-8192)
+- `MONGODB_URL`: MongoDB connection string (required)
+- `MONGODB_DATABASE`: MongoDB database name (default: resume_analyzer)
+- `MONGODB_COLLECTION`: MongoDB collection name (default: analyses)
+- `CORS_ORIGINS`: Allowed CORS origins (comma-separated)
+- `MAX_REQUESTS_PER_DAY`: Daily rate limit per IP (default: 15)
+- `JWT_SECRET`: JWT secret for authentication
+- `JWT_EXPIRES_IN`: JWT expiration (default: 30d)
 
 ## 🗄️ Database Design
 
@@ -387,28 +468,38 @@ The Python server handles the core AI/ML analysis using Groq AI for natural lang
 
 ## 🔌 API Documentation
 
-### Authentication Endpoints
+### Authentication Endpoints (Backend)
 
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/profile` - Update profile
-- `PUT /api/auth/password` - Change password
-- `DELETE /api/auth/account` - Delete account (soft delete)
-- `GET /api/auth/export` - Export user data
+- `POST /api/auth/register` — User registration
+- `POST /api/auth/login` — User login
+- `POST /api/auth/logout` — User logout
+- `GET /api/auth/me` — Get current user
+- `PUT /api/auth/profile` — Update profile
+- `PUT /api/auth/password` — Change password
+- `DELETE /api/auth/account` — Delete account (soft delete)
+- `GET /api/auth/export` — Export user data
 
-### Analysis Endpoints
+### Analysis Endpoints (Backend)
 
-- `POST /api/analysis/create` - Create new analysis
-- `GET /api/analysis/:id` - Get analysis results
-- `GET /api/analysis/user/:userId` - Get user analyses
-- `PUT /api/analysis/:id` - Update analysis
+- `POST /api/resume/analyze` — Analyze resume (requires auth)
+- `GET /api/resume/status/:analysisId` — Get analysis status
+- `GET /api/resume/result/:analysisId` — Get analysis result
+- `GET /api/resume/history` — Get analysis history
 
-### Resume Endpoints
+### Python AI Server Endpoints
 
-- `POST /api/resume/upload` - Upload resume file
-- `POST /api/resume/process` - Process resume text
+- `POST /api/v1/analyze` — Analyze resume (file or text, JWT required)
+- `GET /api/v1/status/{analysisId}` — Get analysis status (JWT required)
+- `GET /api/v1/result/{analysisId}` — Get analysis result (JWT required)
+- `GET /api/v1/my-analyses` — List all analyses for user (JWT required)
+- `GET /api/v1/health` — Health check
+
+### Validation & Security
+
+- **All analysis endpoints require JWT authentication**
+- **Strict input validation**: file size, type, page/word count
+- **AI-based security**: prompt injection protection, content validation
+- **Rate limiting**: 15 requests per IP per day (configurable)
 
 ## 🔒 Security Features
 
@@ -439,23 +530,22 @@ The Python server handles the core AI/ML analysis using Groq AI for natural lang
 ### Environment Variables
 
 ```bash
-# Database
+# Backend
 MONGODB_URL=mongodb://localhost:27017/resume_checker
-
-# JWT
 JWT_SECRET=your_jwt_secret_key
-
-# Email
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_email_password
-
-# Frontend
 FRONTEND_URL=http://localhost:5173
+PYTHON_API_URL=http://localhost:8000
+PYTHON_API_TIMEOUT=120000
 
 # Python Server
-PYTHON_SERVER_URL=http://localhost:8000
+GROQ_API_KEY=your_actual_groq_api_key_here
+GROQ_MODEL=llama3-8b-8192
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=resume_analyzer
+MONGODB_COLLECTION=analyses
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=30d
 ```
 
 ### Development Setup
@@ -480,24 +570,24 @@ PYTHON_SERVER_URL=http://localhost:8000
    cd ../python_server && pip install -r requirements.txt
    ```
 
-3. **Start Services**
+3. **Start Services (in order)**
 
    ```bash
-   # Frontend (Port 5173)
-   cd frontend && npm run dev
-
-   # Backend (Port 3000)
-   cd backend && npm run dev
-
    # Python Server (Port 8000)
    cd python_server && python main.py
+
+   # Backend (Port 3000)
+   cd ../backend && npm run dev
+
+   # Frontend (Port 5173)
+   cd ../frontend && npm run dev
    ```
 
 ### Production Deployment
 
 - **Frontend**: Vercel, Netlify, or AWS S3
 - **Backend**: AWS EC2, Heroku, or DigitalOcean
-- **Python Server**: AWS Lambda, Google Cloud Functions
+- **Python Server**: Render, AWS Lambda, Google Cloud Functions
 - **Database**: MongoDB Atlas or AWS DocumentDB
 
 ## 📊 Business Intelligence

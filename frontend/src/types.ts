@@ -79,7 +79,7 @@ export interface ResumeAnalysisReport {
 export interface AnalysisResult {
   // Basic analysis fields
   job_description_validity: string;
-  job_description_text?: string;
+  jobDescriptionFilename?: string;
   resume_eligibility: string;
   score_out_of_100: number;
   short_conclusion: string;

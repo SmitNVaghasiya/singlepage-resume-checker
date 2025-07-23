@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { AdminProvider, useAdmin } from "./contexts/AdminContext";
-import { Navbar, Footer } from "./components/layout";
+import { Navbar, Footer, MobileNavbar } from "./components/layout";
 import { ScrollToTop } from "./components/ui";
 import HomePage from "./pages/HomePage";
 import ResumeCheckerPage from "./pages/ResumeCheckerPage";
@@ -82,22 +82,38 @@ const ProtectedUserRoute: React.FC<{ element: React.ReactElement }> = ({
   return element;
 };
 
+// Custom hook to detect mobile device
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = React.useState(
+    typeof window !== "undefined" ? window.innerWidth <= breakpoint : false
+  );
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= breakpoint);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // Layout Wrapper Component
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const isMobile = useIsMobile();
 
   if (isAdminRoute) {
     // For admin routes, render without navbar and footer
     return <>{children}</>;
   }
 
-  // For regular routes, render with navbar and footer
+  // For regular routes, render with responsive navbar and footer
   return (
     <>
-      <Navbar />
+      {isMobile ? <MobileNavbar /> : <Navbar />}
       {children}
       <Footer />
     </>

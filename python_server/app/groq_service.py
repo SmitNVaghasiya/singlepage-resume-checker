@@ -19,6 +19,12 @@ class GroqService:
     
     def __init__(self):
         """Initialize the Groq service with API key and configuration"""
+        # Log what is loaded from settings and env
+        logger.info(f"GROQ_API_KEY from settings: {getattr(settings, 'groq_api_key', None)}")
+        logger.info(f"GROQ_API_KEY from os.environ: {os.getenv('GROQ_API_KEY')}")
+        logger.info(f"GROQ_MODEL from settings: {getattr(settings, 'groq_model', None)}")
+        logger.info(f"GROQ_MODEL from os.environ: {os.getenv('GROQ_MODEL')}")
+        # Use fallback if settings.groq_api_key is empty string
         self.api_key = settings.groq_api_key or os.getenv("GROQ_API_KEY")
         if not self.api_key:
             raise ValueError("GROQ_API_KEY environment variable is required")

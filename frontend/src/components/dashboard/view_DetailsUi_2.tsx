@@ -56,9 +56,8 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
 
       // Handle both response structures:
       // 1. Expected: response.result (AnalysisResult)
-      // 2. Actual: response.result.analysis_result (nested structure)
-      const analysisData =
-        (response.result as any).analysis_result || response.result;
+      // 2. Actual: response.result.result (nested structure)
+      const analysisData = (response.result as any).result || response.result;
       setData(analysisData);
     } catch (err) {
       console.error("Error fetching analysis data:", err);
@@ -255,7 +254,7 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
               <p>{data.resume_analysis_report.candidate_information.name}</p>
             </div>
             <div className="info-item">
-              <h4>Current Status</h4>
+              <h4>Current status</h4>
               <p>
                 {
                   data.resume_analysis_report.candidate_information
@@ -638,7 +637,7 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
         <Card title="Final Assessment" icon={CheckCircle}>
           <div className="space-y-4">
             <div className="section-feedback-item">
-              <h4>Eligibility Status</h4>
+              <h4>Eligibility status</h4>
               <div
                 className={`eligibility-badge ${getEligibilityColor(
                   data.resume_analysis_report.final_assessment

@@ -92,7 +92,7 @@ describe('AnalysisService Validation', () => {
     });
   });
 
-  describe('Status Enum Usage', () => {
+  describe('status Enum Usage', () => {
     it('should use correct status enum values', () => {
       expect(AnalysisStatus.PROCESSING).toBe('processing');
       expect(AnalysisStatus.COMPLETED).toBe('completed');

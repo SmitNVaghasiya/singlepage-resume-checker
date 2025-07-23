@@ -53,11 +53,19 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       });
       return;
     }
-    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
-    
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload & { userId?: string };
+    // Support both userId and userId for compatibility
+    const userId = decoded.userId || (decoded as any).userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid token payload: userId missing'
+      });
+      return;
+    }
     // Check if user still exists with timeout
     const user = await Promise.race([
-      User.findById(decoded.userId).exec(),
+      User.findById(userId).exec(),
       new Promise<null>((_resolve, reject) => 
         setTimeout(() => reject(new Error('Database operation timeout')), 5000)
       )
@@ -81,7 +89,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     }
 
     // Attach user info to request
-    req.userId = decoded.userId;
+    req.userId = userId;
     req.user = user;
 
     next();

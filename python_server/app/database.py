@@ -36,6 +36,13 @@ async def save_analysis(analysis_doc: AnalysisDocument) -> str:
         collection = await get_collection()
         doc_dict = analysis_doc.dict(by_alias=True, exclude_unset=True)
         doc_dict.pop('_id', None)
+        # Ensure both 'analysisId' and 'analysisId' are set for MongoDB compatibility
+        if 'analysisId' in doc_dict:
+            doc_dict['analysisId'] = doc_dict['analysisId']
+        elif 'analysisId' in doc_dict:
+            doc_dict['analysisId'] = doc_dict['analysisId']
+        else:
+            raise ValueError("AnalysisDocument must have 'analysisId' or 'analysisId' set.")
         result = await collection.insert_one(doc_dict)
         logger.info(f"✅ Analysis saved with ID: {result.inserted_id}")
         return str(result.inserted_id)
@@ -43,10 +50,10 @@ async def save_analysis(analysis_doc: AnalysisDocument) -> str:
         logger.error(f"❌ Failed to save analysis: {e}")
         raise
 
-async def get_analysis_by_id(analysis_id: str) -> Optional[AnalysisDocument]:
+async def get_analysis_by_id(analysisId: str) -> Optional[AnalysisDocument]:
     try:
         collection = await get_collection()
-        doc = await collection.find_one({"analysis_id": analysis_id})
+        doc = await collection.find_one({"analysisId": analysisId})
         if doc:
             doc['_id'] = str(doc['_id'])
             return AnalysisDocument(**doc)
@@ -55,19 +62,19 @@ async def get_analysis_by_id(analysis_id: str) -> Optional[AnalysisDocument]:
         logger.error(f"❌ Failed to get analysis: {e}")
         raise
 
-async def update_analysis(analysis_id: str, update_data: dict) -> bool:
+async def update_analysis(analysisId: str, update_data: dict) -> bool:
     try:
         collection = await get_collection()
-        result = await collection.update_one({"analysis_id": analysis_id}, {"$set": update_data})
+        result = await collection.update_one({"analysisId": analysisId}, {"$set": update_data})
         return result.modified_count > 0
     except Exception as e:
         logger.error(f"❌ Failed to update analysis: {e}")
         raise
 
-async def delete_analysis(analysis_id: str) -> bool:
+async def delete_analysis(analysisId: str) -> bool:
     try:
         collection = await get_collection()
-        result = await collection.delete_one({"analysis_id": analysis_id})
+        result = await collection.delete_one({"analysisId": analysisId})
         return result.deleted_count > 0
     except Exception as e:
         logger.error(f"❌ Failed to delete analysis: {e}")
@@ -87,11 +94,11 @@ async def check_mongo_health() -> dict:
     except Exception as e:
         return {"status": "error", "error": str(e)}
     
-async def get_analyses_by_user_id(user_id: str) -> list:
-    """Get all analyses for a specific user_id"""
+async def get_analyses_by_user_id(userId: str) -> list:
+    """Get all analyses for a specific userId"""
     try:
         collection = await get_collection()
-        cursor = collection.find({"user_id": user_id})
+        cursor = collection.find({"userId": userId})
         analyses = []
         async for doc in cursor:
             if '_id' in doc:
@@ -99,5 +106,5 @@ async def get_analyses_by_user_id(user_id: str) -> list:
             analyses.append(AnalysisDocument(**doc))
         return analyses
     except Exception as e:
-        logger.error(f"❌ Failed to get analyses for user_id {user_id}: {e}")
+        logger.error(f"❌ Failed to get analyses for userId {userId}: {e}")
         raise 

@@ -426,8 +426,9 @@ class PythonApiService {
     resumeFile: Express.Multer.File,
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string,
-    userId?: string
-  ): Promise<{ analysis_id: string; status: string }> {
+    userId?: string,
+    userJwt?: string // <-- Add userJwt param
+  ): Promise<{ analysisId: string; status: string }> {
     const requestId = this.generateRequestId();
     const startTime = Date.now();
     
@@ -443,26 +444,26 @@ class PythonApiService {
       const formData = this.buildFormData(resumeFile, jobDescriptionFile, jobDescriptionText, userId);
       
       // Make request to Python API
-      const response = await this.makeRequestWithRetry('/analyze', formData);
+      const response = await this.makeRequestWithRetry('/api/v1/analyze', formData, userJwt); // <-- Pass userJwt
       
       const responseTime = Date.now() - startTime;
       
       logger.info('Python API analysis completed', {
         requestId,
         responseTime,
-        analysis_id: response.analysis_id,
+        analysisId: response.analysisId,
         status: response.status
       });
 
       // Check if analysis was successful
-      if (!response.success || response.status !== 'completed') {
+      if (response.status !== 'completed') {
         throw new Error(`Analysis failed: ${response.message || 'Unknown error'}`);
       }
 
-      // Return only status and analysis_id - no need to fetch full result here
+      // Return only status and analysisId - no need to fetch full result here
       // Frontend will fetch the complete analysis separately when needed
       return {
-        analysis_id: response.analysis_id,
+        analysisId: response.analysisId,
         status: response.status
       };
 
@@ -501,12 +502,13 @@ class PythonApiService {
         contentType: jobDescriptionFile.mimetype,
       });
     } else if (jobDescriptionText) {
-      formData.append('job_description_text', jobDescriptionText);
+      formData.append('jobDescriptionFilename', 'text_input.txt'); // <-- send filename for text input
+      formData.append('jobDescriptionText', jobDescriptionText); // <-- send the actual text
     }
 
     // Add user ID if provided
     if (userId) {
-      formData.append('user_id', userId);
+      formData.append('userId', userId);
     }
 
     return formData;
@@ -514,7 +516,8 @@ class PythonApiService {
 
   private async makeRequestWithRetry(
     endpoint: string, 
-    formData: FormData
+    formData: FormData,
+    userJwt?: string // <-- Add userJwt param
   ): Promise<any> { // Changed return type to any as PythonApiResponse is not directly returned here
     let lastError: AxiosError;
     
@@ -523,6 +526,7 @@ class PythonApiService {
         const response = await this.client.post(endpoint, formData, {
           headers: {
             ...(formData as any).getHeaders(),
+            ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}), // <-- Set Authorization header
           },
         });
         

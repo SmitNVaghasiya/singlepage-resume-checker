@@ -114,7 +114,7 @@ curl -X POST http://localhost:5000/api/auth/login \
   "success": true,
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
-    "id": "user_id",
+    "id": "userId",
     "username": "newuser",
     "email": "user@example.com"
   }
@@ -232,13 +232,13 @@ curl -X POST http://localhost:5000/api/resume/analyze \
 }
 ```
 
-### Get Analysis Status
+### Get Analysis status
 
 ```bash
 curl -X GET http://localhost:5000/api/resume/analysis/analysis_12345/status
 ```
 
-**Alternative Status Endpoint:**
+**Alternative status Endpoint:**
 
 ```bash
 curl -X GET http://localhost:5000/api/resume/status/analysis_12345
@@ -410,7 +410,7 @@ curl -X GET http://localhost:5000/api/admin/users/user_12345 \
   -H "Authorization: Bearer ADMIN_JWT_TOKEN"
 ```
 
-### Update User Status
+### Update User status
 
 ```bash
 curl -X PUT http://localhost:5000/api/admin/users/user_12345/status \

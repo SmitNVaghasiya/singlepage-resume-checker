@@ -3,6 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 
+# NOTE: All model, API, and database fields use camelCase. Do NOT use snake_case for any new fields.
 class CandidateInformation(BaseModel):
     name: str = Field(..., description="Candidate's full name")
     position_applied: str = Field(..., description="Position the candidate is applying for")
@@ -87,16 +88,16 @@ class ErrorResponse(BaseModel):
 
 class AnalysisDocument(BaseModel):
     id: Optional[str] = Field(None, alias="_id", description="MongoDB document ID")
-    analysis_id: str = Field(..., description="Unique analysis ID")
-    user_id: Optional[str] = Field(None, description="User ID if authenticated")
-    resume_filename: str = Field(..., description="Original resume filename")
-    job_description_filename: Optional[str] = Field(None, description="Job description filename")
-    job_description_text: Optional[str] = Field(None, description="Job description text")
-    analysis_result: ResumeAnalysisResponse = Field(..., description="Analysis result")
+    analysisId: str = Field(..., description="Unique analysis ID")
+    userId: Optional[str] = Field(None, description="User ID if authenticated")
+    resumeFilename: str = Field(..., description="Original resume filename")
+    jobDescriptionFilename: Optional[str] = Field(None, description="Job description filename")
+    jobDescriptionText: Optional[str] = Field(None, description="Job description text")
+    result: Optional[ResumeAnalysisResponse] = Field(None, description="Analysis result")
     status: str = Field(default="completed", description="Analysis status")
-    processing_time: Optional[float] = Field(None, description="Processing time in seconds")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+    processingTime: Optional[float] = Field(None, description="Processing time in seconds")
+    createdAt: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    updatedAt: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
     model_config = {
         "validate_by_name": True,
@@ -104,19 +105,19 @@ class AnalysisDocument(BaseModel):
         "json_encoders": {ObjectId: str},
         "json_schema_extra": {
             "example": {
-                "analysis_id": "uuid-string",
-                "user_id": "user-123",
-                "resume_filename": "resume.pdf",
-                "job_description_filename": "job_desc.pdf",
+                "analysisId": "uuid-string",
+                "userId": "user-123",
+                "resumeFilename": "resume.pdf",
+                "jobDescriptionFilename": "job_desc.pdf",
                 "status": "completed",
-                "created_at": "2024-01-01T00:00:00Z"
+                "createdAt": "2024-01-01T00:00:00Z"
             }
         }
     }
 
 class AnalysisStatus(BaseModel):
-    analysis_id: str = Field(..., description="Unique analysis ID")
+    analysisId: str = Field(..., description="Unique analysis ID")
     status: str = Field(..., description="Current status")
-    message: str = Field(..., description="Status message")
+    message: str = Field(..., description="status message")
     progress: Optional[int] = Field(None, description="Progress percentage")
     result: Optional[ResumeAnalysisResponse] = Field(None, description="Analysis result if completed")

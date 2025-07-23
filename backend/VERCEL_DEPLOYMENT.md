@@ -251,7 +251,7 @@ vercel --prod --force
 
 - Documentation: https://vercel.com/docs
 - Community: https://github.com/vercel/vercel/discussions
-- Status: https://vercel-status.com
+- status: https://vercel-status.com
 
 ### **Backend-Specific Issues**
 

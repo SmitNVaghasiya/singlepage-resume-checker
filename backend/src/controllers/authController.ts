@@ -21,7 +21,7 @@ const generateOTP = (): string => {
 const generateToken = (userId: string): string => {
   const secret: Secret = process.env.JWT_SECRET || 'fallback-secret';
   const options: SignOptions = { expiresIn: process.env.JWT_EXPIRES_IN as any || '7d' };
-  return jwt.sign({ userId }, secret, options);
+  return jwt.sign({ userId: userId }, secret, options);
 };
 
 // Send OTP for email verification

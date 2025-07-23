@@ -1,26 +1,40 @@
 # AI Resume Analyzer Python Server
 
-A sophisticated AI-powered resume analysis system using Groq's LLaMA model. This application provides comprehensive resume evaluation against job descriptions with detailed feedback and improvement suggestions.
+A robust, modular, and secure AI-powered resume analysis system using Groq's LLaMA model. This application provides comprehensive resume evaluation against job descriptions, with detailed feedback, actionable recommendations, and strong validation and security features.
+
+## 🔑 Authentication
+
+- **All analysis requests require authentication.**
+- Include a valid JWT Bearer token in the `Authorization` header for every `/api/v1/analyze` request.
+- The token must contain a `userId` claim.
+- If the token is missing or invalid, the server will return a 401 Unauthorized error and will not process the analysis.
+
+**Example header:**
+
+```
+Authorization: Bearer <your_jwt_token>
+```
 
 ## 🌟 Features
 
-- **Advanced AI Analysis**: Uses Groq's llama3-70b-8192 model for deep resume analysis
+- **Advanced AI Analysis**: Uses Groq's LLaMA3 model (default: llama3-8b-8192) for deep resume analysis
 - **Multi-format Support**: Handles PDF, DOCX, and TXT files with intelligent fallback processing
 - **Job Description Validation**: AI-powered validation to ensure proper job descriptions
-- **Comprehensive Response Validation**: Multi-layer validation ensures AI responses match exact schema requirements
-- **Database Integration**: MongoDB integration for storing analysis results
+- **Comprehensive Response Validation**: Multi-layer validation ensures AI responses match strict schema requirements
+- **Database Integration**: MongoDB async integration for storing analysis results
 - **Detailed Feedback**: Provides scores, strengths, weaknesses, and actionable recommendations
 - **RESTful API**: FastAPI-based with automatic documentation and error handling
 - **Rate Limiting**: In-memory rate limiting with daily request limits
 - **Input Validation**: Comprehensive file size, page count, and content length validation
 - **Enhanced Security**: AI-based security validation and input sanitization
+- **Async Processing**: All major operations are async for performance
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- MongoDB (optional, for storing analysis results)
+- MongoDB (for storing analysis results)
 - Groq API key (get it from [Groq Console](https://console.groq.com/))
 
 ### Setup
@@ -54,9 +68,13 @@ A sophisticated AI-powered resume analysis system using Groq's LLaMA model. This
 
    ```
    GROQ_API_KEY=your_actual_groq_api_key_here
-   GROQ_MODEL=llama3-70b-8192
+   GROQ_MODEL=llama3-8b-8192
    MONGODB_URL=mongodb://localhost:27017
    MONGODB_DATABASE=resume_analyzer
+   MONGODB_COLLECTION=analyses
+   CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+   JWT_SECRET=your_jwt_secret
+   JWT_EXPIRES_IN=30d
    ```
 
 5. **Run the application**
@@ -71,18 +89,25 @@ A sophisticated AI-powered resume analysis system using Groq's LLaMA model. This
 
 ## 📡 API Endpoints
 
+> **For full API reference and integration details, see [API.md](./API.md).**
+
 ### 1. Analyze Resume
 
 **POST** `/api/v1/analyze`
 
 Comprehensively analyze a resume against a job description.
 
+**Authentication Required:**
+
+- You must include a valid JWT Bearer token in the `Authorization` header for this endpoint. Requests without authentication will be rejected.
+
 **Parameters:**
 
 - `resume` (file): Resume file (PDF, DOCX, or TXT)
 - `job_description` (file, optional): Job description file
-- `job_description_text` (string, optional): Job description as text
-- `user_id` (string, optional): User ID if authenticated
+- `jobDescriptionFilename` (string, optional): Filename for job description (used when providing text input)
+- `jobDescriptionText` (string, optional): Raw job description text content
+- **Note:** You must provide either a job description file OR both filename and text, not both.
 
 **Limits:**
 
@@ -92,37 +117,42 @@ Comprehensively analyze a resume against a job description.
 - Resume tokens: Maximum 8000 words
 - Daily requests: 15 per IP address
 
-**Example:**
+**Example (with file):**
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/analyze" \
+  -H "Authorization: Bearer <token>" \
   -F "resume=@resume.pdf" \
-  -F "job_description_text=Software Engineer position requiring Python, FastAPI, and AI/ML experience..."
+  -F "job_description=@job_description.pdf"
 ```
 
-### 2. Get Analysis Status
+**Example (with text):**
 
-**GET** `/api/v1/status/{analysis_id}`
+```bash
+curl -X POST "http://localhost:8000/api/v1/analyze" \
+  -H "Authorization: Bearer <token>" \
+  -F "resume=@resume.pdf" \
+  -F "jobDescriptionFilename=job_description.txt" \
+  -F "jobDescriptionText=Software Engineer position requiring Python, FastAPI, and AI/ML experience..."
+```
 
-Get the status of an analysis by ID.
+**Response:**
 
-### 3. Get Analysis Result
+- Returns a minimal response with `analysisId` and status (success/failure).
+- **To get the full analysis result, your backend must fetch it directly from MongoDB using the `analysisId`.**
+- The Python server does **not** provide endpoints for fetching analysis status or results.
 
-**GET** `/api/v1/result/{analysis_id}`
-
-Get the complete analysis result by ID.
-
-### 4. Health Check
+### 2. Health Check
 
 **GET** `/api/v1/health`
 
-Comprehensive health check including service status, rate limiting stats, and system information.
+Comprehensive health check including service status, rate limiting stats, system, and environment information.
 
 **GET** `/api/v1/health/simple`
 
 Simple health check for load balancers and monitoring.
 
-### 5. API Documentation
+### 3. API Documentation
 
 - **Interactive Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
@@ -132,7 +162,7 @@ Simple health check for load balancers and monitoring.
 ### Rate Limiting
 
 - **Daily Limits**: 15 requests per IP address per day (configurable)
-- **Rate Limit Headers**: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+- **Rate Limit Stats**: Exposed in `/api/v1/health` endpoint
 - **Exempt Endpoints**: Health checks and documentation are not rate limited
 
 ### Input Validation
@@ -151,118 +181,24 @@ Simple health check for load balancers and monitoring.
 
 ## 📋 Response Format
 
+See [`response_schema.json`](./response_schema.json) for the full schema. Example response:
+
 ```json
 {
   "job_description_validity": "Valid",
+  "resume_validity": "Valid",
   "resume_eligibility": "Eligible",
   "score_out_of_100": 77,
   "short_conclusion": "Candidate is a promising fit for the role with some room for polish.",
   "chance_of_selection_percentage": 70,
   "resume_improvement_priority": [
-    "Add specific technical frameworks mentioned in job description",
-    "Fix formatting and grammar issues",
-    "Include quantifiable achievements",
-    "Add GitHub links to showcase projects"
+    "Add TensorFlow or PyTorch experience to resume",
+    "Fix grammar and formatting issues",
+    "Add GitHub links to projects",
+    "Include specific technical details in AI/ML projects"
   ],
-  "overall_fit_summary": "Resume shows strong technical foundation with practical experience, but needs enhancement in specific areas mentioned in job requirements.",
-  "resume_analysis_report": {
-    "candidate_information": {
-      "name": "Candidate Name",
-      "position_applied": "Software Engineer",
-      "experience_level": "Entry Level",
-      "current_status": "Recent Graduate"
-    },
-    "strengths_analysis": {
-      "technical_skills": [
-        "Strong programming foundation",
-        "Relevant project experience"
-      ],
-      "project_portfolio": [
-        "Diverse project portfolio",
-        "Real-world problem solving"
-      ],
-      "educational_background": [
-        "Relevant academic background",
-        "Strong theoretical foundation"
-      ]
-    },
-    "weaknesses_analysis": {
-      "critical_gaps_against_job_description": [
-        "Missing specific framework experience",
-        "Limited professional experience"
-      ],
-      "technical_deficiencies": ["Needs improvement in advanced concepts"],
-      "resume_presentation_issues": [
-        "Formatting inconsistencies",
-        "Missing quantifiable achievements"
-      ],
-      "soft_skills_gaps": ["Communication skills not highlighted"],
-      "missing_essential_elements": [
-        "No GitHub profile",
-        "Missing certifications"
-      ]
-    },
-    "section_wise_detailed_feedback": {
-      "contact_information": {
-        "current_state": "Complete contact information provided",
-        "strengths": ["Professional email", "LinkedIn profile included"],
-        "improvements": ["Add GitHub profile", "Include portfolio website"]
-      },
-      "profile_summary": {
-        "current_state": "Brief overview of skills and interests",
-        "strengths": ["Shows technical focus", "Demonstrates passion"],
-        "improvements": [
-          "Add quantifiable achievements",
-          "Include specific technologies"
-        ]
-      }
-      // ... detailed feedback for all resume sections
-    },
-    "improvement_recommendations": {
-      "immediate_resume_additions": [
-        "Add missing technical skills",
-        "Include GitHub links"
-      ],
-      "immediate_priority_actions": [
-        "Fix formatting issues",
-        "Add quantifiable results"
-      ],
-      "short_term_development_goals": [
-        "Learn required frameworks",
-        "Build portfolio"
-      ],
-      "medium_term_objectives": [
-        "Gain professional experience",
-        "Obtain certifications"
-      ]
-    },
-    "soft_skills_enhancement_suggestions": {
-      "communication_skills": [
-        "Add presentation experience",
-        "Include technical writing"
-      ],
-      "teamwork_and_collaboration": [
-        "Highlight group projects",
-        "Show collaboration"
-      ],
-      "leadership_and_initiative": [
-        "Document leadership roles",
-        "Show initiative"
-      ],
-      "problem_solving_approach": ["Describe problem-solving methodology"]
-    },
-    "final_assessment": {
-      "eligibility_status": "Qualified with Development Needs",
-      "hiring_recommendation": "Recommend for interview focusing on potential and learning ability",
-      "key_interview_areas": [
-        "Technical skills",
-        "Learning agility",
-        "Communication"
-      ],
-      "onboarding_requirements": ["Mentorship program", "Technical training"],
-      "long_term_potential": "High potential for growth with proper guidance"
-    }
-  }
+  "overall_fit_summary": "Resume shows strong Python foundation and genuine AI/ML interest with practical projects, but lacks explicit mention of deep learning frameworks (TensorFlow/PyTorch) and detailed technical implementation metrics in existing AI projects.",
+  "resume_analysis_report": { ... }
 }
 ```
 
@@ -271,10 +207,14 @@ Simple health check for load balancers and monitoring.
 ### Environment Variables
 
 - `GROQ_API_KEY`: Your Groq API key (required)
-- `GROQ_MODEL`: AI model to use (default: llama3-70b-8192)
-- `MONGODB_URL`: MongoDB connection string (optional)
+- `GROQ_MODEL`: AI model to use (default: llama3-8b-8192)
+- `MONGODB_URL`: MongoDB connection string (required)
 - `MONGODB_DATABASE`: MongoDB database name (default: resume_analyzer)
+- `MONGODB_COLLECTION`: MongoDB collection name (default: analyses)
+- `CORS_ORIGINS`: Allowed CORS origins (comma-separated)
 - `MAX_REQUESTS_PER_DAY`: Daily rate limit per IP (default: 15)
+- `JWT_SECRET`: JWT secret for authentication (required for user endpoints)
+- `JWT_EXPIRES_IN`: JWT expiration (default: 30d)
 
 ### Validation Limits
 
@@ -290,7 +230,7 @@ Simple health check for load balancers and monitoring.
 
 1. Start server: `python main.py`
 2. Visit: http://localhost:8000/docs
-3. Use interactive documentation to test endpoints
+3. Use interactive documentation to test endpoints (ensure you provide a valid Authorization header)
 
 ### Automated Testing
 
@@ -314,19 +254,34 @@ This will test:
 ```python
 import requests
 
-# Analyze resume
+# Analyze resume with file upload
+with open('resume.pdf', 'rb') as resume_file:
+    with open('job_description.pdf', 'rb') as job_desc_file:
+        response = requests.post(
+            'http://localhost:8000/api/v1/analyze',
+            headers={'Authorization': 'Bearer <token>'},
+            files={
+                'resume': resume_file,
+                'job_description': job_desc_file
+            }
+        )
+
+# Analyze resume with text input
 with open('resume.pdf', 'rb') as resume_file:
     response = requests.post(
         'http://localhost:8000/api/v1/analyze',
+        headers={'Authorization': 'Bearer <token>'},
         files={'resume': resume_file},
-        data={'job_description_text': 'Python developer position requiring FastAPI, AI/ML experience...'}
+        data={
+            'jobDescriptionFilename': 'job_description.txt',
+            'jobDescriptionText': 'Python developer position requiring FastAPI, AI/ML experience...'
+        }
     )
 
     if response.status_code == 200:
         result = response.json()
-        print(f"Score: {result['score_out_of_100']}")
-        print(f"Eligibility: {result['resume_eligibility']}")
-        print(f"Key Improvements: {result['resume_improvement_priority']}")
+        print(f"Analysis ID: {result['analysisId']}")
+        # Fetch the full analysis result directly from MongoDB using analysisId
     else:
         print(f"Error: {response.json()}")
 ```
@@ -334,21 +289,29 @@ with open('resume.pdf', 'rb') as resume_file:
 ### JavaScript Example
 
 ```javascript
+// With file upload
 const formData = new FormData();
 formData.append("resume", resumeFile);
-formData.append("job_description_text", jobDescriptionText);
+formData.append("job_description", jobDescriptionFile);
+
+// With text input
+const formData = new FormData();
+formData.append("resume", resumeFile);
+formData.append("jobDescriptionFilename", "job_description.txt");
+formData.append("jobDescriptionText", jobDescriptionText);
 
 fetch("http://localhost:8000/api/v1/analyze", {
   method: "POST",
+  headers: { Authorization: "Bearer <token>" },
   body: formData,
 })
   .then((response) => response.json())
   .then((data) => {
-    if (data.job_description_validity === "Valid") {
-      console.log("Analysis:", data);
-      console.log("Score:", data.score_out_of_100);
+    if (data.analysisId) {
+      console.log("Analysis ID:", data.analysisId);
+      // Fetch the full analysis result directly from MongoDB using analysisId
     } else {
-      console.log("Invalid job description");
+      console.log("Error:", data);
     }
   })
   .catch((error) => console.error("Error:", error));
@@ -358,39 +321,32 @@ fetch("http://localhost:8000/api/v1/analyze", {
 
 ### Common Issues
 
-1. **"GROQ_API_KEY environment variable is required"**
-
+1. **"Missing or invalid Authorization header" / "Invalid token"**
+   - All analysis requests require a valid JWT Bearer token in the Authorization header.
+   - Ensure your token is present, valid, and contains a `userId` claim.
+   - The server will not process analysis for unauthenticated users.
+2. **"GROQ_API_KEY environment variable is required"**
    - Ensure `.env` file exists with proper API key
    - Verify API key is not placeholder text
-
-2. **"Rate limit exceeded"**
-
+3. **"Rate limit exceeded"**
    - Daily limit of 15 requests per IP reached
    - Wait until tomorrow or contact support for increased limits
-
-3. **"File too large"**
-
+4. **"File too large"**
    - Reduce file size to under 5MB
    - Compress PDF or reduce image quality
-
-4. **"Job description too short/long"**
-
+5. **"Job description too short/long"**
    - Ensure job description is between 50-1000 words
    - Add more details or trim content as needed
-
-5. **"Failed to extract text from PDF"**
-
+6. **"Failed to extract text from PDF"**
    - PDF might be image-based or corrupted
    - Try different PDF processing tool or convert to text
-
-6. **"Job description validation failed"**
-
+7. **"Job description validation failed"**
    - Ensure job description contains actual job-related content
    - Avoid personal messages or non-professional text
 
 ### Debug Mode
 
-Enable detailed logging by setting log level to DEBUG in the code.
+Enable detailed logging by setting log level to DEBUG in the code or via environment variable.
 
 ### Health Check
 
@@ -400,22 +356,22 @@ Visit `/api/v1/health` endpoint to verify all services are running correctly.
 
 ```
 python_server/
-├── main.py                 # FastAPI application (clean, focused on initialization)
+├── main.py                 # FastAPI application (initialization, middleware, error handling)
 ├── app/
-│   ├── models.py          # Pydantic models (defines response schema)
+│   ├── models.py          # Pydantic models (response schema, DB models)
 │   ├── file_processor.py  # File handling utilities with validation
 │   ├── groq_service.py    # AI service integration
 │   ├── config.py          # Configuration settings with validation limits
 │   ├── database.py        # Database operations
-│   └── middleware.py      # Rate limiting middleware
+│   └── middleware.py      # Rate limiting, user extraction
 ├── routes/
-│   ├── analysis_routes.py # Analysis endpoints with validation
-│   └── health_routes.py   # Enhanced health check endpoints
-├── requirements.txt       # Dependencies including psutil
+│   ├── analysis_routes.py # Analysis endpoint
+│   └── health_routes.py   # Health check endpoints
+├── requirements.txt       # Dependencies
 ├── test_improvements.py   # Test script for new features
 ├── response_schema.json   # Example response schema
 ├── sample_response.json   # Example response
-└── README.md             # This file
+└── README.md              # This file
 ```
 
 ## 🔒 Security Features

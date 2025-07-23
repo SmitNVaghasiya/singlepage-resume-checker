@@ -596,7 +596,7 @@ const AdminDashboardPage: React.FC = () => {
                     },
                   ]}
                   type="pie"
-                  title="Analysis Status Distribution"
+                  title="Analysis status Distribution"
                   height={200}
                 />
               </div>
@@ -650,7 +650,7 @@ const AdminDashboardPage: React.FC = () => {
                     onChange={(e) => handleStatusFilterChange(e.target.value)}
                     className="status-filter"
                   >
-                    <option value="">All Status</option>
+                    <option value="">All status</option>
                     <option value="active">Active</option>
                     <option value="suspended">Suspended</option>
                     <option value="deleted">Deleted</option>
@@ -713,7 +713,7 @@ const AdminDashboardPage: React.FC = () => {
                       </th>
                       <th>User</th>
                       <th>Email</th>
-                      <th>Status</th>
+                      <th>status</th>
                       <th>Analyses</th>
                       <th>Joined</th>
                       <th>Actions</th>
@@ -792,7 +792,7 @@ const AdminDashboardPage: React.FC = () => {
                     onChange={(e) => handleStatusFilterChange(e.target.value)}
                     className="status-filter"
                   >
-                    <option value="">All Status</option>
+                    <option value="">All status</option>
                     <option value="completed">Completed</option>
                     <option value="processing">Processing</option>
                     <option value="failed">Failed</option>
@@ -815,7 +815,7 @@ const AdminDashboardPage: React.FC = () => {
                       <th>User</th>
                       <th>Job Title</th>
                       <th>Industry</th>
-                      <th>Status</th>
+                      <th>status</th>
                       <th>Score</th>
                       <th>Created</th>
                       <th>Actions</th>
@@ -904,7 +904,7 @@ const AdminDashboardPage: React.FC = () => {
                     },
                   ]}
                   type="pie"
-                  title="User Status Distribution"
+                  title="User status Distribution"
                   height={180}
                 />
 

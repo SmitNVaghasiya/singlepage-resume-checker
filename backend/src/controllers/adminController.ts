@@ -85,7 +85,7 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
     }
 
     const token = jwt.sign(
-      { adminId: admin._id },
+      { userId: admin._id },
       config.jwtSecret,
       { expiresIn: '24h' }
     );

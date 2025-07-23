@@ -6,11 +6,16 @@ from fastapi.responses import JSONResponse
 import logging
 import os
 import jwt
+from jwt.exceptions import InvalidTokenError
 
 from app.models import ErrorResponse
 from app.config import settings
 
-logger = logging.getLogger(__name__)
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+logger = logging.getLogger()  # Use the root logger for all middleware logs
+logger = logging.getLogger("uvicorn.access")
 
 SECRET_KEY = settings.jwt_secret
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -135,16 +140,16 @@ async def rate_limit_middleware(request: Request, call_next):
     return response
 
 def get_current_user_id(request: Request) -> str:
-    """Extract user_id from JWT in Authorization header."""
+    """Extract userId from JWT in Authorization header."""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
     token = auth_header.split(" ", 1)[1]
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="user_id missing in token")
-        return user_id
-    except jwt.PyJWTError:
+        userId = payload.get("userId")
+        if not userId:
+            raise HTTPException(status_code=401, detail="userId missing in token")
+        return userId
+    except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")

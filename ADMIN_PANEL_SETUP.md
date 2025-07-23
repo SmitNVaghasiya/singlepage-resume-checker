@@ -83,7 +83,7 @@ The admin panel provides comprehensive monitoring and management capabilities fo
 **Analysis Dashboard Updates:**
 
 - Removed Analysis ID column for cleaner interface
-- Focused on essential information: User, Resume, Status, Score, Created, Actions
+- Focused on essential information: User, Resume, status, Score, Created, Actions
 - Improved readability and user experience
 - Technical details hidden from admin view while maintaining functionality
 
@@ -185,7 +185,7 @@ The dashboard provides:
 
 ### 5. System Health
 
-- **Monitor Status**: Check system health
+- **Monitor status**: Check system health
 - **View Metrics**: CPU, memory, and database usage
 - **Track Performance**: System response times
 - **Error Logs**: View system errors and warnings

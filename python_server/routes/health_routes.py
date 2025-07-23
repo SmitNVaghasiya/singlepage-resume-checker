@@ -72,7 +72,7 @@ async def health_check():
         "rate_limiting": rate_limit_stats,
         "validation_limits": {
             "max_file_size_mb": settings.max_file_size / (1024 * 1024),
-            "max_resume_tokens": settings.max_resume_tokens,
+            "max_resume_tokens": settings.max_resume_words,
             "max_job_description_words": settings.max_job_description_words,
             "min_job_description_words": settings.min_job_description_words,
             "max_pdf_pages": settings.max_pdf_pages,
