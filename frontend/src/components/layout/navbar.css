@@ -495,62 +495,147 @@
   color: #e2e8f0;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Enhanced Mobile Responsive Design */
+@media (max-width: 1024px) {
   .navbar-container {
-    padding: 0 1rem;
+    padding: 0 1.5rem;
   }
 
-  .navbar-logo-text {
-    display: none;
-  }
-
-  .auth-buttons {
-    gap: 0.5rem;
-  }
-
-  .navbar-auth-btn {
-    padding: 0.5rem 0.875rem;
-    font-size: 0.875rem;
-  }
-
-  .navbar-auth-btn span {
-    display: none;
-  }
-
-  .user-name {
-    display: none;
-  }
-
-  .navbar-user-btn {
-    padding: 0.5rem;
-  }
-
-  .admin-name {
-    display: none;
-  }
-
-  .admin-badge {
-    display: none;
-  }
-
-  .navbar-admin-btn {
-    padding: 0.5rem;
-  }
-
-  .navbar-link {
-    padding: 0.5rem 0.875rem;
-    font-size: 0.875rem;
-  }
-}
-
-@media (max-width: 640px) {
   .navbar-nav {
     gap: 0.25rem;
   }
 
+  .navbar-link {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .navbar-actions {
+    gap: 1rem;
+    margin-left: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-link, .navbar-auth-btn, .navbar-user-btn, .navbar-admin-btn, .navbar-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: clamp(0.95rem, 3vw, 1.1rem);
+    padding: 0.75rem 1rem;
+  }
+  .navbar-logo-text {
+    display: none;
+  }
+  .navbar-nav {
+    display: none;
+  }
+  .navbar-actions {
+    gap: 0.75rem;
+    margin-left: 0;
+  }
+  .user-name, .admin-name, .admin-badge {
+    display: none;
+  }
+  .user-menu, .admin-menu {
+    right: 0;
+    min-width: 12rem;
+    max-width: 90vw;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar-container {
+    padding: 0 0.75rem;
+    height: 3.75rem;
+  }
+
   .navbar-actions {
     gap: 0.5rem;
-    margin-left: 0.5rem;
+  }
+
+  .navbar-auth-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .navbar-icon-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .navbar-icon-btn svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  /* Ensure menus don't go off-screen */
+  .user-menu,
+  .admin-menu {
+    right: -1rem;
+    min-width: 10rem;
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-container {
+    padding: 0 0.5rem;
+    height: 3.5rem;
+  }
+
+  .navbar-actions {
+    gap: 0.375rem;
+  }
+
+  .navbar-auth-btn {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  .navbar-icon-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .navbar-icon-btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* Adjust menu positioning for very small screens */
+  .user-menu,
+  .admin-menu {
+    right: -0.5rem;
+    min-width: 8rem;
+  }
+}
+
+/* Animation for dropdown menus */
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .navbar-link,
+  .navbar-auth-btn,
+  .navbar-user-btn,
+  .navbar-admin-btn,
+  .navbar-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .user-menu-item,
+  .admin-menu-item {
+    min-height: 48px;
+    padding: 1rem 1.25rem;
   }
 }

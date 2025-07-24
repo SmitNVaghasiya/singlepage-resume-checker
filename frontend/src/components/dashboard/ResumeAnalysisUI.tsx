@@ -22,6 +22,7 @@ import { AnalysisResult } from "../../types";
 import { apiService } from "../../services/api";
 import { useAppContext } from "../../contexts/AppContext";
 import "./ResumeAnalysisUI.css";
+import FeedbackForm from "../feedback/FeedbackForm";
 
 interface ResumeAnalysisUIProps {
   analysisId: string;
@@ -538,6 +539,8 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     { id: "improvements", label: "Improvements", icon: TrendingUp },
     { id: "skills", label: "Skills Enhancement", icon: Users },
     { id: "assessment", label: "Final Assessment", icon: Award },
+    // Add Feedback tab
+    { id: "feedback", label: "Feedback", icon: Star },
   ];
 
   if (loading) {
@@ -622,6 +625,12 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           {activeTab === "improvements" && renderImprovements()}
           {activeTab === "skills" && renderSkillsEnhancement()}
           {activeTab === "assessment" && renderFinalAssessment()}
+          {/* Feedback Tab */}
+          {activeTab === "feedback" && analysisId && (
+            <div style={{ maxWidth: 600, margin: "0 auto" }}>
+              <FeedbackForm analysisId={analysisId} />
+            </div>
+          )}
         </div>
       </div>
     </div>

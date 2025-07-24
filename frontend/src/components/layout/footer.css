@@ -81,6 +81,9 @@
   margin-bottom: 1rem;
   line-height: 1.5;
   font-size: 0.9375rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 /* Social Links */
@@ -117,6 +120,8 @@
   font-weight: 600;
   margin-bottom: 1rem;
   color: white;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .footer-links {
@@ -134,6 +139,11 @@
   position: relative;
   padding-left: 0;
   font-size: 0.875rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  min-height: 44px;
+  align-items: center;
 }
 
 .footer-link:hover {
@@ -146,6 +156,7 @@
   height: 0.625rem;
   opacity: 0;
   transition: opacity 0.2s;
+  flex-shrink: 0;
 }
 
 .footer-link:hover .footer-link-icon {
@@ -161,6 +172,9 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .footer-link.disabled:hover {
@@ -186,6 +200,10 @@
   gap: 0.5rem;
   color: #94a3b8;
   font-size: 0.875rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  min-height: 44px;
 }
 
 .footer-contact-icon {
@@ -209,6 +227,9 @@
 .footer-contact-link {
   color: #94a3b8;
   transition: color 0.2s;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .footer-contact-link:hover {
@@ -235,17 +256,24 @@
 .footer-copyright {
   color: #94a3b8;
   font-size: 0.8125rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .footer-bottom-links {
   display: flex;
   gap: 1rem;
   font-size: 0.8125rem;
+  flex-wrap: wrap;
 }
 
 .footer-bottom-link {
   color: #94a3b8;
   transition: color 0.2s;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .footer-bottom-link:hover {
@@ -265,4 +293,264 @@
 .footer-bottom-link.disabled:hover {
   color: #94a3b8;
   cursor: not-allowed;
+}
+
+/* Enhanced Mobile Responsive Design */
+@media (max-width: 1024px) {
+  .footer-container {
+    padding: 2rem 0 1.25rem;
+  }
+
+  .footer-main {
+    gap: 2rem;
+  }
+
+  .footer-section-title {
+    font-size: 1.1rem;
+  }
+
+  .footer-links {
+    gap: 0.75rem;
+  }
+
+  .footer-link,
+  .footer-link.disabled {
+    font-size: 0.9375rem;
+    min-height: 48px;
+  }
+
+  .footer-contact-item {
+    font-size: 0.9375rem;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-container {
+    padding: 1.75rem 0 1rem;
+  }
+
+  .footer-main {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding: 0 1rem;
+  }
+
+  .footer-section-title {
+    font-size: 1.2rem;
+    margin-bottom: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .footer-links {
+    gap: 1rem;
+  }
+
+  .footer-link,
+  .footer-link.disabled {
+    font-size: 1rem;
+    padding: 0.75rem 0;
+    min-height: 52px;
+  }
+
+  .footer-social {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .footer-social-link {
+    padding: 0.5rem;
+    font-size: 1.125rem;
+    border-radius: 0.5rem;
+  }
+
+  .footer-contact-list {
+    gap: 1rem;
+  }
+
+  .footer-contact-item {
+    font-size: 1rem;
+    min-height: 52px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem 1rem 1rem;
+    border-top: 2px solid #1e293b;
+    background: linear-gradient(180deg, #0f172a 80%, #1e293b 100%);
+  }
+
+  .footer-bottom-links {
+    gap: 1.25rem;
+    font-size: 0.9375rem;
+    justify-content: center;
+  }
+
+  .footer {
+    border-top-left-radius: 1.5rem;
+    border-top-right-radius: 1.5rem;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
+@media (max-width: 640px) {
+  .footer-container {
+    padding: 1.5rem 0 0.75rem;
+  }
+
+  .footer-main {
+    gap: 3rem;
+    padding: 0 0.75rem;
+  }
+
+  .footer-section-title {
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .footer-links {
+    gap: 1.25rem;
+  }
+
+  .footer-link,
+  .footer-link.disabled {
+    font-size: 1.1rem;
+    padding: 1rem 0;
+    min-height: 56px;
+  }
+
+  .footer-social {
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .footer-social-link {
+    padding: 0.75rem;
+    font-size: 1.25rem;
+    border-radius: 0.75rem;
+  }
+
+  .footer-contact-list {
+    gap: 1.25rem;
+  }
+
+  .footer-contact-item {
+    font-size: 1.1rem;
+    min-height: 56px;
+  }
+
+  .footer-bottom {
+    gap: 1.5rem;
+    padding: 1.5rem 0.75rem 1rem;
+  }
+
+  .footer-bottom-links {
+    gap: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .footer-copyright {
+    font-size: 0.9375rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-container {
+    padding: 1.25rem 0 0.5rem;
+  }
+
+  .footer-main {
+    gap: 3.5rem;
+    padding: 0 0.5rem;
+  }
+
+  .footer-section-title {
+    font-size: 1.4rem;
+    margin-bottom: 1.75rem;
+    margin-top: 2rem;
+  }
+
+  .footer-links {
+    gap: 1.5rem;
+  }
+
+  .footer-link,
+  .footer-link.disabled {
+    font-size: 1.2rem;
+    padding: 1.25rem 0;
+    min-height: 60px;
+  }
+
+  .footer-social {
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .footer-social-link {
+    padding: 1rem;
+    font-size: 1.375rem;
+    border-radius: 1rem;
+  }
+
+  .footer-contact-list {
+    gap: 1.5rem;
+  }
+
+  .footer-contact-item {
+    font-size: 1.2rem;
+    min-height: 60px;
+  }
+
+  .footer-bottom {
+    gap: 1.75rem;
+    padding: 1.75rem 0.5rem 1rem;
+  }
+
+  .footer-bottom-links {
+    gap: 1.75rem;
+    font-size: 1.1rem;
+  }
+
+  .footer-copyright {
+    font-size: 1rem;
+  }
+
+  .footer {
+    border-top-left-radius: 2rem;
+    border-top-right-radius: 2rem;
+  }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .footer-link,
+  .footer-link.disabled,
+  .footer-contact-item,
+  .footer-social-link {
+    min-height: 48px;
+  }
+
+  .footer-social-link {
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Improved text rendering for mobile */
+@media (max-width: 768px) {
+  .footer-description,
+  .footer-link,
+  .footer-link.disabled,
+  .footer-contact-item,
+  .footer-copyright,
+  .footer-bottom-link {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }

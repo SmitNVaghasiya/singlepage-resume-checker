@@ -11,7 +11,8 @@ import healthRoutes from './routes/healthRoutes';
 import { analysisRoutes } from './routes/analysisRoutes';
 import authRoutes from './routes/authRoutes';
 import contactRoutes from './routes/contactRoutes';
-import adminRoutes from './routes/adminRoutes';
+import { adminRoutes } from './admin';
+import feedbackRoutes from './routes/feedbackRoutes';
 import { config } from './config/config';
 import { logger } from './utils/logger';
 import { database } from './config/database';
@@ -253,6 +254,7 @@ class Server {
     this.app.use('/api/analyses', analysisRoutes);
     this.app.use('/api/contact', contactRoutes);
     this.app.use('/api/admin', adminRoutes);
+    this.app.use('/api/feedback', feedbackRoutes);
 
     // API documentation route
     this.app.get('/api', (_req, res) => {
@@ -267,6 +269,7 @@ class Server {
           analyses: '/api/analyses',
           contact: '/api/contact',
           admin: '/api/admin',
+          feedback: '/api/feedback',
         },
       });
     });

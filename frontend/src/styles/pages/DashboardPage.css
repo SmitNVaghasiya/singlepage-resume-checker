@@ -1178,3 +1178,50 @@
 .dark .dashboard-loading p {
   color: #94a3b8;
 }
+
+/* Advanced mobile and accessibility improvements */
+.dashboard-content,
+.history-section {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 480px) {
+  .dashboard-content,
+  .history-section {
+    font-size: 0.95rem;
+  }
+  .dashboard-title,
+  .empty-title,
+  .section-title {
+    font-size: 1rem;
+    word-break: break-word;
+  }
+  .dashboard-subtitle,
+  .empty-description {
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+}
+
+.new-analysis-btn,
+.view-details-btn,
+.start-analysis-btn,
+.auth-required-btn,
+.download-report-btn {
+  min-height: 44px;
+}
+
+/* Visually hidden (screen reader only) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

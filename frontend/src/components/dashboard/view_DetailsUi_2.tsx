@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { AnalysisResult } from "../../types";
 import { apiService } from "../../services/api";
+import FeedbackForm from "../feedback/FeedbackForm";
 import "./view_DetailsUi_2.css";
 
 interface ViewDetailsUI2Props {
@@ -754,6 +755,12 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
       icon: Award,
       count: undefined,
     },
+    {
+      id: "feedback",
+      label: "Feedback",
+      icon: MessageSquare,
+      count: undefined,
+    },
   ];
 
   if (loading) {
@@ -830,6 +837,17 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
           {activeTab === "improvements" && renderImprovements()}
           {activeTab === "skills" && renderSkillsEnhancement()}
           {activeTab === "assessment" && renderFinalAssessment()}
+          {activeTab === "feedback" && (
+            <div className="feedback-tab-content">
+              <FeedbackForm
+                analysisId={analysisId}
+                onFeedbackSubmitted={() => {
+                  // Optionally refresh data or show success message
+                  console.log("Feedback submitted successfully");
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

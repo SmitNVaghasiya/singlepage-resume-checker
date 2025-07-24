@@ -3,7 +3,7 @@ import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 
 import { User, IUser } from '../models/User';
-import { Admin, IAdmin } from '../models/Admin';
+import { Admin, IAdmin } from '../admin/models/Admin';
 import { emailService } from '../services/emailService';
 import { emailValidationService } from '../services/emailValidationService';
 import { logger } from '../utils/logger';
@@ -866,12 +866,12 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Comprehensive email validation
+    const emailValidation = await emailValidationService.validateEmail(email);
+    if (!emailValidation.isValid) {
       res.status(400).json({
         success: false,
-        message: 'Please provide a valid email address'
+        message: emailValidation.message
       });
       return;
     }

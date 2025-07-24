@@ -49,6 +49,7 @@ import {
   UserX,
   CheckSquare,
   Square,
+  MessageSquare,
 } from "lucide-react";
 import { useAdmin } from "../contexts/AdminContext";
 import {
@@ -58,6 +59,7 @@ import {
   Analysis,
 } from "../services/AdminService";
 import SimpleChart from "../components/ui/SimpleChart";
+import FeedbackManagement from "../components/admin/FeedbackManagement";
 import "../styles/pages/AdminDashboardPage.css";
 
 const AdminDashboardPage: React.FC = () => {
@@ -70,7 +72,13 @@ const AdminDashboardPage: React.FC = () => {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "users" | "analyses" | "system" | "reports" | "settings"
+    | "overview"
+    | "users"
+    | "analyses"
+    | "feedback"
+    | "system"
+    | "reports"
+    | "settings"
   >("overview");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -302,6 +310,12 @@ const AdminDashboardPage: React.FC = () => {
       label: "Analyses",
       icon: FileText,
       active: activeTab === "analyses",
+    },
+    {
+      id: "feedback",
+      label: "Feedback",
+      icon: MessageSquare,
+      active: activeTab === "feedback",
     },
     {
       id: "reports",
@@ -971,6 +985,12 @@ const AdminDashboardPage: React.FC = () => {
                   height={180}
                 />
               </div>
+            </div>
+          )}
+
+          {activeTab === "feedback" && (
+            <div className="feedback-content">
+              <FeedbackManagement />
             </div>
           )}
 

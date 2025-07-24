@@ -18,6 +18,7 @@
     "test:unit": "jest --testMatch='**/*.test.ts' --testPathIgnorePatterns='**/*.integration.test.ts'",
     "test:db": "node test-db-connection.js",
     "create-admin": "node scripts/createAdmin.js",
+    "init-configs": "node scripts/initializeSystemConfigs.js",
     "postinstall": "node -e \"const fs=require('fs');if(!fs.existsSync('.env')){console.warn('⚠️  .env file not found! Please copy .env.example to .env and set your environment variables.');}\""
   },
   "keywords": [

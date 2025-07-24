@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Admin, IAdmin } from '../models/Admin';
-import { logger } from '../utils/logger';
-import { config } from '../config/config';
+import { logger } from '../../utils/logger';
+import { config } from '../../config/config';
 
 interface AdminRequest extends Request {
   admin?: IAdmin;
@@ -70,8 +70,8 @@ export const authenticateAdmin = async (req: AdminRequest, res: Response, next: 
   }
 };
 
-// Simplified permission check - admin has all permissions
-export const requirePermission = (_permission: string) => {
+// Permission check - verify admin has specific permission
+export const requirePermission = (permission: string) => {
   return (req: AdminRequest, res: Response, next: NextFunction): void => {
     if (!req.admin) {
       res.status(401).json({
@@ -81,7 +81,15 @@ export const requirePermission = (_permission: string) => {
       return;
     }
 
-    // Admin has all permissions
+    // Check if admin has the required permission
+    if (!req.admin.hasPermission(permission)) {
+      res.status(403).json({
+        success: false,
+        message: `Permission denied: ${permission} required`
+      });
+      return;
+    }
+
     next();
   };
 };

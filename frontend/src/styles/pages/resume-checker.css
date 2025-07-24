@@ -622,33 +622,104 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .inline-progress-steps {
-    margin: 1rem 0;
-    padding: 0.5rem 0;
+    margin: 0.5rem 0;
+    padding: 0.25rem 0;
   }
-
   .steps-container {
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 0.5rem;
+    align-items: stretch;
   }
-
+  .step-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
   .step-button {
-    min-width: 100px;
-    padding: 0.25rem;
+    min-width: 100%;
+    font-size: clamp(0.9rem, 3vw, 1.05rem);
+    padding: 0.5rem 0.5rem;
+    border-radius: 0.75rem;
+    min-height: 44px;
   }
-
   .step-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
   }
-
   .step-title {
-    font-size: 0.8rem;
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
   }
+}
 
-  .step-connector {
-    min-width: 40px;
-    margin: 0 0.5rem;
+/* Extra mobile-specific styles for very small screens */
+@media (max-width: 480px) {
+  .resume-checker-page {
+    padding: 0.25rem 0;
+  }
+  .resume-checker-page .container {
+    margin-top: 1.2rem;
+    padding: 0 0.25rem;
+  }
+  .progress-steps {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+  .step,
+  .step-button {
+    min-width: unset;
+    width: 100%;
+    max-width: 180px;
+    font-size: 0.85rem;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+  }
+  .step-number,
+  .step-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+  .step-title {
+    font-size: 0.75rem;
+  }
+  .step-content {
+    padding: 0.5rem 0.2rem;
+  }
+  .file-upload-area {
+    padding: 0.5rem 0.2rem;
+    border-radius: 0.5rem;
+  }
+  .upload-button,
+  .back-button,
+  .analyze-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 0.5rem;
+  }
+  .text-input-section,
+  .file-input-section {
+    margin: 0 0.5rem 0.5rem 0.5rem;
+  }
+  .job-description-textarea {
+    min-height: 100px;
+    height: 110px;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+  }
+  .word-counter,
+  .word-count-box,
+  .textarea-counter-box {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.4rem;
+  }
+  .error-message {
+    margin: 0.5rem 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 0.5rem;
   }
 }
 
@@ -845,4 +916,33 @@
 
 .dark .step-connector {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* Advanced mobile and accessibility improvements */
+.progress-steps,
+.inline-progress-steps {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.step,
+.step-button,
+.upload-button,
+.back-button,
+.analyze-button {
+  min-height: 44px;
+}
+
+/* Visually hidden (screen reader only) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }

@@ -118,3 +118,37 @@
 .dark .error-message {
   color: #f87171;
 }
+
+/* Advanced mobile and accessibility improvements */
+.analysis-details-page-full {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.back-btn-full {
+  min-height: 44px;
+}
+
+.error-message {
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .error-message {
+    font-size: 1rem;
+  }
+}
+
+/* Visually hidden (screen reader only) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

@@ -5,6 +5,8 @@ import { analysisService } from '../services/analysisService';
 import { ResultTransformer } from '../services/resultTransformer';
 import { logger } from '../utils/logger';
 import { extractErrorMessage } from '../utils/helpers';
+import { TokenCounter } from '../utils/tokenCounter';
+import { config } from '../config/config';
 
 interface MulterFiles {
   resume?: Express.Multer.File[];
@@ -34,6 +36,7 @@ class ResumeController {
     try {
       const { jobDescriptionText } = req.body;
       const files = req.files as MulterFiles;
+      const userId = (req as any).userId;
 
       let resumeFile: Express.Multer.File | undefined;
       let jobDescriptionFile: Express.Multer.File | undefined;
@@ -73,11 +76,79 @@ class ResumeController {
         return;
       }
 
+      // Validate resume file size
+      if (resumeFile && resumeFile.size > config.maxFileSize) {
+        res.status(400).json({
+          error: 'Resume file too large',
+          message: `Resume file size exceeds the maximum allowed size of ${config.maxFileSize / (1024 * 1024)} MB.`
+        });
+        return;
+      }
+
       // Validate job description input
       if (!jobDescriptionFile && !finalJobDescriptionText?.trim()) {
         res.status(400).json({
           error: 'Missing job description',
           message: 'Either job description file or text is required',
+        });
+        return;
+      }
+
+      // If job description file is uploaded, check its size
+      if (jobDescriptionFile) {
+        if (jobDescriptionFile.size > config.maxFileSize) {
+          res.status(400).json({
+            error: 'Job description file too large',
+            message: `Job description file size exceeds the maximum allowed size of ${config.maxFileSize / (1024 * 1024)} MB.`
+          });
+          return;
+        }
+      } else if (finalJobDescriptionText) {
+        // Only validate job description text tokens (not resume tokens)
+        // Enforce word count between 50 and 500
+        const wordCount = finalJobDescriptionText.trim().split(/\s+/).filter(Boolean).length;
+        if (wordCount < 50) {
+          res.status(400).json({
+            error: 'Job description too short',
+            message: 'Job description must be at least 50 words.'
+          });
+          return;
+        }
+        if (wordCount > 500) {
+          res.status(400).json({
+            error: 'Job description too long',
+            message: 'Job description must be no more than 500 words.'
+          });
+          return;
+        }
+        // Only check job description tokens, not resume tokens
+        const jobDescriptionTokens = TokenCounter.estimateTokens(finalJobDescriptionText);
+        if (jobDescriptionTokens > config.maxInputTokens) {
+          res.status(400).json({
+            error: 'Token limit exceeded',
+            message: `Job description too long. Maximum ${config.maxInputTokens} tokens allowed, got ${jobDescriptionTokens}`,
+          });
+          return;
+        }
+        if (jobDescriptionTokens < 10) {
+          res.status(400).json({
+            error: 'Token limit underflow',
+            message: 'Job description too short. Please provide more content for accurate analysis.',
+          });
+          return;
+        }
+      }
+
+      // Check for duplicate requests using file hashes instead of text content
+      const resumeFileHash = resumeFile.buffer.toString('base64').substring(0, 100);
+      const duplicateCheck = await cacheService.checkDuplicateRequest(userId, resumeFileHash, finalJobDescriptionText || '');
+      if (duplicateCheck.isDuplicate) {
+        res.status(429).json({
+          error: 'Duplicate request',
+          message: 'You have already submitted this analysis recently. Please wait before trying again.',
+          existingAnalysisId: duplicateCheck.existingAnalysisId,
+          retryCount: duplicateCheck.retryCount,
+          retryAfter: '5 minutes'
         });
         return;
       }
@@ -89,7 +160,15 @@ class ResumeController {
       const userJwt = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer /, '') : undefined;
 
       // Start async processing and get the Python server's analysis ID
-      const pythonAnalysisId = await this.processAnalysisAsync(resumeFile, jobDescriptionFile, finalJobDescriptionText, (req as any).userId, userJwt);
+      const pythonAnalysisId = await this.processAnalysisAsync(
+        resumeFile, 
+        jobDescriptionFile, 
+        finalJobDescriptionText, 
+        userId, 
+        userJwt,
+        resumeFileHash,
+        finalJobDescriptionText || ''
+      );
 
       // Return immediate response with the Python server's analysis ID
       res.status(202).json({
@@ -322,8 +401,19 @@ class ResumeController {
         ? req.query.sortOrder as 'asc' | 'desc' 
         : 'desc';
 
-      // Get analyses from backend database
-      const analyses = await analysisService.getAnalysesWithPagination({
+      // Get user ID from authenticated request
+      const userId = (req as any).userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required to access analysis history'
+        });
+        return;
+      }
+
+      // Get analyses from backend database filtered by user ID
+      const analyses = await analysisService.getAnalysesByUserId(userId, {
         page,
         limit,
         sortBy: sortBy as 'createdAt' | 'score' | 'updatedAt',
@@ -411,7 +501,9 @@ class ResumeController {
     jobDescriptionFile?: Express.Multer.File,
     jobDescriptionText?: string,
     userId?: string,
-    userJwt?: string // <-- Add userJwt param
+    userJwt?: string,
+    resumeFileHash?: string,
+    jobDescText?: string
   ): Promise<string> {
     try {
       // Call Python API for analysis first to get the analysis ID
@@ -420,10 +512,15 @@ class ResumeController {
         jobDescriptionFile,
         jobDescriptionText,
         userId,
-        userJwt // <-- Pass userJwt
+        userJwt
       );
 
       const pythonAnalysisId = result.analysisId;
+
+      // Record the analysis request for duplicate prevention
+      if (resumeFileHash && jobDescText) {
+        await cacheService.recordAnalysisRequest(userId, pythonAnalysisId, resumeFileHash, jobDescText);
+      }
 
       // DO NOT create or write analysis records in MongoDB here.
       // Only poll MongoDB for the full result (wait for Python server to write it)
@@ -449,6 +546,10 @@ class ResumeController {
           progress: 0,
           startedAt: new Date().toISOString(),
         });
+        
+        // Update duplicate request status to failed
+        await cacheService.updateAnalysisRequestStatus(userId, pythonAnalysisId, 'failed');
+        
         logger.error('Failed to fetch full analysis report from MongoDB after Python completion', {
           pythonAnalysisId
         });
@@ -462,6 +563,9 @@ class ResumeController {
         progress: 100,
         completedAt: new Date().toISOString()
       });
+
+      // Update duplicate request status to completed
+      await cacheService.updateAnalysisRequestStatus(userId, pythonAnalysisId, 'completed');
 
       logger.info('Analysis completed and available in backend cache', {
         pythonAnalysisId: pythonAnalysisId,
@@ -479,6 +583,19 @@ class ResumeController {
       return pythonAnalysisId;
 
     } catch (error) {
+      // Update duplicate request status to failed if we have the analysis ID
+      if (resumeFileHash && jobDescText) {
+        try {
+          // Try to get the analysis ID from the error or create a temporary one
+          const tempAnalysisId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          await cacheService.updateAnalysisRequestStatus(userId, tempAnalysisId, 'failed');
+        } catch (updateError) {
+          logger.warn('Failed to update duplicate request status on error', {
+            error: extractErrorMessage(updateError)
+          });
+        }
+      }
+      
       throw error; // Re-throw to be caught by the caller
     }
   }
@@ -502,15 +619,13 @@ class ResumeController {
     userId?: string
   ): Promise<void> {
     try {
-      // Extract text from resume file for storage
-      const resumeText = this.extractTextPreview(resumeFile.buffer);
-      
-      // Create analysis record in backend database
+      // Create analysis record in backend database without text extraction
+      // Python server will handle all text processing
       await analysisService.createAnalysis({
         analysisId: analysisId, // Use Python server's analysis ID
         resumeFilename: resumeFile.originalname,
         jobDescriptionFilename: jobDescriptionFile?.originalname,
-        resumeText: resumeText,
+        resumeText: '', // Python server will extract and store text
         jobDescriptionText: jobDescriptionText,
         userId: userId // Add user ID if authenticated
       });
@@ -527,14 +642,6 @@ class ResumeController {
         error: extractErrorMessage(error)
       });
       // Don't throw error - Python server is the source of truth
-    }
-  }
-
-  private extractTextPreview(buffer: Buffer): string {
-    try {
-      return buffer.toString('utf-8').substring(0, 1000);
-    } catch {
-      return 'Binary file - will be processed by AI service';
     }
   }
 

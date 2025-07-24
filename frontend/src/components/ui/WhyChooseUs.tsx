@@ -84,10 +84,17 @@ const WhyChooseUs: React.FC = () => {
             return (
               <div key={index} className="advantage-card">
                 <div className={`advantage-icon ${advantage.color}`}>
-                  <Icon className="w-6 h-6 text-white" />
+                  <Icon className="w-6 h-6 text-white" aria-hidden="true" />
                 </div>
-                <h3 className="advantage-title">{advantage.title}</h3>
-                <p className="advantage-description">{advantage.description}</p>
+                <h3 className="advantage-title" title={advantage.title}>
+                  {advantage.title}
+                </h3>
+                <p
+                  className="advantage-description"
+                  title={advantage.description}
+                >
+                  {advantage.description}
+                </p>
               </div>
             );
           })}
@@ -104,21 +111,37 @@ const WhyChooseUs: React.FC = () => {
             {comparisons.map((item, index) => (
               <div key={index} className="comparison-row">
                 <div className="comparison-cell feature-cell">
-                  <div className="feature-name">{item.feature}</div>
-                  <div className="feature-description">{item.description}</div>
+                  <div className="feature-name" title={item.feature}>
+                    {item.feature}
+                  </div>
+                  <div className="feature-description" title={item.description}>
+                    {item.description}
+                  </div>
                 </div>
-                <div className="comparison-cell highlight">
+                <div
+                  className="comparison-cell highlight"
+                  data-label="Our Analyzer:"
+                >
                   {item.us ? (
-                    <CheckCircle className="w-5 h-5 text-emerald-500" />
+                    <CheckCircle
+                      className="w-5 h-5 text-emerald-500"
+                      aria-label="Yes"
+                    />
                   ) : (
-                    <X className="w-5 h-5 text-red-500" />
+                    <X className="w-5 h-5 text-red-500" aria-label="No" />
                   )}
                 </div>
-                <div className="comparison-cell">
+                <div
+                  className="comparison-cell"
+                  data-label="Other ATS Checkers:"
+                >
                   {item.others ? (
-                    <CheckCircle className="w-5 h-5 text-emerald-500" />
+                    <CheckCircle
+                      className="w-5 h-5 text-emerald-500"
+                      aria-label="Yes"
+                    />
                   ) : (
-                    <X className="w-5 h-5 text-red-500" />
+                    <X className="w-5 h-5 text-red-500" aria-label="No" />
                   )}
                 </div>
               </div>

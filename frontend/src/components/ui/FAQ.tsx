@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface FAQData {
   question: string;
@@ -24,17 +24,31 @@ const FAQItem: React.FC<FAQItemProps> = ({ faq, isOpen, onClick }) => {
   }, [isOpen]);
 
   return (
-    <div className={`faq-item ${isOpen ? 'open' : ''}`}>
+    <div className={`faq-item ${isOpen ? "open" : ""}`}>
       <button
         onClick={onClick}
         className="faq-question"
+        aria-expanded={isOpen}
+        aria-controls={`faq-answer-${faq.question
+          .replace(/\s+/g, "-")
+          .toLowerCase()}`}
       >
-        <span className="faq-question-text">{faq.question}</span>
-        <ChevronDown className={`faq-icon ${isOpen ? 'rotated' : ''}`} />
+        <span className="faq-question-text" title={faq.question}>
+          {faq.question}
+        </span>
+        <ChevronDown
+          className={`faq-icon ${isOpen ? "rotated" : ""}`}
+          aria-hidden="true"
+        />
       </button>
-      <div 
+      <div
         className="faq-answer"
         style={{ height: `${height}px` }}
+        id={`faq-answer-${faq.question.replace(/\s+/g, "-").toLowerCase()}`}
+        role="region"
+        aria-labelledby={`faq-question-${faq.question
+          .replace(/\s+/g, "-")
+          .toLowerCase()}`}
       >
         <div ref={contentRef} className="faq-answer-content">
           <p>{faq.answer}</p>
@@ -49,43 +63,51 @@ const FAQ: React.FC = () => {
 
   const faqs = [
     {
-      question: 'How does your resume analyzer work?',
-      answer: 'Our AI-powered analyzer uses advanced natural language processing to understand both your resume content and job requirements. It analyzes skills, experience, education, and achievements in context, providing specific recommendations for improvement rather than just keyword matching.'
+      question: "How does your resume analyzer work?",
+      answer:
+        "Our AI-powered analyzer uses advanced natural language processing to understand both your resume content and job requirements. It analyzes skills, experience, education, and achievements in context, providing specific recommendations for improvement rather than just keyword matching.",
     },
     {
-      question: 'What makes this different from other ATS checkers?',
-      answer: 'Unlike traditional ATS checkers that only scan for keywords, our analyzer understands the context and meaning behind job requirements. It provides job-specific analysis, matching your qualifications against actual job descriptions rather than generic templates.'
+      question: "What makes this different from other ATS checkers?",
+      answer:
+        "Unlike traditional ATS checkers that only scan for keywords, our analyzer understands the context and meaning behind job requirements. It provides job-specific analysis, matching your qualifications against actual job descriptions rather than generic templates.",
     },
     {
-      question: 'Is my resume data secure and private?',
-      answer: 'Absolutely. We take your privacy seriously. Your resume data is processed securely and is not stored permanently on our servers. We use industry-standard encryption and follow strict data protection protocols to ensure your information remains confidential.'
+      question: "Is my resume data secure and private?",
+      answer:
+        "Absolutely. We take your privacy seriously. Your resume data is processed securely and is not stored permanently on our servers. We use industry-standard encryption and follow strict data protection protocols to ensure your information remains confidential.",
     },
     {
-      question: 'What file formats do you support?',
-      answer: 'We currently support PDF and DOCX formats for resumes. For job descriptions, you can upload PDF, DOCX, or TXT files, or simply paste the text directly into our analyzer.'
+      question: "What file formats do you support?",
+      answer:
+        "We currently support PDF and DOCX formats for resumes. For job descriptions, you can upload PDF, DOCX, or TXT files, or simply paste the text directly into our analyzer.",
     },
     {
-      question: 'How accurate is the analysis?',
-      answer: 'Our AI analyzer has a 95% accuracy rate in identifying relevant skills and experience matches. The system is continuously learning and improving based on successful job placements and recruiter feedback.'
+      question: "How accurate is the analysis?",
+      answer:
+        "Our AI analyzer has a 95% accuracy rate in identifying relevant skills and experience matches. The system is continuously learning and improving based on successful job placements and recruiter feedback.",
     },
     {
-      question: 'Can I analyze multiple resumes?',
-      answer: 'Yes! You can analyze as many resumes as you need. Each analysis is saved in your dashboard for easy comparison and tracking of improvements over time.'
+      question: "Can I analyze multiple resumes?",
+      answer:
+        "Yes! You can analyze as many resumes as you need. Each analysis is saved in your dashboard for easy comparison and tracking of improvements over time.",
     },
     {
-      question: 'Do I need to create an account?',
-      answer: 'No account creation is required for basic analysis. However, creating a free account allows you to save your analysis history, track improvements, and access additional features.'
+      question: "Do I need to create an account?",
+      answer:
+        "No account creation is required for basic analysis. However, creating a free account allows you to save your analysis history, track improvements, and access additional features.",
     },
     {
-      question: 'How long does the analysis take?',
-      answer: 'Our analysis is lightning-fast! Most resumes are analyzed within 10-15 seconds, providing you with instant feedback and recommendations.'
-    }
+      question: "How long does the analysis take?",
+      answer:
+        "Our analysis is lightning-fast! Most resumes are analyzed within 10-15 seconds, providing you with instant feedback and recommendations.",
+    },
   ];
 
   const toggleFAQ = (index: number) => {
     // If clicking on the currently open FAQ, close it
     // Otherwise, open the clicked FAQ (closes any other open FAQ)
-    setOpenIndex(prevIndex => prevIndex === index ? null : index);
+    setOpenIndex((prevIndex) => (prevIndex === index ? null : index));
   };
 
   return (
@@ -94,7 +116,8 @@ const FAQ: React.FC = () => {
         <div className="section-header">
           <h2 className="section-title">Frequently Asked Questions</h2>
           <p className="section-subtitle">
-            Got questions? We've got answers. Learn more about how our resume analyzer works.
+            Got questions? We've got answers. Learn more about how our resume
+            analyzer works.
           </p>
         </div>
 
@@ -113,4 +136,4 @@ const FAQ: React.FC = () => {
   );
 };
 
-export default FAQ; 
+export default FAQ;

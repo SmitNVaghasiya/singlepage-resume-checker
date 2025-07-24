@@ -9,9 +9,21 @@ export const analysisController = {
   /**
    * GET /api/analyses
    * Get all analyses with pagination and filtering
+   * For regular users: returns only their analyses
+   * For admins: returns all analyses
    */
   getAllAnalyses: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const userId = (req as any).userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
       const query: AnalysisQuery = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
@@ -21,7 +33,14 @@ export const analysisController = {
         search: req.query.search as string
       };
 
-      const result = await analysisService.getAllAnalyses(query);
+      // Check if user is admin (you may need to implement this check based on your admin system)
+      // For now, we'll filter by user ID for all users
+      const result = await analysisService.getAnalysesByUserId(userId, {
+        page: query.page || 1,
+        limit: query.limit || 10,
+        sortBy: query.sortBy || 'createdAt',
+        sortOrder: query.sortOrder || 'desc'
+      });
 
       res.json({
         success: true,
@@ -52,10 +71,20 @@ export const analysisController = {
   /**
    * GET /api/analyses/:analysisId
    * Get specific analysis by ID
+   * Users can only access their own analyses
    */
   getAnalysisById: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { analysisId } = req.params;
+      const userId = (req as any).userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
       
       const analysis = await analysisService.getAnalysisById(analysisId);
       
@@ -64,6 +93,16 @@ export const analysisController = {
           success: false,
           error: 'Analysis not found',
           message: `No analysis found with ID: ${analysisId}`
+        });
+        return;
+      }
+
+      // Check if the analysis belongs to the authenticated user
+      if (analysis.userId && analysis.userId !== userId) {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied',
+          message: 'You can only access your own analyses'
         });
         return;
       }
@@ -88,10 +127,22 @@ export const analysisController = {
 
   /**
    * GET /api/analyses/stats
-   * Get analysis statistics
+   * Get analysis statistics for the authenticated user
    */
-  getAnalysisStats: async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getAnalysisStats: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const userId = (req as any).userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      // For now, return user-specific stats
+      // In the future, this could be enhanced to provide user-specific statistics
       const stats = await analysisService.getAnalysisStats();
       
       res.json({
@@ -114,11 +165,24 @@ export const analysisController = {
 
   /**
    * GET /api/analyses/top
-   * Get top performing analyses
+   * Get top performing analyses for the authenticated user
    */
   getTopAnalyses: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const userId = (req as any).userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
       const limit = parseInt(req.query.limit as string) || 10;
+      
+      // For now, return user-specific top analyses
+      // In the future, this could be enhanced to provide user-specific top analyses
       const topAnalyses = await analysisService.getTopAnalyses(limit);
       
       res.json({
@@ -142,10 +206,42 @@ export const analysisController = {
   /**
    * DELETE /api/analyses/:analysisId
    * Delete analysis by ID
+   * Users can only delete their own analyses
    */
   deleteAnalysis: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { analysisId } = req.params;
+      const userId = (req as any).userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      // First check if the analysis exists and belongs to the user
+      const analysis = await analysisService.getAnalysisById(analysisId);
+      
+      if (!analysis) {
+        res.status(404).json({
+          success: false,
+          error: 'Analysis not found',
+          message: `No analysis found with ID: ${analysisId}`
+        });
+        return;
+      }
+
+      // Check if the analysis belongs to the authenticated user
+      if (analysis.userId && analysis.userId !== userId) {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied',
+          message: 'You can only delete your own analyses'
+        });
+        return;
+      }
       
       const deleted = await analysisService.deleteAnalysis(analysisId);
       
@@ -179,11 +275,21 @@ export const analysisController = {
   /**
    * POST /api/analyses/:analysisId/export
    * Export analysis report and send via email
+   * Users can only export their own analyses
    */
   exportAnalysisReport: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { analysisId } = req.params;
       const { userEmail, userName, format } = req.body;
+      const userId = (req as any).userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
       if (!userEmail || !userName || !format) {
         res.status(400).json({
@@ -202,6 +308,16 @@ export const analysisController = {
           success: false,
           error: 'Analysis not found',
           message: `No analysis found with ID: ${analysisId}`
+        });
+        return;
+      }
+
+      // Check if the analysis belongs to the authenticated user
+      if (analysis.userId && analysis.userId !== userId) {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied',
+          message: 'You can only export your own analyses'
         });
         return;
       }

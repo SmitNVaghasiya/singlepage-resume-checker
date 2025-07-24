@@ -5,77 +5,81 @@ const resolveMx = promisify(dns.resolveMx);
 
 // List of known disposable/temporary email domains
 const disposableEmailDomains = [
-  'tempmail.com',
+  // Popular temporary email services
   '10minutemail.com',
-  'guerrillamail.com',
-  'mailinator.com',
-  'yopmail.com',
-  'maildrop.cc',
-  'dispostable.com',
-  'trashmail.com',
-  'getnada.com',
-  'tempmailo.com',
-  'throwawaymail.com',
-  'mailnesia.com',
-  'sharklasers.com',
-  'burnermail.io',
-  'emailondeck.com',
-  'tempinbox.com',
-  'fakeinbox.com',
-  'disposablemail.com',
+  '1secmail.com',
+  '20minutemail.com',
   '33mail.com',
   'anonymail.com',
   'bearsarefuzzy.com',
+  'burnermail.io',
+  'byom.de',
+  'chacuo.net',
+  'crazymailing.com',
   'deadaddress.com',
   'discard.email',
+  'disposableinbox.com',
+  'disposablemail.com',
+  'dispostable.com',
   'dropmail.me',
+  'email-fake.com',
+  'emailfake.com',
+  'emailondeck.com',
+  'emailtemporario.com.br',
   'fakemailgenerator.com',
+  'fake-mail.net',
+  'fakeinbox.com',
   'getairmail.com',
+  'getnada.com',
+  'grr.la',
   'guerillamail.biz',
   'guerillamail.de',
   'guerillamail.net',
   'guerillamail.org',
-  'inboxbear.com',
-  'mailcatch.com',
-  'mailforspam.com',
-  'mailmetrash.com',
-  'mintemail.com',
-  'mohmal.com',
-  'spambox.me',
-  'tempail.com',
-  'tempmail.eu',
-  'tempmail.us',
-  'temporary-email.com',
-  'throwam.com',
-  'zohomail.com',
-  // Additional domains from community sources
-  '1secmail.com',
-  '20minutemail.com',
-  'byom.de',
-  'chacuo.net',
-  'crazymailing.com',
-  'disposableinbox.com',
-  'email-fake.com',
-  'emailfake.com',
-  'emailtemporario.com.br',
-  'fake-mail.net',
-  'grr.la',
+  'guerrillamail.com',
   'hmamail.com',
+  'inboxbear.com',
   'inboxproxy.com',
   'jetable.org',
   'mail-temp.com',
+  'mailcatch.com',
+  'maildrop.cc',
+  'mailforspam.com',
+  'mailinator.com',
+  'mailmetrash.com',
+  'mailnesia.com',
   'mailtothis.com',
+  'mintemail.com',
+  'mohmal.com',
   'moakt.com',
   'mytemp.email',
   'pp.ua',
+  'sharklasers.com',
   'spam4.me',
+  'spambox.me',
+  'temp-mail.io',
+  'temp-mail.org',
   'temp-mail.ru',
+  'tempail.com',
+  'tempinbox.com',
+  'tempmail.com',
   'tempmail.de',
+  'tempmail.eu',
   'tempmail.net',
+  'tempmail.us',
+  'tempmailo.com',
+  'tempr.email',
+  'temporary-email.com',
   'temporary-mail.net',
+  'throwam.com',
+  'throwawaymail.com',
   'trash-mail.de',
+  'trashmail.com',
+  'trashmail.net',
+  'yopmail.com',
   'yopmail.fr',
   'yopmail.net',
+  'zohomail.com',
   // Add more domains as needed
 ];
 
@@ -138,7 +142,7 @@ class EmailValidationService {
         isValid: false,
         isDisposable: false,
         domainExists: false,
-        message: 'Please provide a valid email address format'
+        message: '❌ Please enter a valid email address (e.g., john@example.com)'
       };
     }
 
@@ -148,7 +152,7 @@ class EmailValidationService {
         isValid: false,
         isDisposable: true,
         domainExists: false,
-        message: 'Temporary or disposable email addresses are not allowed. Please use a valid email address.'
+        message: this.getDisposableEmailError(email)
       };
     }
 
@@ -159,7 +163,7 @@ class EmailValidationService {
         isValid: false,
         isDisposable: false,
         domainExists: false,
-        message: 'Email domain does not exist or cannot receive emails. Please use a valid email address.'
+        message: '❌ This email domain does not exist or cannot receive emails. Please use a valid email address from providers like Gmail, Outlook, Yahoo, etc.'
       };
     }
 
@@ -176,6 +180,14 @@ class EmailValidationService {
    */
   validateDisposableEmail(email: string): boolean {
     return this.isDisposableEmail(email);
+  }
+
+  /**
+   * Get detailed error message for disposable email
+   */
+  getDisposableEmailError(email: string): string {
+    const domain = email.split('@')[1]?.toLowerCase();
+    return `❌ The email domain "${domain}" is a temporary/disposable email service. Please use your real email address (Gmail, Outlook, Yahoo, etc.) to create your account. This helps us verify your identity and send you important updates about your resume analysis.`;
   }
 
   /**

@@ -940,3 +940,56 @@ input:checked + .toggle-slider-compact:before {
 .dark .security-note svg {
   color: #60a5fa;
 }
+
+/* Advanced mobile and accessibility improvements */
+.profile-page {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.btn-primary-small,
+.btn-secondary-small,
+.btn-danger-small,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.modal-close,
+.message-close {
+  min-height: 44px;
+}
+
+.profile-name,
+.section-header-compact h3,
+.danger-title,
+.export-title,
+.setting-title,
+.error-message,
+.message {
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .profile-name,
+  .section-header-compact h3,
+  .danger-title,
+  .export-title,
+  .setting-title,
+  .error-message,
+  .message {
+    font-size: 1rem;
+  }
+}
+
+/* Visually hidden (screen reader only) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

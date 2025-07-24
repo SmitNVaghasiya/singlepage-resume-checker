@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { extractErrorMessage } from '../utils/helpers';
+import { config } from '../config/config';
 
 interface CacheItem<T> {
   data: T;
@@ -15,6 +16,15 @@ interface AnalysisStatus {
   completedAt?: string;
   failedAt?: string;
   error?: string;
+}
+
+interface DuplicateRequestInfo {
+  analysisId: string;
+  userId?: string;
+  requestHash: string;
+  timestamp: number;
+  retryCount: number;
+  status: 'processing' | 'completed' | 'failed';
 }
 
 interface CacheStats {
@@ -181,6 +191,174 @@ class InMemoryCacheService {
     
     this.delete(statusKey);
     this.delete(resultKey);
+  }
+
+  // Duplicate request prevention methods
+  public async checkDuplicateRequest(
+    userId: string | undefined,
+    resumeText: string,
+    jobDescriptionText: string
+  ): Promise<{ isDuplicate: boolean; existingAnalysisId?: string; retryCount?: number }> {
+    try {
+      const requestHash = this.generateRequestHash(resumeText, jobDescriptionText);
+      const key = `duplicate:${userId || 'anonymous'}:${requestHash}`;
+      
+      const existingRequest = this.get<DuplicateRequestInfo>(key);
+      
+      if (!existingRequest) {
+        return { isDuplicate: false };
+      }
+      
+      // Check if the request is still within the window
+      const now = Date.now();
+      const windowMs = config.duplicateRequestWindowMs;
+      
+      if (now - existingRequest.timestamp > windowMs) {
+        // Request is outside the window, allow it
+        this.delete(key);
+        return { isDuplicate: false };
+      }
+      
+      // Check if we can retry
+      if (existingRequest.retryCount < config.duplicateRequestMaxRetries) {
+        // Allow retry but increment count
+        const updatedRequest: DuplicateRequestInfo = {
+          ...existingRequest,
+          retryCount: existingRequest.retryCount + 1,
+          timestamp: now
+        };
+        this.set(key, updatedRequest, windowMs);
+        
+        logger.warn('Duplicate request detected, allowing retry', {
+          userId: userId || 'anonymous',
+          requestHash,
+          retryCount: updatedRequest.retryCount,
+          maxRetries: config.duplicateRequestMaxRetries
+        });
+        
+        return { 
+          isDuplicate: false, 
+          existingAnalysisId: existingRequest.analysisId,
+          retryCount: updatedRequest.retryCount 
+        };
+      }
+      
+      // Max retries exceeded
+      logger.warn('Duplicate request detected, max retries exceeded', {
+        userId: userId || 'anonymous',
+        requestHash,
+        retryCount: existingRequest.retryCount,
+        maxRetries: config.duplicateRequestMaxRetries
+      });
+      
+      return { 
+        isDuplicate: true, 
+        existingAnalysisId: existingRequest.analysisId,
+        retryCount: existingRequest.retryCount 
+      };
+      
+    } catch (error) {
+      logger.error('Error checking duplicate request', {
+        userId: userId || 'anonymous',
+        error: extractErrorMessage(error)
+      });
+      return { isDuplicate: false };
+    }
+  }
+
+  public async recordAnalysisRequest(
+    userId: string | undefined,
+    analysisId: string,
+    resumeText: string,
+    jobDescriptionText: string
+  ): Promise<void> {
+    try {
+      const requestHash = this.generateRequestHash(resumeText, jobDescriptionText);
+      const key = `duplicate:${userId || 'anonymous'}:${requestHash}`;
+      
+      const requestInfo: DuplicateRequestInfo = {
+        analysisId,
+        userId,
+        requestHash,
+        timestamp: Date.now(),
+        retryCount: 0,
+        status: 'processing'
+      };
+      
+      this.set(key, requestInfo, config.duplicateRequestWindowMs);
+      
+      logger.info('Analysis request recorded for duplicate prevention', {
+        userId: userId || 'anonymous',
+        analysisId,
+        requestHash
+      });
+      
+    } catch (error) {
+      logger.error('Error recording analysis request', {
+        userId: userId || 'anonymous',
+        analysisId,
+        error: extractErrorMessage(error)
+      });
+    }
+  }
+
+  public async updateAnalysisRequestStatus(
+    userId: string | undefined,
+    analysisId: string,
+    status: 'processing' | 'completed' | 'failed'
+  ): Promise<void> {
+    try {
+      // Find the request by analysisId
+      const pattern = `duplicate:${userId || 'anonymous'}:*`;
+      const keys = this.getKeysByPattern(pattern);
+      
+      for (const key of keys) {
+        const requestInfo = this.get<DuplicateRequestInfo>(key);
+        if (requestInfo && requestInfo.analysisId === analysisId) {
+          const updatedRequest: DuplicateRequestInfo = {
+            ...requestInfo,
+            status,
+            timestamp: Date.now()
+          };
+          
+          this.set(key, updatedRequest, config.duplicateRequestWindowMs);
+          
+          logger.info('Analysis request status updated', {
+            userId: userId || 'anonymous',
+            analysisId,
+            status
+          });
+          break;
+        }
+      }
+      
+    } catch (error) {
+      logger.error('Error updating analysis request status', {
+        userId: userId || 'anonymous',
+        analysisId,
+        status,
+        error: extractErrorMessage(error)
+      });
+    }
+  }
+
+  private generateRequestHash(resumeText: string, jobDescriptionText: string): string {
+    try {
+      // Create a simple hash based on content
+      const content = `${resumeText.trim()}|${jobDescriptionText.trim()}`;
+      let hash = 0;
+      
+      for (let i = 0; i < content.length; i++) {
+        const char = content.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      
+      return Math.abs(hash).toString(36);
+    } catch (error) {
+      logger.error('Error generating request hash', { error: extractErrorMessage(error) });
+      return Date.now().toString(36); // Fallback to timestamp
+    }
   }
 
   // Temporary file methods

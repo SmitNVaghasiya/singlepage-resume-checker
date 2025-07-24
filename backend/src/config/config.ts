@@ -24,6 +24,13 @@ interface Config {
   logDir: string;
   clusterWorkers: number;
   compressionLevel: number;
+  // Token limits for Groq API
+  maxInputTokens: number;
+  maxOutputTokens: number;
+  maxTotalTokens: number;
+  // Duplicate request prevention
+  duplicateRequestWindowMs: number;
+  duplicateRequestMaxRetries: number;
 }
 
 export const config: Config = {
@@ -66,6 +73,15 @@ export const config: Config = {
   // Performance - Optimized for serverless
   clusterWorkers: 0, // Disabled for serverless
   compressionLevel: parseInt(process.env.COMPRESSION_LEVEL || '6', 10),
+
+  // Token limits for Groq API
+  maxInputTokens: parseInt(process.env.MAX_INPUT_TOKENS || '4096', 10),
+  maxOutputTokens: parseInt(process.env.MAX_OUTPUT_TOKENS || '1024', 10),
+  maxTotalTokens: parseInt(process.env.MAX_TOTAL_TOKENS || '5000', 10),
+
+  // Duplicate request prevention
+  duplicateRequestWindowMs: parseInt(process.env.DUPLICATE_REQUEST_WINDOW_MS || '300000', 10), // 5 minutes
+  duplicateRequestMaxRetries: parseInt(process.env.DUPLICATE_REQUEST_MAX_RETRIES || '3', 10),
 };
 
 // Validate required configuration for Vercel

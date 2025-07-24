@@ -1363,3 +1363,41 @@
 .dark .forgot-password-link::after {
   background: #60a5fa;
 }
+
+/* Touch-friendly improvements for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .btn-primary,
+  .btn-secondary,
+  .modal-button,
+  .auth-submit,
+  .password-toggle,
+  .modal-close {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  .input-field {
+    min-height: 48px;
+  }
+}
+
+/* Improved text rendering for mobile */
+@media (max-width: 768px) {
+  .auth-title,
+  .auth-subtitle,
+  .auth-image-title,
+  .auth-image-subtitle,
+  .input-label,
+  .input-field,
+  .btn-primary,
+  .btn-text,
+  .auth-submit,
+  .modal-header h3,
+  .modal-description,
+  .modal-button,
+  .success-message p {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}

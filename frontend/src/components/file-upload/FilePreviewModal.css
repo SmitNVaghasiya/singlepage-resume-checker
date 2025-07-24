@@ -661,3 +661,43 @@
     background: #64748b;
   }
 }
+
+/* Advanced mobile and accessibility improvements */
+.file-preview-modal,
+.file-preview-text {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.file-preview-download-btn,
+.file-preview-close-btn {
+  min-height: 44px;
+}
+
+.file-preview-title,
+.file-name,
+.file-preview-text-filename {
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .file-preview-title,
+  .file-name,
+  .file-preview-text-filename {
+    font-size: 1rem;
+  }
+}
+
+/* Visually hidden (screen reader only) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

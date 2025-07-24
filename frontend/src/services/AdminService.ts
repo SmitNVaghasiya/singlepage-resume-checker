@@ -337,6 +337,289 @@ class AdminService {
     return data.health;
   }
 
+  // Enhanced Analytics & Reporting
+  async getEnhancedAnalytics(
+    timeRange?: string,
+    startDate?: string,
+    endDate?: string,
+    groupBy?: string
+  ): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (timeRange) params.append('timeRange', timeRange);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (groupBy) params.append('groupBy', groupBy);
+
+      const response = await fetch(this.getApiUrl(`stats/enhanced?${params}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching enhanced analytics:', error);
+      throw error;
+    }
+  }
+
+  // Audit Trail Management
+  async getAuditLogs(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+      adminId?: string;
+      action?: string;
+      resource?: string;
+      severity?: string;
+      status?: string;
+      startDate?: string;
+      endDate?: string;
+    }
+  ): Promise<any> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) params.append(key, value);
+        });
+      }
+
+      const response = await fetch(this.getApiUrl(`audit-logs?${params}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
+      throw error;
+    }
+  }
+
+  // Notification Management
+  async getNotifications(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+      type?: string;
+      severity?: string;
+      category?: string;
+      isRead?: boolean;
+      isArchived?: boolean;
+    }
+  ): Promise<any> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) params.append(key, value.toString());
+        });
+      }
+
+      const response = await fetch(this.getApiUrl(`notifications?${params}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<any> {
+    try {
+      const response = await fetch(this.getApiUrl(`notifications/${notificationId}/read`), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  }
+
+  async archiveNotification(notificationId: string): Promise<any> {
+    try {
+      const response = await fetch(this.getApiUrl(`notifications/${notificationId}/archive`), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error archiving notification:', error);
+      throw error;
+    }
+  }
+
+  // System Configuration Management
+  async getSystemConfigs(filters?: {
+    category?: string;
+    isPublic?: boolean;
+    isEditable?: boolean;
+  }): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) params.append(key, value.toString());
+        });
+      }
+
+      const response = await fetch(this.getApiUrl(`configs?${params}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching system configs:', error);
+      throw error;
+    }
+  }
+
+  async updateSystemConfig(
+    key: string,
+    config: {
+      value: any;
+      type?: string;
+      description?: string;
+      category?: string;
+      isPublic?: boolean;
+      isEditable?: boolean;
+      validation?: any;
+    }
+  ): Promise<any> {
+    try {
+      const response = await fetch(this.getApiUrl(`configs/${key}`), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(config)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error updating system config:', error);
+      throw error;
+    }
+  }
+
+  // Data Management
+  async cleanupData(type: string, daysToKeep: number = 365): Promise<any> {
+    try {
+      const response = await fetch(this.getApiUrl('data/cleanup'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ type, daysToKeep })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error cleaning up data:', error);
+      throw error;
+    }
+  }
+
+  // Enhanced System Health
+  async getEnhancedSystemHealth(): Promise<any> {
+    try {
+      const response = await fetch(this.getApiUrl('health/enhanced'), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching enhanced system health:', error);
+      throw error;
+    }
+  }
+
   // Logout
   logout(): void {
     this.authToken = null;
