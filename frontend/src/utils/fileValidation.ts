@@ -8,7 +8,61 @@ export interface FileValidationResult {
   error?: string;
 }
 
-export const validateFile = (file: File, config: FileValidationConfig): FileValidationResult => {
+// Resume-specific validation (PDF/DOCX only)
+export const validateResumeFile = (file: File): FileValidationResult => {
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  
+  if (file.size > maxSize) {
+    return {
+      isValid: false,
+      error: `File size must be less than 5MB`
+    };
+  }
+  
+  const isValidType = file.type === 'application/pdf' || 
+    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  if (!isValidType) {
+    return {
+      isValid: false,
+      error: `Please upload a PDF or DOCX file for resume`
+    };
+  }
+
+  return { isValid: true };
+};
+
+// Job description-specific validation (PDF/DOCX/TXT)
+export const validateJobDescriptionFile = (file: File): FileValidationResult => {
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  
+  if (file.size > maxSize) {
+    return {
+      isValid: false,
+      error: `File size must be less than 5MB`
+    };
+  }
+  
+  const isValidType = file.type === 'application/pdf' || 
+    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    file.type === 'text/plain';
+
+  if (!isValidType) {
+    return {
+      isValid: false,
+      error: `Please upload a PDF, DOCX, or TXT file for job description`
+    };
+  }
+
+  return { isValid: true };
+};
+
+// Legacy function for backward compatibility (deprecated - use specific functions above)
+export const validateFile = (
+  file: File,
+  config: FileValidationConfig,
+  allowTxt: boolean = false // new parameter
+): FileValidationResult => {
   // Check file size
   if (file.size > config.maxSize) {
     const maxSizeMB = (config.maxSize / (1024 * 1024)).toFixed(1);
@@ -17,22 +71,20 @@ export const validateFile = (file: File, config: FileValidationConfig): FileVali
       error: `File size must be less than ${maxSizeMB}MB`
     };
   }
-  
   // Check file type
   const isValidType = config.acceptedTypes.some(type => {
     if (type === '.pdf') return file.type === 'application/pdf';
-    if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    if (type === '.txt') return file.type === 'text/plain';
+    if (type === '.docx')
+      return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (type === '.txt' && allowTxt) return file.type === 'text/plain';
     return file.name.toLowerCase().endsWith(type);
   });
-
   if (!isValidType) {
     return {
       isValid: false,
-      error: `Please upload a ${config.acceptedTypes.join(', ')} file`
+      error: `Please upload a ${config.acceptedTypes.filter(t => allowTxt || t !== '.txt').join(', ')} file`
     };
   }
-
   return { isValid: true };
 };
 

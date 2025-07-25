@@ -1,6 +1,6 @@
 import time
 from uuid import uuid4
-from typing import Optional, Union, List
+from typing import Optional, Union
 from datetime import datetime
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
@@ -8,10 +8,10 @@ from fastapi.responses import JSONResponse
 import logging
 import asyncio
 
-from app.file_processor import extract_text_from_file, FileProcessor
+from app.file_processor import FileProcessor
 from app.groq_service import GroqService
 from app.models import ResumeAnalysisResponse, ErrorResponse, AnalysisDocument, AnalysisStatus
-from app.database import save_analysis, get_analysis_by_id, update_analysis, get_analyses_by_user_id
+from app.database import save_analysis,  update_analysis
 from app.middleware import get_current_user_id
 from app.config import settings
 
@@ -87,30 +87,29 @@ async def analyze_resume(
     if job_description and jobDescriptionText:
         raise HTTPException(status_code=400, detail="Provide either job_description file OR text, not both")
     
-    resume_text = await extract_text_from_file(resume)
+    # Process resume file with type enforcement
+    resume_content = await resume.read()
+    resume_text, resume_success, resume_type = FileProcessor.process_file(resume_content, resume.filename, file_type_hint='resume')
+    if not resume_success:
+        raise HTTPException(status_code=400, detail=resume_text)
     resume_valid, resume_msg = FileProcessor.validate_content(resume_text, "resume")
     if not resume_valid:
         raise HTTPException(status_code=400, detail=resume_msg)
-    
+
     job_description_text_final = ""
     jobDescriptionFilename = None
-    
+
     if job_description:
-        # Process job description file
-        job_desc_text = await extract_text_from_file(job_description)
-        job_desc_valid, job_desc_msg = FileProcessor.validate_job_description_content(job_desc_text)
-        if not job_desc_valid:
-            raise HTTPException(status_code=400, detail=job_desc_msg)
+        # Process job description file with type enforcement
+        jobdesc_content = await job_description.read()
+        job_desc_text, jobdesc_success, jobdesc_type = FileProcessor.process_file(jobdesc_content, job_description.filename, file_type_hint='jobdesc')
+        if not jobdesc_success:
+            raise HTTPException(status_code=400, detail=job_desc_text)
         job_description_text_final = job_desc_text
         jobDescriptionFilename = job_description.filename
-    else:
-        # Process job description text
-        if not jobDescriptionText or not jobDescriptionText.strip():
-            raise HTTPException(status_code=400, detail="Job description text cannot be empty")
+    elif jobDescriptionText:
         job_description_text_final = jobDescriptionText.strip()
-        job_desc_valid, job_desc_msg = FileProcessor.validate_job_description_content(job_description_text_final)
-        if not job_desc_valid:
-            raise HTTPException(status_code=400, detail=job_desc_msg)
+        jobDescriptionFilename = jobDescriptionFilename or "job_description.txt"
     
     analysisId = str(uuid4())
     groq_service = GroqService()

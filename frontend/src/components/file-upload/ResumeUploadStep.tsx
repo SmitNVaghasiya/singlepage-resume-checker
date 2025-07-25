@@ -79,16 +79,13 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
   }, []);
 
   const handleResumeFile = (file: File) => {
-    const validation = validateFile(file, fileConfig);
-
+    const validation = validateFile(file, fileConfig, false); // explicitly disallow .txt
     if (!validation.isValid) {
       setResumeError(validation.error || "Invalid file");
       return;
     }
-
     setResumeFile(file);
     setResumeError("");
-
     // Only auto-advance if user hasn't manually navigated back
     // If user manually went back to upload step, don't auto-advance
     if (!hasManuallyNavigatedBack) {
@@ -111,6 +108,22 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
     setHasManuallyNavigatedBack(false); // Reset the flag when file is removed
   };
 
+  // Add paste handler to block .txt files
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === "file") {
+          const pastedFile = items[i].getAsFile();
+          if (pastedFile) {
+            handleResumeFile(pastedFile);
+          }
+        }
+      }
+    },
+    [handleResumeFile]
+  );
+
   return (
     <div className="step-content">
       <div className="step-header">
@@ -126,6 +139,7 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onPaste={handlePaste}
       >
         <input
           type="file"
@@ -214,6 +228,7 @@ const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
         onClose={() => setIsPreviewOpen(false)}
         file={resumeFile}
         title="Resume Preview"
+        allowTxt={false}
       />
 
       <InlineProgressSteps

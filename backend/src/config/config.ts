@@ -14,6 +14,7 @@ interface Config {
   rateLimitMaxRequests: number;
   maxFileSize: number;
   allowedFileTypes: string[];
+  allowedResumeFileTypes: string[];
   redisHost: string;
   redisPort: number;
   redisPassword?: string;
@@ -52,7 +53,8 @@ export const config: Config = {
 
   // File Upload - Optimized for serverless
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB default
-  allowedFileTypes: process.env.ALLOWED_FILE_TYPES?.split(',') || ['pdf', 'doc', 'docx', 'txt'],
+  allowedFileTypes: ['pdf', 'docx', 'txt'], // For job description
+  allowedResumeFileTypes: ['pdf', 'docx'], // For resume
 
   // Redis - Optional for Vercel
   redisHost: process.env.REDIS_HOST || 'localhost',

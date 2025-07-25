@@ -8,6 +8,7 @@ import { JobDescriptionStep } from "../components/job-description";
 import { AnalysisLoading } from "../components/analysis";
 import { AnalysisService } from "../services/AnalysisService";
 import "../styles/pages/resume-checker.css";
+import { validateResumeFile } from "../utils/fileValidation";
 
 const ResumeCheckerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ const ResumeCheckerPage: React.FC = () => {
         },
         onAuthRequired: () => {
           // Navigate to login page with redirect parameter
-          navigate('/login?redirect=/resumechecker');
+          navigate("/login?redirect=/resumechecker");
         },
         // Add getter function to get latest state
         getLatestState: () => ({
@@ -176,15 +177,19 @@ const ResumeCheckerPage: React.FC = () => {
         const reconstructedFile = new File([u8arr], fileData.name, {
           type: mime,
         });
-        console.log(
-          "Reconstructed file:",
-          reconstructedFile.name,
-          reconstructedFile.size,
-          reconstructedFile.type
-        );
+        // Validate file type (PDF/DOCX only)
+        const validation = validateResumeFile(reconstructedFile);
+        if (!validation.isValid) {
+          alert(
+            validation.error ||
+              "Invalid file type. Only PDF and DOCX are allowed."
+          );
+          localStorage.removeItem("fromHomepageUpload");
+          localStorage.removeItem("homepageResumeUpload");
+          return;
+        }
         setResumeFile(reconstructedFile);
         setCurrentStep && setCurrentStep("upload");
-        console.log("File set in context, step set to upload");
         // Clear localStorage after successful file reconstruction
         localStorage.removeItem("fromHomepageUpload");
         localStorage.removeItem("homepageResumeUpload");

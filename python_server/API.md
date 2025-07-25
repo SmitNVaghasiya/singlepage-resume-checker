@@ -54,6 +54,7 @@ The AI Resume Analyzer is a robust, modular, and secure backend for analyzing re
    - **Important:** After submitting an analysis request, the Python server saves the result directly to MongoDB and returns only a minimal response (success/failure and analysis ID).
    - **To fetch the full analysis result, your backend must query MongoDB directly.**
    - The Python server does **not** provide endpoints for fetching analysis status or results.
+   - _For backend integrators: use the `get_analysis_by_id` helper function in `app/database.py` to fetch results by `analysisId`._
 
 5. **Troubleshooting**
    - Common error messages and their solutions are listed in the Troubleshooting section.
@@ -288,7 +289,7 @@ All endpoints require authentication via a JWT Bearer token in the `Authorizatio
     }
     ```
 - **Common error codes:**
-  - `rate_limit_exceeded`, `invalid_token`, `not_found`, `internal_server_error`, `validation_error`, etc.
+  - `rate_limit_exceeded`, `invalid_token`, `not_found`, `internal_server_error`, `validation_error`, `missing_or_invalid_authorization`, `userId_missing_in_token`, `file_too_large`, `unsupported_file_type`, `job_description_too_short`, `job_description_too_long`, `resume_too_long`, `resume_too_short`, `file_extraction_failed`, `ai_analysis_failed`, `security_threat_detected`, `mongo_connection_failed`, `analysis_not_found`, etc.
 - **Implementation:** [`app/models.py`](app/models.py), [`main.py`](main.py)
 
 ---
@@ -346,7 +347,14 @@ See [`response_schema.json`](response_schema.json) for the full schema. Example 
 - `app/middleware.py`: Rate limiting, authentication
 - `app/models.py`: Response and error models
 - `app/config.py`: Configuration and validation limits
+- `app/database.py`: Helper functions for saving and fetching analysis results (e.g., `get_analysis_by_id`)
 - `response_schema.json`: Full response schema
 - `sample_response.json`: Example analysis response
 
 ---
+
+## Future Extensions
+
+- Endpoints for fetching or deleting analysis results by `analysisId` are **not currently implemented**.
+- If needed, these can be added in the future (see `get_analysis_by_id` and `delete_analysis` in `app/database.py`).
+- All new endpoints should be documented here for consistency.

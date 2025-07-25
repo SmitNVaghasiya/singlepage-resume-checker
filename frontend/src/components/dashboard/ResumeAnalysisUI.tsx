@@ -17,12 +17,17 @@ import {
   LucideIcon,
   Plus,
   BarChart3,
+  Download,
+  ChevronDown,
 } from "lucide-react";
 import { AnalysisResult } from "../../types";
 import { apiService } from "../../services/api";
 import { useAppContext } from "../../contexts/AppContext";
 import "./ResumeAnalysisUI.css";
 import FeedbackForm from "../feedback/FeedbackForm";
+import jsPDF from "jspdf";
+import Papa from "papaparse";
+import ReactDOM from "react-dom";
 
 interface ResumeAnalysisUIProps {
   analysisId: string;
@@ -35,6 +40,13 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const downloadBtnRef = React.useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  }>({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     fetchAnalysisData();
@@ -60,6 +72,134 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadReport = (type: "json" | "pdf" | "csv") => {
+    if (!data) return;
+    if (type === "json") {
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `resume_analysis_report_${analysisId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else if (type === "pdf") {
+      const doc = new jsPDF();
+      let y = 15;
+      const lineHeight = 6;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 10;
+      const maxWidth = doc.internal.pageSize.width - 2 * margin;
+      doc.setFontSize(16);
+      doc.text("Resume Analysis Report", margin, y);
+      y += 10;
+      doc.setFontSize(10);
+      // Print all top-level fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === "resume_analysis_report") return; // Print this as a section
+        if (typeof value === "object" && value !== null) return;
+        const text = `${key.replace(/_/g, " ")}: ${value}`;
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach((line: string) => {
+          if (y > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.text(line, margin, y);
+          y += lineHeight;
+        });
+      });
+      y += 5;
+      // Print resume_analysis_report sectioned
+      const printSection = (obj: any, indent = 0) => {
+        Object.entries(obj).forEach(([key, value]) => {
+          if (typeof value === "object" && value !== null) {
+            const sectionHeader = `${" ".repeat(indent)}${key.replace(
+              /_/g,
+              " "
+            )}:`;
+            const lines = doc.splitTextToSize(
+              sectionHeader,
+              maxWidth - indent * 2
+            );
+            lines.forEach((line: string) => {
+              if (y > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+              }
+              doc.text(line, margin + indent, y);
+              y += lineHeight;
+            });
+            printSection(value, indent + 2);
+          } else {
+            const text = `${" ".repeat(indent)}${key.replace(
+              /_/g,
+              " "
+            )}: ${value}`;
+            const lines = doc.splitTextToSize(text, maxWidth - indent * 2);
+            lines.forEach((line: string) => {
+              if (y > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+              }
+              doc.text(line, margin + indent, y);
+              y += lineHeight;
+            });
+          }
+        });
+      };
+      const sectionHeader = "resume_analysis_report:";
+      const lines = doc.splitTextToSize(sectionHeader, maxWidth);
+      lines.forEach((line: string) => {
+        if (y > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += lineHeight;
+      });
+      printSection(data.resume_analysis_report, 2);
+      doc.save(`resume_analysis_report_${analysisId}.pdf`);
+    } else if (type === "csv") {
+      // Flatten all fields for CSV
+      const flatten = (obj: any, prefix = "") => {
+        let rows: any[] = [];
+        Object.entries(obj).forEach(([key, value]) => {
+          const fullKey = prefix ? `${prefix}.${key}` : key;
+          if (
+            typeof value === "object" &&
+            value !== null &&
+            !Array.isArray(value)
+          ) {
+            rows = rows.concat(flatten(value, fullKey));
+          } else if (Array.isArray(value)) {
+            rows.push({ key: fullKey, value: value.join("; ") });
+          } else {
+            rows.push({ key: fullKey, value });
+          }
+        });
+        return rows;
+      };
+      const rows = flatten(data);
+      const csv = Papa.unparse([
+        ["Field", "Value"],
+        ...rows.map((r) => [r.key, r.value]),
+      ]);
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `resume_analysis_report_${analysisId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    setDownloadOpen(false);
   };
 
   const getEligibilityColor = (eligibility: string) => {
@@ -543,6 +683,30 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     { id: "feedback", label: "Feedback", icon: Star },
   ];
 
+  React.useEffect(() => {
+    if (downloadOpen && downloadBtnRef.current) {
+      const rect = downloadBtnRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [downloadOpen]);
+
+  // Add click-away handler for dropdown
+  React.useEffect(() => {
+    if (!downloadOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const dropdown = document.getElementById("download-dropdown");
+      if (dropdown && !dropdown.contains(e.target as Node)) {
+        setDownloadOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [downloadOpen]);
+
   if (loading) {
     return (
       <div className="resume-analysis-container">
@@ -586,7 +750,10 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           <div className="resume-analysis-title">
             <h1>Resume Analysis Dashboard</h1>
           </div>
-          <div className="resume-analysis-header-actions">
+          <div
+            className="resume-analysis-header-actions"
+            style={{ position: "relative" }}
+          >
             <Link
               to="/resumechecker"
               onClick={resetAnalysis}
@@ -599,6 +766,153 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
               <BarChart3 size={18} />
               View Dashboard
             </Link>
+            <button
+              ref={downloadBtnRef}
+              className="header-button"
+              onClick={() => setDownloadOpen((v) => !v)}
+              disabled={!data}
+              title="Download Report"
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Download size={18} />
+              <span>Download</span>
+              <ChevronDown size={16} style={{ marginLeft: 2 }} />
+            </button>
+            {downloadOpen &&
+              ReactDOM.createPortal(
+                <div
+                  id="download-dropdown"
+                  style={{
+                    position: "absolute",
+                    top: dropdownPos.top,
+                    left: dropdownPos.left,
+                    width: dropdownPos.width,
+                    background: "#fff",
+                    border: "1px solid #ddd",
+                    borderRadius: 6,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                    zIndex: 9999,
+                    minWidth: 140,
+                    padding: 4,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <button
+                    className="dropdown-item"
+                    style={{
+                      width: "100%",
+                      padding: "12px 18px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 15,
+                      color: "#222",
+                      fontWeight: 500,
+                      borderRadius: "8px 8px 0 0",
+                      transition: "background 0.15s, color 0.15s",
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "#f3f4ff";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "#3b3be6";
+                      (e.currentTarget as HTMLButtonElement).style.fontWeight =
+                        "600";
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "none";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "#222";
+                      (e.currentTarget as HTMLButtonElement).style.fontWeight =
+                        "500";
+                    }}
+                    onClick={() => handleDownloadReport("json")}
+                  >
+                    JSON
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    style={{
+                      width: "100%",
+                      padding: "12px 18px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 15,
+                      color: "#222",
+                      fontWeight: 500,
+                      borderTop: "1px solid #ececff",
+                      transition: "background 0.15s, color 0.15s",
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "#f3f4ff";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "#3b3be6";
+                      (e.currentTarget as HTMLButtonElement).style.fontWeight =
+                        "600";
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "none";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "#222";
+                      (e.currentTarget as HTMLButtonElement).style.fontWeight =
+                        "500";
+                    }}
+                    onClick={() => handleDownloadReport("pdf")}
+                  >
+                    PDF
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    style={{
+                      width: "100%",
+                      padding: "12px 18px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 15,
+                      color: "#222",
+                      fontWeight: 500,
+                      borderTop: "1px solid #ececff",
+                      borderRadius: "0 0 8px 8px",
+                      transition: "background 0.15s, color 0.15s",
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "#f3f4ff";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "#3b3be6";
+                      (e.currentTarget as HTMLButtonElement).style.fontWeight =
+                        "600";
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "none";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "#222";
+                      (e.currentTarget as HTMLButtonElement).style.fontWeight =
+                        "500";
+                    }}
+                    onClick={() => handleDownloadReport("csv")}
+                  >
+                    CSV
+                  </button>
+                </div>,
+                document.body
+              )}
           </div>
         </div>
       </div>

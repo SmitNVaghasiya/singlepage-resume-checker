@@ -19,6 +19,7 @@ interface FilePreviewModalProps {
   onClose: () => void;
   file: File | null;
   title?: string;
+  allowTxt?: boolean; // new prop
 }
 
 const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
@@ -26,6 +27,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   onClose,
   file,
   title = "File Preview",
+  allowTxt = true, // default true for job description, false for resume
 }) => {
   const [previewContent, setPreviewContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -65,11 +67,14 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         const blobUrl = URL.createObjectURL(file);
         setPreviewContent(blobUrl);
         setPreviewType("pdf");
-      } else if (fileType === "text/plain" || fileName.endsWith(".txt")) {
-        // TXT files
+      } else if ((fileType === "text/plain" || fileName.endsWith(".txt")) && allowTxt) {
+        // TXT files (only if allowed)
         const text = await file.text();
         setPreviewContent(text);
         setPreviewType("text");
+      } else if ((fileType === "text/plain" || fileName.endsWith(".txt")) && !allowTxt) {
+        setError("TXT files are not allowed for resume preview.");
+        setPreviewType("unsupported");
       } else if (
         fileType ===
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from "react";
 import { Upload, FileText, X, CheckCircle, Eye } from "lucide-react";
 import { PasteTip } from "../ui";
 import { FilePreviewModal } from "../file-upload";
+import { validateResumeFile } from "../../utils/fileValidation";
 
 interface ResumeUploadSectionProps {
   file: File | null;
@@ -20,31 +21,11 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidFile = useCallback((file: File) => {
-    const validTypes = [".pdf", ".docx"];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-
-    console.log("Validating file:", file.name, file.type, file.size);
-
-    if (file.size > maxSize) {
-      setUploadError("File size must be less than 5MB");
+    const validation = validateResumeFile(file);
+    if (!validation.isValid) {
+      setUploadError(validation.error || "Invalid file");
       return false;
     }
-
-    const isValidType = validTypes.some((type) => {
-      if (type === ".pdf") return file.type === "application/pdf";
-      if (type === ".docx")
-        return (
-          file.type ===
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        );
-      return false;
-    });
-
-    if (!isValidType) {
-      setUploadError("Please upload a PDF or DOCX file");
-      return false;
-    }
-
     setUploadError(null);
     return true;
   }, []);
@@ -257,7 +238,7 @@ const ResumeUploadSection: React.FC<ResumeUploadSectionProps> = ({
             isOpen={isPreviewOpen}
             onClose={() => setIsPreviewOpen(false)}
             file={file}
-            title="Resume Preview"
+            allowTxt={false}
           />
         </div>
       </div>

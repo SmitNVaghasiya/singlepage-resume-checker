@@ -94,8 +94,8 @@ export interface AnalysisResult {
   id?: string;
   analysisId?: string;
   resumeFilename?: string;
-  jobDescriptionFilename?: string;
-  jobTitle?: string;
+  // jobDescriptionFilename?: string; // Removed duplicate
+  jobTitle?: string;  // Removed duplicate
   industry?: string;
   analyzedAt?: Date;
   createdAt?: Date;

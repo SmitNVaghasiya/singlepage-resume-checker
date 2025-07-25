@@ -85,6 +85,30 @@ class ResumeController {
         return;
       }
 
+      // Validate resume file type
+      if (resumeFile) {
+        const ext = resumeFile.originalname.split('.').pop()?.toLowerCase();
+        if (!ext || !config.allowedResumeFileTypes.includes(ext)) {
+          res.status(400).json({
+            error: 'Invalid resume file type',
+            message: `Resume file type not allowed. Allowed types: ${config.allowedResumeFileTypes.join(', ')}`,
+          });
+          return;
+        }
+      }
+
+      // Validate job description file type
+      if (jobDescriptionFile) {
+        const ext = jobDescriptionFile.originalname.split('.').pop()?.toLowerCase();
+        if (!ext || !config.allowedFileTypes.includes(ext)) {
+          res.status(400).json({
+            error: 'Invalid job description file type',
+            message: `Job description file type not allowed. Allowed types: ${config.allowedFileTypes.join(', ')}`,
+          });
+          return;
+        }
+      }
+
       // Validate job description input
       if (!jobDescriptionFile && !finalJobDescriptionText?.trim()) {
         res.status(400).json({

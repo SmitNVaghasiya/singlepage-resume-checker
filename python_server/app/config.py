@@ -45,7 +45,9 @@ class Settings(BaseSettings):
     
     # File Processing
     max_file_size: int = 5242880  # 5MB
-    allowed_extensions: str = "pdf,docx,txt"  # Changed to str to avoid JSON parsing
+    allowed_extensions: str = "pdf,docx,txt"  # Deprecated, use allowed_resume_extensions and allowed_jobdesc_extensions
+    allowed_resume_extensions: str = "pdf,docx"  # Only for resume
+    allowed_jobdesc_extensions: str = "pdf,docx,txt"  # Only for job description
     
     # Input Validation Limits
     max_resume_words: int = 8000  # Maximum words for resume text
@@ -110,5 +112,25 @@ class Settings(BaseSettings):
         
         # Fallback to default
         return "pdf,docx,txt"
+
+    def _parse_extensions(self, ext_string: str, default: list) -> list:
+        if not ext_string:
+            return default
+        if ext_string.startswith('[') and ext_string.endswith(']'):
+            try:
+                parsed = json.loads(ext_string)
+                if isinstance(parsed, list):
+                    return [ext.strip() for ext in parsed if ext.strip()]
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return [ext.strip() for ext in ext_string.split(",") if ext.strip()]
+
+    @property
+    def allowed_resume_extensions_list(self) -> list:
+        return self._parse_extensions(self.allowed_resume_extensions, ["pdf", "docx"])
+
+    @property
+    def allowed_jobdesc_extensions_list(self) -> list:
+        return self._parse_extensions(self.allowed_jobdesc_extensions, ["pdf", "docx", "txt"])
 
 settings = Settings()

@@ -4,7 +4,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { HeroSection } from "../components/layout";
 import { WhyChooseUs, FAQ } from "../components/ui";
 import { ResumeUploadSection } from "../components/file-upload";
-import { readFileAsDataURL } from "../utils/fileValidation"; // We'll use a utility to convert File to base64
+import { readFileAsDataURL, validateResumeFile } from "../utils/fileValidation"; // We'll use a utility to convert File to base64
 import "../styles/pages/homepage.css";
 
 const HomePage: React.FC = () => {
@@ -28,30 +28,10 @@ const HomePage: React.FC = () => {
         if (item.kind === "file") {
           const pastedFile = item.getAsFile();
           if (pastedFile) {
-            e.preventDefault();
-
-            // Validate file
-            const validTypes = [".pdf", ".docx"];
-            const maxSize = 5 * 1024 * 1024; // 5MB
-
-            if (pastedFile.size > maxSize) {
-              alert("File size must be less than 5MB");
-              return;
-            }
-
-            const isValidType = validTypes.some((type) => {
-              if (type === ".pdf") return pastedFile.type === "application/pdf";
-              if (type === ".docx")
-                return (
-                  pastedFile.type ===
-                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                );
-
-              return false;
-            });
-
-            if (!isValidType) {
-              alert("Please upload a PDF or DOCX file");
+            // Validate file for resume upload (PDF/DOCX only)
+            const validation = validateResumeFile(pastedFile);
+            if (!validation.isValid) {
+              alert(validation.error || "Please upload a PDF or DOCX file");
               return;
             }
 

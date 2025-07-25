@@ -1,3 +1,5 @@
+import { validateResumeFile, validateJobDescriptionFile } from '../utils/fileValidation';
+
 export interface PasteServiceConfig {
   currentStep?: string;
   pathname: string;
@@ -10,25 +12,27 @@ export interface PasteServiceConfig {
 }
 
 export class PasteService {
-  private static validTypes = ['.pdf', '.docx', '.txt'];
   private static maxSize = 5 * 1024 * 1024; // 5MB
 
-  static validateFile(file: File): { isValid: boolean; error?: string } {
+  // Legacy validation method (deprecated - use specific functions)
+  static validateFile(file: File, allowTxt: boolean = true): { isValid: boolean; error?: string } {
     console.log('Validating file:', file.name, file.type, file.size);
     
     if (file.size > this.maxSize) {
       return { isValid: false, error: 'File size must be less than 5MB' };
     }
     
-    const isValidType = this.validTypes.some(type => {
+    const validTypes = allowTxt ? ['.pdf', '.docx', '.txt'] : ['.pdf', '.docx'];
+    const isValidType = validTypes.some(type => {
       if (type === '.pdf') return file.type === 'application/pdf';
       if (type === '.docx') return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      if (type === '.txt') return file.type === 'text/plain';
+      if (type === '.txt' && allowTxt) return file.type === 'text/plain';
       return false;
     });
 
     if (!isValidType) {
-      return { isValid: false, error: 'Please upload a PDF, DOCX, or TXT file' };
+      const allowedTypes = allowTxt ? 'PDF, DOCX, or TXT' : 'PDF or DOCX';
+      return { isValid: false, error: `Please upload a ${allowedTypes} file` };
     }
 
     return { isValid: true };
@@ -52,13 +56,6 @@ export class PasteService {
   static handleGlobalPaste(file: File, config: PasteServiceConfig): void {
     console.log('Global paste handler called with file:', file.name, file.type, file.size);
     
-    // Validate file
-    const validation = this.validateFile(file);
-    if (!validation.isValid) {
-      alert(validation.error);
-      return;
-    }
-
     // Check if we're on the homepage - more reliable detection
     const isOnHomepage = config.pathname === '/' || config.pathname === '/home' || 
                         window.location.pathname === '/' || window.location.pathname === '/home';
@@ -88,10 +85,14 @@ export class PasteService {
     }
   }
 
-
-
   private static handleResumeUploadPaste(file: File, config: PasteServiceConfig): void {
     console.log('Setting resume file via global paste');
+    // Validate file for resume upload (PDF/DOCX only)
+    const validation = validateResumeFile(file);
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
     config.setResumeFile(file);
     // Auto-advance to job description step
     setTimeout(() => {
@@ -101,6 +102,12 @@ export class PasteService {
 
   private static handleJobFilePaste(file: File, config: PasteServiceConfig): void {
     console.log('Setting job file via global paste');
+    // Validate file for job upload (PDF/DOCX/TXT allowed)
+    const validation = validateJobDescriptionFile(file);
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
     config.setJobFile(file);
     // Set jobInputMethod to 'file' when a job file is pasted
     if (config.setJobInputMethod) {

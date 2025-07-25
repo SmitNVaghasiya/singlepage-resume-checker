@@ -17,49 +17,20 @@
 
 
 
--------- Future add on.
+# -------- Future add on.
 -- Add freemium version option. - Add payment gateway.
--- Make sure that it can be used in the indostory use as i can allow to scan the all the resumes company have and it will analyse it for single or even the multiple job description.
--- Have to make totally different dashboard and also the reusmechecker option.
 
 -------- Normal Site Future add on.
 -- add option where user can find out which are the improvements resume needs.
 
 completed work
--- "How We Compare" make sure that this feature is correct. ---For now this is correct.
--- add option so that i can fill both the password and email, save in the browser itself. completed mostly
-
---- image.png can you put the AI-Powered Analysis
-Advanced AI analyzes your resume against specific job requirements, not just keywords
-
-Job-Specific Matching
-Get precise compatibility scores based on actual job descriptions
-
-Actionable Insights
-Receive specific recommendations to improve your resume's impact cards to the little bit right side and Perfect Your Resume with Smart AI Analysis
-Stop guessing if your resume matches job requirements. Our advanced AI analyzes your resume against specific job descriptions, providing detailed insights and actionable recommendations to help you land your dream job.
-
-95%
-Accuracy Rate
-10k+
-Resumes Analyzed
-2x
-Better Match Rate
-
-Analyze My Resume
-Free analysis • No signup required • Instant results to the left side
-
----
-
--- https://grok.com/chat/82c69cc8-6220-4d2b-b657-e5fd45a91952 detailed pan link how i can deploy the server.
-
+# -- "How We Compare" make sure that this feature is correct. ---For now this is correct.
+# -- add option so that i can fill both the password and email, save in the browser itself. completed mostly
 
 
 # <!-- -- make this image components smaller image.jpg in admin dashboard.
 
 # -- also make the ui more better Overview Users Analyses System move to top nav bar option as to give more space to the admin to see the data.
-
-
 
 # -- Admin do not require profile page access so that password can not be changed by outside of the organization pepole or they must not be able to delete the account.✅ COMPLETED
 
@@ -145,28 +116,27 @@ Free analysis • No signup required • Instant results to the left side
 
 -- Test the ui improvement done for the mobile responsiveness.
 
--- Add the file to keep the code consitencey like use only the camelCase in entier database or something like this based on how we have coded the whole project until now.
-
--- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it.
+-- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it. -- 
 
 ------------------- 24/07/2025 -------------------
--- currently this code is looking working perfectly in local setup.
--- Still backend is calling the resume-analyzer build and also when i last time tried calling the python server it did not responded.
+# -- currently this code is looking working perfectly in local setup. 
+# -- Still backend is calling the resume-analyzer build and also when i last time tried calling the python server it did not responded. -- Completed this was happening because of the old build catche was loaded in the backend vercel server so this was happening.
+    -- Currently for some reason after solving this now backend is not calling the python sever in render at all.
 -- Backend is now calling the /api/resume/analyze instead of /api/v1/analyze as i can see in the server logs and also this request is not reacing to the backend as i tried callling /api/resume/analyze normally with the help of render api uri.
+
+
 -- This is new mobile responsive design worked little bit but needs too much improvements.
--- Test out the admin section which i recently generated.
 
---- do not show data to every user show data to users only who have done the analysis.As corrrenlty when other user logged in it show all users data there even though user was newly logged in and do not have access to see other user data. -- ✅ Mostly completed as added the validation only testing is reamining by creating new account and testing it there.
+# --- do not show data to every user show data to users only who have done the analysis.As corrrenlty when other user logged in it show all users data there even though user was newly logged in and do not have access to see other user data. -- ✅ Mostly completed as added the validation only testing is reamining by creating new account and testing it there.
 
--- If user trying with the temp id for the sign up give them error that do not use the temp mail use the original mail we have setup the logic and it is working just have to change the text what we show it as when one user tried this it did not created account and shown something wrong or some other error i forgot i do not completely know it is the case but if it will find out that mail used is temp stop it and show the error.
+# -- If user trying with the temp id for the sign up give them error that do not use the temp mail use the original mail we have setup the logic and it is working just have to change the text what we show it as when one user tried this it did not created account and shown something wrong or some other error i forgot i do not completely know it is the case but if it will find out that mail used is temp stop it and show the error. --      ✅ Mostly completed Testing remaining.
 
 -- -- Separate the admin module in the backend totally. from the noraml users module code.**4**
 
 -- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.
 
--- Improve the dashboard UI. and also add fetures like the download the report or export data.
-
--- make the analsysis page ui better.
+-- Improve the dashboard UI. 
+-- In dashboard UI add fetures like the download the report or export data. when we enter the view detailed page. and added features (like PDF or CSV) download.
 
 # -- height of the analysis step.
 
@@ -176,9 +146,12 @@ Free analysis • No signup required • Instant results to the left side
 -- increase the width of the dashboard and dashboard/analysis page.
 -- Smit Resume.pdf content shown in the dashboard make file icon to put on the left side of the text not on the top.and also make font darker right now it is too light.
 -- Analysis Dashboard Track your resume analysis history and improvements - color used for this text card i have to add to the other pages also.
+
 --- reduce the size of the http://localhost:5173/dashboard/analysis/ page text.
+
 -- improve the normal dashboard ui and seperate the admin dashboard compoenents totally.
-✅ -- add admin panel to analyse and see all the things so that i can monitor also the usage by each user and keep monitor for the improvement if i needed it.
+
+# ✅ -- add admin panel to analyse and see all the things so that i can monitor also the usage by each user and keep monitor for the improvement if i needed it.
 
 -- Add limitation of max input token as there is limit in groq Api call so add it and also add that user will not able to click analyse button again and again as it will request anlaysis work for same thing again and again so improve that. -- testing is remaining as i have done the change but have not seen my self if added successfully.
 
@@ -188,7 +161,7 @@ Free analysis • No signup required • Instant results to the left side
 
 
 -------- Must complete only after completing above tasks.
--- Add option so that user can give me suggesstions after the analysis result is it good or helped them or not.- code might be added have to check if it is added correctly and working or not correctly. ✅ COMPLETED
+# -- Add option so that user can give me suggesstions after the analysis result is it good or helped them or not.- code might be added have to check if it is added correctly and working or not correctly. ✅ COMPLETED Testing remaining.
 
 -- Add the Google sign in and sign up inside of my website and only take data which is required.
 -- We are not able to export the full anlaysis report in profile only profile info is being downloaded.
@@ -219,3 +192,14 @@ Free analysis • No signup required • Instant results to the left side
 -- code using the Claude Opus 4 (Thinking) model not just thinking and generating like this model but use the Claude Opus 4 (Thinking) model itself
 
 -- Add the login and sign up using the Google authentication.
+
+
+
+----------------------------------------------------------------------------- --------------------
+# -- Resume Upload must not take the txt file it only take the pdf and the docx frontend needs to fix this as there is validation in the backend and also the python server. -- ✅ COMPLETED.
+# -- I can now improve the how we show data in the pdf improve it. -- Future add on.
+# -- Download button must downlaod all the data same as the json is downloading as other two are not showing all the data in the file. -- ✅ COMPLETED.
+# -- Improve the ui of the dropdown list as currently it is not mathching the surrounding ui. -- ✅ COMPLETED. Mostly but can change in the future.
+
+# -- On refresh data must not lost in the resmuchecker page. -- ✅ COMPLETED.
+-- Feedback form page utilize the width and also change background color to mathch the other components to white background as currently it is black and it is not matching the theme.

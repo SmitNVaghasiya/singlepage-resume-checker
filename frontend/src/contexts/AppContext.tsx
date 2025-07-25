@@ -111,6 +111,212 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return new File([u8arr], filename, { type: mime });
   };
 
+  // Helper function to convert File to base64 for storage
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Save resume checker state to localStorage
+  const saveResumeCheckerState = async () => {
+    try {
+      const stateToSave = {
+        currentStep,
+        jobDescription,
+        jobInputMethod,
+        timestamp: Date.now(),
+      };
+
+      // Save file data if files exist
+      if (resumeFile) {
+        try {
+          const resumeFileData = await fileToBase64(resumeFile);
+          stateToSave.resumeFile = {
+            name: resumeFile.name,
+            type: resumeFile.type,
+            size: resumeFile.size,
+            data: resumeFileData,
+          };
+        } catch (error) {
+          console.warn("Failed to save resume file data:", error);
+          // Save metadata only
+          stateToSave.resumeFile = {
+            name: resumeFile.name,
+            type: resumeFile.type,
+            size: resumeFile.size,
+          };
+        }
+      }
+
+      if (jobFile) {
+        try {
+          const jobFileData = await fileToBase64(jobFile);
+          stateToSave.jobFile = {
+            name: jobFile.name,
+            type: jobFile.type,
+            size: jobFile.size,
+            data: jobFileData,
+          };
+        } catch (error) {
+          console.warn("Failed to save job file data:", error);
+          // Save metadata only
+          stateToSave.jobFile = {
+            name: jobFile.name,
+            type: jobFile.type,
+            size: jobFile.size,
+          };
+        }
+      }
+
+      localStorage.setItem("resumeCheckerState", JSON.stringify(stateToSave));
+      console.log("Resume checker state saved:", stateToSave);
+    } catch (error) {
+      console.error("Failed to save resume checker state:", error);
+    }
+  };
+
+  // Load resume checker state from localStorage
+  const loadResumeCheckerState = () => {
+    try {
+      const savedState = localStorage.getItem("resumeCheckerState");
+      if (!savedState) {
+        console.log("No saved resume checker state found");
+        return;
+      }
+
+      const stateData = JSON.parse(savedState);
+      console.log("Loading saved resume checker state:", stateData);
+
+      // Check if the saved state is not too old (24 hours)
+      const isStateValid =
+        Date.now() - stateData.timestamp < 24 * 60 * 60 * 1000;
+      if (!isStateValid) {
+        console.log("Saved state is too old, clearing it");
+        localStorage.removeItem("resumeCheckerState");
+        return;
+      }
+
+      // Restore basic state
+      setCurrentStep(stateData.currentStep || "upload");
+      setJobDescription(stateData.jobDescription || "");
+      setJobInputMethod(stateData.jobInputMethod || "text");
+
+      // Restore resume file if it exists
+      if (stateData.resumeFile) {
+        if (stateData.resumeFile.data) {
+          try {
+            const reconstructedResumeFile = base64ToFile(
+              stateData.resumeFile.data,
+              stateData.resumeFile.name,
+              stateData.resumeFile.type
+            );
+            setResumeFile(reconstructedResumeFile);
+            console.log("Resume file restored:", reconstructedResumeFile.name);
+          } catch (error) {
+            console.error("Failed to restore resume file:", error);
+            // Create placeholder file
+            const placeholderFile = new File([""], stateData.resumeFile.name, {
+              type: stateData.resumeFile.type,
+            });
+            setResumeFile(placeholderFile);
+          }
+        } else {
+          // Create placeholder file if no data
+          const placeholderFile = new File([""], stateData.resumeFile.name, {
+            type: stateData.resumeFile.type,
+          });
+          setResumeFile(placeholderFile);
+        }
+      }
+
+      // Restore job file if it exists
+      if (stateData.jobFile) {
+        if (stateData.jobFile.data) {
+          try {
+            const reconstructedJobFile = base64ToFile(
+              stateData.jobFile.data,
+              stateData.jobFile.name,
+              stateData.jobFile.type
+            );
+            setJobFile(reconstructedJobFile);
+            console.log("Job file restored:", reconstructedJobFile.name);
+          } catch (error) {
+            console.error("Failed to restore job file:", error);
+            // Create placeholder file
+            const placeholderFile = new File([""], stateData.jobFile.name, {
+              type: stateData.jobFile.type,
+            });
+            setJobFile(placeholderFile);
+          }
+        } else {
+          // Create placeholder file if no data
+          const placeholderFile = new File([""], stateData.jobFile.name, {
+            type: stateData.jobFile.type,
+          });
+          setJobFile(placeholderFile);
+        }
+      }
+
+      console.log("Resume checker state restored successfully");
+    } catch (error) {
+      console.error("Failed to load resume checker state:", error);
+      // Clear corrupted state
+      localStorage.removeItem("resumeCheckerState");
+    }
+  };
+
+  // Save state whenever it changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Only save if we're on the resume checker page
+      if (location.pathname === "/resumechecker") {
+        saveResumeCheckerState();
+      }
+    }, 500); // Debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    currentStep,
+    jobDescription,
+    jobInputMethod,
+    resumeFile,
+    jobFile,
+    location.pathname,
+  ]);
+
+  // Load state on component mount and clear when navigating away
+  useEffect(() => {
+    if (location.pathname === "/resumechecker") {
+      loadResumeCheckerState();
+    } else {
+      // Clear resume checker state when navigating away from the page
+      // But only if we're not in the middle of an analysis
+      const currentState = localStorage.getItem("resumeCheckerState");
+      if (currentState) {
+        try {
+          const stateData = JSON.parse(currentState);
+          // Only clear if the state is old (more than 1 hour) or if we're not on analyze step
+          const isStateOld = Date.now() - stateData.timestamp > 60 * 60 * 1000;
+          const isAnalyzing = stateData.currentStep === "analyze";
+
+          if (isStateOld || !isAnalyzing) {
+            localStorage.removeItem("resumeCheckerState");
+            console.log(
+              "Cleared resume checker state - navigating away from page"
+            );
+          }
+        } catch (error) {
+          // Clear corrupted state
+          localStorage.removeItem("resumeCheckerState");
+        }
+      }
+    }
+  }, [location.pathname]);
+
   // Check for existing authentication on app load
   useEffect(() => {
     const checkAuth = async () => {
@@ -690,6 +896,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setCurrentAnalysis(enrichedAnalysis);
     setAnalysisHistory((prev) => [enrichedAnalysis, ...prev]);
 
+    // Clear resume checker state after successful analysis
+    localStorage.removeItem("resumeCheckerState");
+
     // Also reload the full history to get the latest data
     loadAnalysisHistory().catch(console.warn);
   };
@@ -711,6 +920,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setRequiresAuth(false);
     // Clear any pending analysis
     localStorage.removeItem("pendingAnalysis");
+    // Clear resume checker state
+    localStorage.removeItem("resumeCheckerState");
   };
 
   const logout = async () => {

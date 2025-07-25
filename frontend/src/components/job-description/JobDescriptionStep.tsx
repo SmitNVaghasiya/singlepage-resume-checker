@@ -6,6 +6,7 @@ import { useJobDescriptionLogic } from "./JobDescriptionLogic";
 import { Eye } from "lucide-react";
 import { FilePreviewModal } from "../file-upload";
 import "./JobDescriptionStep.css";
+import { validateJobDescriptionFile } from "../../utils/fileValidation";
 
 interface JobDescriptionStepProps {
   currentStep: "upload" | "job-description" | "analyze";
@@ -61,6 +62,16 @@ const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     canProceedToAnalysis: () => canProceedToAnalysis,
     onStartAnalysis,
   });
+
+  const handleJobFileUpload = (file: File) => {
+    const validation = validateJobDescriptionFile(file);
+    if (!validation.isValid) {
+      setJobFileError(validation.error || "Invalid file");
+      return;
+    }
+    setJobFile(file);
+    setJobFileError("");
+  };
 
   return (
     <div className="step-content">

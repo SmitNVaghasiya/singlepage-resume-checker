@@ -9,12 +9,22 @@ const storage = multer.memoryStorage();
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Get file extension
   const ext = path.extname(file.originalname).toLowerCase().slice(1);
-  
-  // Check if file type is allowed
-  if (config.allowedFileTypes.includes(ext)) {
-    cb(null, true);
+
+  // Enforce different rules for resume and jobDescription
+  if (file.fieldname === 'resume') {
+    if (config.allowedResumeFileTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Resume file type not allowed. Allowed types: ${config.allowedResumeFileTypes.join(', ')}`));
+    }
+  } else if (file.fieldname === 'jobDescription') {
+    if (config.allowedFileTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Job description file type not allowed. Allowed types: ${config.allowedFileTypes.join(', ')}`));
+    }
   } else {
-    cb(new Error(`File type not allowed. Allowed types: ${config.allowedFileTypes.join(', ')}`));
+    cb(new Error('Invalid file field name.'));
   }
 };
 

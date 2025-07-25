@@ -157,7 +157,7 @@ class FileProcessor:
         return "Error: Unable to decode text file", False
     
     @staticmethod
-    def process_file(file_content: bytes, filename: str) -> Tuple[str, bool, str]:
+    def process_file(file_content: bytes, filename: str, file_type_hint: str = None) -> Tuple[str, bool, str]:
         if not file_content:
             return "Error: Empty file", False, "unknown"
         size_valid, size_msg = FileProcessor.validate_file_size(file_content, filename)
@@ -165,6 +165,19 @@ class FileProcessor:
             return size_msg, False, "unknown"
         file_type = FileProcessor.detect_file_type(file_content, filename)
         logger.info(f"Processing file: {filename}, detected type: {file_type}")
+        # Enforce allowed file types based on hint
+        if file_type_hint == 'resume':
+            allowed = settings.allowed_resume_extensions_list
+            if file_type not in allowed:
+                return f"Error: Resume file type '{file_type}' not allowed. Allowed types: {', '.join(allowed)}.", False, file_type
+        elif file_type_hint == 'jobdesc':
+            allowed = settings.allowed_jobdesc_extensions_list
+            if file_type not in allowed:
+                return f"Error: Job description file type '{file_type}' not allowed. Allowed types: {', '.join(allowed)}.", False, file_type
+        else:
+            allowed = settings.allowed_extensions_list
+            if file_type not in allowed:
+                return f"Error: Unsupported file type '{file_type}'. Allowed types: {', '.join(allowed)}.", False, file_type
         if file_type == 'pdf':
             pages_valid, pages_msg = FileProcessor.validate_pdf_pages(file_content, filename)
             if not pages_valid:
@@ -181,7 +194,7 @@ class FileProcessor:
             text, success = FileProcessor.extract_text_from_txt(file_content)
             return text, success, file_type if file_type != 'unknown' else 'txt'
         else:
-            return f"Error: Unsupported file type '{file_type}'. Allowed types: {', '.join(settings.allowed_extensions_list)}.", False, file_type
+            return f"Error: Unsupported file type '{file_type}'. Allowed types: {', '.join(allowed)}.", False, file_type
     
     @staticmethod
     def validate_content(text: str, content_type: str = "document") -> Tuple[bool, str]:
@@ -219,13 +232,13 @@ class FileProcessor:
             return False, "Error: Job description contains too many non-readable characters"
         return True, f"Valid job description ({word_count} words)"
 
-async def extract_text_from_file(file: "UploadFile") -> str:
-    try:
-        content = await file.read()
-        text, success, file_type = FileProcessor.process_file(content, file.filename or "unknown")
-        if not success:
-            raise ValueError(text)
-        return text
-    except Exception as e:
-        logger.error(f"File extraction failed: {str(e)}")
-        raise ValueError(f"Failed to extract text from file: {str(e)}")
+# async def extract_text_from_file(file: "UploadFile", file_type_hint: str = None) -> str:
+#     try:
+#         content = await file.read()
+#         text, success, file_type = FileProcessor.process_file(content, file.filename or "unknown", file_type_hint=file_type_hint)
+#         if not success:
+#             raise ValueError(text)
+#         return text
+#     except Exception as e:
+#         logger.error(f"File extraction failed: {str(e)}")
+#         raise ValueError(f"Failed to extract text from file: {str(e)}")

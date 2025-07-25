@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   FileText,
   Upload,
@@ -9,6 +9,7 @@ import {
   Eye,
 } from "lucide-react";
 import { FilePreviewModal } from "../file-upload";
+import { validateJobDescriptionFile } from "../../utils/fileValidation";
 
 export type JobInputMethod = "text" | "file";
 
@@ -45,30 +46,28 @@ const JobDescriptionSection: React.FC<JobDescriptionSectionProps> = ({
   const minWords = 50;
   const isTextValid = wordCount >= minWords;
 
+  const isValidFile = useCallback((file: File) => {
+    const validation = validateJobDescriptionFile(file);
+    if (!validation.isValid) {
+      setUploadError(validation.error || "Invalid file");
+      return false;
+    }
+    setUploadError(null);
+    return true;
+  }, []);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file
-    const validTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain",
-    ];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-
-    if (!validTypes.includes(file.type)) {
-      setUploadError("Please upload a PDF, DOCX, or TXT file");
-      return;
+    if (file) {
+      if (isValidFile(file)) {
+        setJobFile(file);
+        setJobInputMethod("file");
+      }
     }
-
-    if (file.size > maxSize) {
-      setUploadError("File size must be less than 5MB");
-      return;
+    // Reset the input value to allow selecting the same file again
+    if (e.target) {
+      e.target.value = "";
     }
-
-    setUploadError(null);
-    setJobFile(file);
   };
 
   const removeFile = () => {

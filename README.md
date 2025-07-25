@@ -27,9 +27,9 @@
 - **Data Export** - Export user data for backup
 - **Responsive Design** - Modern UI/UX across all devices
 
-## 🏗️ System Architecture
+## 🚦 How the System Works (Current Workflow)
 
-The project follows a **microservices architecture** with three main components and a decoupled, async data flow:
+### High-Level Architecture
 
 ```
 ┌───────────────┐    ┌───────────────┐    ┌───────────────┐
@@ -47,21 +47,75 @@ The project follows a **microservices architecture** with three main components 
                 └─────────────────────┘
 ```
 
-**Data Flow:**
+### Data Flow (Step-by-Step)
 
-- The **frontend** collects resume and job description (file or text) and sends them to the **backend**.
-- The **backend** validates/authenticates, then forwards the files/text (with user JWT) to the **Python AI server**.
-- The **Python server** performs AI analysis, stores results in MongoDB, and returns an analysis ID/status.
-- The **backend** polls MongoDB (owned by Python server) for analysis results and returns them to the frontend.
-- The **backend does not write analysis results directly**; it only reads them after the Python server completes analysis.
+- **Frontend**: User uploads resume/job description, triggers analysis via backend API.
+- **Backend**: Authenticates user, validates files, and forwards request to Python server (with JWT).
+- **Python Server**: Performs AI analysis, stores result in MongoDB, and returns only a minimal response (analysisId, status) to backend.
+- **Backend**: After notified of completion, fetches the full analysis result from MongoDB (never directly from Python server’s response) and returns it to the frontend.
+- **Frontend**: Displays results, allows feedback, and provides user dashboard/history.
 
-### Technology Stack
+**Key Principle:**
+
+- The backend never writes analysis results to the database; it only reads them after the Python server completes analysis.
+- The backend never fetches the full result directly from the Python server’s response—always from MongoDB.
+
+---
+
+## 🚀 Recent Changes & Improvements
+
+- **Strict Decoupling**: Backend and Python server are fully decoupled; backend only fetches results from MongoDB after analysis is complete.
+- **Feedback Integration**: Users can submit feedback after analysis; admins can review and manage feedback.
+- **Admin Panel**: Advanced analytics, user management, audit logs, system health, and export tools.
+- **Mobile Responsive UI**: Major improvements for mobile and desktop experiences.
+- **Strict Validation & Security**:
+  - File size, type, and page/word count limits enforced everywhere.
+  - AI-based prompt injection and malicious input protection.
+  - Rate limiting (default: 15 requests per IP per day; configurable).
+  - JWT authentication required for all analysis endpoints.
+- **Performance**: Async processing, efficient polling, and robust error handling.
+- **User Data Privacy**: Soft delete, account recovery, and GDPR-compliant export.
+- **Planned/Recent Features**:
+  - Google sign-in/sign-up (in progress)
+  - Export full analysis report (in progress)
+  - Advanced analytics, custom date ranges, and data visualization
+  - Admin-only access to sensitive data
+  - Improved dashboard and analysis UI
+  - Limiting daily analysis requests (configurable)
+  - Enhanced feedback and suggestion system
+
+---
+
+## 🏗️ System Architecture (Detailed)
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
-- **Backend**: Node.js, Express, TypeScript, JWT Authentication
-- **AI Server**: Python, FastAPI, Groq AI Integration
-- **Database**: MongoDB (owned by Python server, accessed read-only by backend)
-- **File Processing**: PDF, DOCX, TXT support
+  - Handles all user interaction, file uploads, and result display
+  - Calls backend REST API for all business logic
+- **Backend**: Node.js, Express, TypeScript
+  - Authenticates users, validates input, and proxies analysis requests
+  - Forwards analysis requests to Python server, receives minimal response, and fetches results from MongoDB
+  - Handles user management, admin, feedback, and analytics
+- **Python Server**: FastAPI, Groq AI, MongoDB
+  - Performs all AI/ML analysis
+  - Validates input, enforces security, and stores results in MongoDB
+  - Returns only analysisId/status to backend
+- **MongoDB**: Central data store for all analysis results (owned by Python server)
+
+---
+
+## 🔥 Key Features
+
+- **AI-Powered Resume Analysis**: Deep, section-wise feedback and scoring
+- **Job Description Matching**: Intelligent keyword and skill matching
+- **User Authentication**: Secure login/registration, email verification, Google auth (coming soon)
+- **Profile Management**: Edit profile, change password, soft delete, data export
+- **Analysis History**: Track all previous analyses with detailed results
+- **Feedback System**: Users can rate and comment on analysis quality
+- **Admin Dashboard**: Analytics, user management, audit logs, export, and system health
+- **Security**: JWT, rate limiting, input validation, prompt injection protection
+- **Mobile Responsive UI**: Consistent experience across devices
+
+---
 
 ## 💾 Data Storage & Privacy
 
@@ -258,7 +312,8 @@ We implement a **soft delete approach** for user accounts to ensure data preserv
 - The backend acts as a **proxy/manager** for analysis requests.
 - It authenticates users, validates files, and forwards requests to the Python server (with user JWT).
 - **It does not write analysis results to the database**; it only reads results after the Python server stores them.
-- The backend polls MongoDB (owned by the Python server) for completed analysis results and returns them to the frontend.
+- The backend is notified by the Python server when analysis is complete (via job status), and then fetches the result from MongoDB (owned by the Python server) to return to the frontend.
+- **The backend never receives the full analysis result directly from the Python server's response; it always fetches from MongoDB after job completion.**
 
 ### 1. Authentication Controller (`/backend/src/controllers/authController.ts`)
 
@@ -482,13 +537,16 @@ python_server/
 ### Analysis Endpoints (Backend)
 
 - `POST /api/resume/analyze` — Analyze resume (requires auth)
+  - Forwards request to Python server, receives job status, and returns analysisId/status to frontend.
 - `GET /api/resume/status/:analysisId` — Get analysis status
 - `GET /api/resume/result/:analysisId` — Get analysis result
+  - **Fetches the result from MongoDB after job completion, never directly from the Python server's response.**
 - `GET /api/resume/history` — Get analysis history
 
 ### Python AI Server Endpoints
 
 - `POST /api/v1/analyze` — Analyze resume (file or text, JWT required)
+  - Performs analysis, stores result in MongoDB, and returns job status (not the full result).
 - `GET /api/v1/status/{analysisId}` — Get analysis status (JWT required)
 - `GET /api/v1/result/{analysisId}` — Get analysis result (JWT required)
 - `GET /api/v1/my-analyses` — List all analyses for user (JWT required)

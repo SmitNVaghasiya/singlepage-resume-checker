@@ -70,19 +70,28 @@ This document provides a concise overview of all API endpoints exposed by the ba
 
 **Location:** `src/routes/adminRoutes.ts`, `src/controllers/adminController.ts`
 
-| Method | Endpoint                        | Description                                |
-| ------ | ------------------------------- | ------------------------------------------ |
-| POST   | /api/admin/login                | Admin login                                |
-| GET    | /api/admin/me                   | Get current admin profile (JWT required)   |
-| GET    | /api/admin/users                | Get all users (admin, permission required) |
-| GET    | /api/admin/users/:userId        | Get specific user by ID (admin)            |
-| PUT    | /api/admin/users/:userId/status | Update user status (admin)                 |
-| PUT    | /api/admin/users/bulk           | Bulk update users (admin)                  |
-| GET    | /api/admin/stats/dashboard      | Get dashboard statistics (admin)           |
-| GET    | /api/admin/stats/analyses       | Get analysis statistics (admin)            |
-| GET    | /api/admin/analyses/:analysisId | Get specific analysis (admin)              |
-| GET    | /api/admin/export               | Export data (users/analyses, admin)        |
-| GET    | /api/admin/health               | Get system health (admin)                  |
+| Method | Endpoint                                         | Description                                |
+| ------ | ------------------------------------------------ | ------------------------------------------ |
+| POST   | /api/admin/login                                 | Admin login                                |
+| GET    | /api/admin/me                                    | Get current admin profile (JWT required)   |
+| GET    | /api/admin/users                                 | Get all users (admin, permission required) |
+| GET    | /api/admin/users/:userId                         | Get specific user by ID (admin)            |
+| PUT    | /api/admin/users/:userId/status                  | Update user status (admin)                 |
+| PUT    | /api/admin/users/bulk                            | Bulk update users (admin)                  |
+| GET    | /api/admin/stats/dashboard                       | Get dashboard statistics (admin)           |
+| GET    | /api/admin/stats/analyses                        | Get analysis statistics (admin)            |
+| GET    | /api/admin/analyses/:analysisId                  | Get specific analysis (admin)              |
+| GET    | /api/admin/export                                | Export data (users/analyses, admin)        |
+| GET    | /api/admin/health                                | Get system health (admin)                  |
+| GET    | /api/admin/stats/enhanced                        | Get enhanced dashboard statistics (admin)  |
+| GET    | /api/admin/health/enhanced                       | Get enhanced system health (admin)         |
+| GET    | /api/admin/audit-logs                            | Get audit logs (admin)                     |
+| GET    | /api/admin/notifications                         | Get admin notifications                    |
+| PUT    | /api/admin/notifications/:notificationId/read    | Mark notification as read (admin)          |
+| PUT    | /api/admin/notifications/:notificationId/archive | Archive notification (admin)               |
+| GET    | /api/admin/configs                               | Get system configs (admin)                 |
+| PUT    | /api/admin/configs/:key                          | Update system config (admin)               |
+| POST   | /api/admin/data/cleanup                          | Cleanup old data (admin)                   |
 
 ---
 
