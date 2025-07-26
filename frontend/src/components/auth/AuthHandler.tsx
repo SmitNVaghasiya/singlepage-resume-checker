@@ -15,10 +15,8 @@ export const useAuthHandler = (props: AuthHandlerProps) => {
   // Handle successful authentication
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
-    // Automatically start analysis with uploaded files - smoother transition
-    setTimeout(() => {
-      onStartAnalysis();
-    }, 600); // Longer delay for smoother transition
+    // Start analysis immediately
+    onStartAnalysis();
   };
 
   // Handle auth modal close

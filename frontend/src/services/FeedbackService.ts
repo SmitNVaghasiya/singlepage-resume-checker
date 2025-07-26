@@ -31,6 +31,8 @@ export class FeedbackService {
   static async submitFeedback(feedbackData: FeedbackData): Promise<{ feedbackId: string }> {
     try {
       const response = await apiService.post('/feedback/submit', feedbackData);
+      // The backend returns { success: true, message: string, data: { feedbackId: string } }
+      // apiService.post returns the entire response, so we need to access response.data
       return response.data;
     } catch (error) {
       console.error('Error submitting feedback:', error);
@@ -44,11 +46,14 @@ export class FeedbackService {
   static async getFeedbackByAnalysis(analysisId: string): Promise<FeedbackResponse | null> {
     try {
       const response = await apiService.get(`/feedback/analysis/${analysisId}`);
+      // The backend returns { success: true, data: FeedbackResponse }
+      // apiService.get returns the entire response, so we need to access response.data
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       if (error.response?.status === 404) {
-        return null; // No feedback found
+        return null; // No feedback found - this is expected when user hasn't submitted feedback
       }
+      // Only log non-404 errors
       console.error('Error getting feedback:', error);
       throw error;
     }
@@ -61,8 +66,11 @@ export class FeedbackService {
     try {
       const feedback = await this.getFeedbackByAnalysis(analysisId);
       return feedback !== null;
-    } catch (error) {
-      console.error('Error checking feedback status:', error);
+    } catch (error: any) {
+      // Only log non-404 errors (404 is expected when no feedback exists)
+      if (error.response?.status !== 404) {
+        console.error('Error checking feedback status:', error);
+      }
       return false;
     }
   }

@@ -993,3 +993,155 @@ input:checked + .toggle-slider-compact:before {
   white-space: nowrap !important;
   border: 0 !important;
 }
+
+/* Export dropdown styles */
+.export-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: #f9fafb;
+}
+
+.dropdown-item:active {
+  background-color: #f3f4f6;
+}
+
+.dropdown-item svg {
+  flex-shrink: 0;
+  color: #6b7280;
+}
+
+.dropdown-item:hover svg {
+  color: #374151;
+}
+
+/* Export button improvements */
+.btn-secondary-small {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-secondary-small::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.btn-secondary-small:hover::before {
+  left: 100%;
+}
+
+/* Loading state for export button */
+.btn-secondary-small:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-secondary-small:disabled svg {
+  animation: spin 1s linear infinite;
+}
+
+/* Export info improvements */
+.export-info-compact {
+  flex: 1;
+  min-width: 0;
+}
+
+.export-title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.export-info-compact small {
+  color: #6b7280;
+  line-height: 1.4;
+  display: block;
+}
+
+/* Responsive improvements for export section */
+@media (max-width: 640px) {
+  .export-compact {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .export-container {
+    width: 100%;
+  }
+
+  .btn-secondary-small {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Profile location icon for consistent spacing */
+.profile-location-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+  color: #64748b;
+}
+
+/* Modal title for delete modals (white text for contrast) */
+.modal-title-delete {
+  color: white;
+}
+
+/* Delete confirmation input wrapper for spacing */
+.delete-confirm-input-wrapper {
+  margin-top: 1rem;
+}
+
+/* Delete confirmation input field styling */
+.delete-confirm-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Error message for delete confirmation */
+.delete-confirm-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin: 0;
+}

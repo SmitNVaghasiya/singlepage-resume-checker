@@ -548,8 +548,8 @@ class ResumeController {
 
       // DO NOT create or write analysis records in MongoDB here.
       // Only poll MongoDB for the full result (wait for Python server to write it)
-      const maxWaitMs = 15000; // 15 seconds max
-      const pollIntervalMs = 1000; // 1 second
+      const maxWaitMs = 10000; // 10 seconds max
+      const pollIntervalMs = 500; // 0.5 second
       let waited = 0;
       let fullResult = null;
       while (waited < maxWaitMs) {

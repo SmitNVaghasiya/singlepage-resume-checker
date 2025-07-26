@@ -14,21 +14,31 @@ import {
   resetPassword
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
-import { rateLimiter } from '../middleware/rateLimiter';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
-// Apply rate limiting to auth routes
-const authLimiter = rateLimiter({
+// Create specific rate limiters for auth routes
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 requests per window
-  message: 'Too many authentication attempts, please try again later.'
+  message: {
+    error: 'Too Many Requests',
+    message: 'Too many authentication attempts, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-const otpLimiter = rateLimiter({
+const otpLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 3, // 3 OTP requests per minute
-  message: 'Too many OTP requests, please try again later.'
+  message: {
+    error: 'Too Many Requests',
+    message: 'Too many OTP requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Public routes

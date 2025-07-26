@@ -4,7 +4,7 @@ import { Analysis } from '../models/Analysis';
 import { User, IUser } from '../models/User';
 import { AuditService } from '../services/auditService';
 import { logger } from '../utils/logger';
-// Removed uuid import - using crypto.randomUUID() instead
+import crypto from 'crypto';
 
 interface AuthRequest extends Request {
   user?: IUser;
@@ -61,14 +61,27 @@ export const submitFeedback = async (req: AuthRequest, res: Response): Promise<v
     }).exec();
 
     if (existingFeedback) {
-      res.status(409).json({
-        success: false,
-        message: 'Feedback already submitted for this analysis'
+      // Update existing feedback instead of preventing submission
+      existingFeedback.rating = rating;
+      existingFeedback.helpful = helpful;
+      existingFeedback.suggestions = suggestions;
+      existingFeedback.category = category || 'general';
+      existingFeedback.status = 'pending'; // Reset status to pending for review
+      existingFeedback.updatedAt = new Date();
+      
+      await existingFeedback.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Feedback updated successfully',
+        data: {
+          feedbackId: existingFeedback.feedbackId
+        }
       });
       return;
     }
 
-    // Create feedback
+    // Create new feedback
     const feedback = new Feedback({
       feedbackId: crypto.randomUUID(),
       analysisId,
@@ -196,12 +209,18 @@ export const getAllFeedback = async (req: AuthRequest, res: Response): Promise<v
     const feedbackWithAnalysis = await Promise.all(
       feedback.map(async (fb) => {
         const analysis = await Analysis.findOne({ analysisId: fb.analysisId })
-          .select('resumeFilename jobDescriptionFilename jobTitle industry createdAt')
+          .select('resumeFilename jobDescriptionFilename result createdAt')
           .exec();
 
         return {
           ...fb.toObject(),
-          analysis: analysis || null
+          analysis: analysis ? {
+            resumeFilename: analysis.resumeFilename,
+            jobDescriptionFilename: analysis.jobDescriptionFilename,
+            jobTitle: analysis.result?.jobTitle || '',
+            industry: analysis.result?.industry || '',
+            createdAt: analysis.createdAt
+          } : null
         };
       })
     );
@@ -410,6 +429,126 @@ export const getFeedbackById = async (req: AuthRequest, res: Response): Promise<
 
   } catch (error) {
     logger.error('Error getting feedback by ID:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+}; 
+
+// Admin: Export feedback data as CSV
+export const exportFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const {
+      status,
+      category,
+      rating,
+      helpful,
+      startDate,
+      endDate,
+      search
+    } = req.query;
+
+    // Build filter query
+    const filter: any = {};
+
+    if (status) filter.status = status;
+    if (category) filter.category = category;
+    if (rating) filter.rating = parseInt(rating as string);
+    if (helpful !== undefined) filter.helpful = helpful === 'true';
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate as string);
+      if (endDate) filter.createdAt.$lte = new Date(endDate as string);
+    }
+
+    if (search) {
+      filter.$or = [
+        { suggestions: { $regex: search, $options: 'i' } },
+        { adminNotes: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get all feedback matching the filter
+    const feedback = await Feedback.find(filter)
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Get analysis details for each feedback
+    const feedbackWithAnalysis = await Promise.all(
+      feedback.map(async (fb) => {
+        const analysis = await Analysis.findOne({ analysisId: fb.analysisId })
+          .select('resumeFilename jobDescriptionFilename result createdAt')
+          .exec();
+
+        return {
+          ...fb.toObject(),
+          analysis: analysis ? {
+            resumeFilename: analysis.resumeFilename,
+            jobDescriptionFilename: analysis.jobDescriptionFilename,
+            jobTitle: analysis.result?.jobTitle || '',
+            industry: analysis.result?.industry || '',
+            createdAt: analysis.createdAt
+          } : null
+        };
+      })
+    );
+
+    // Create CSV content
+    const csvHeaders = [
+      'Feedback ID',
+      'Analysis ID',
+      'User ID',
+      'Rating',
+      'Helpful',
+      'Category',
+      'Status',
+      'Suggestions',
+      'Admin Notes',
+      'Created At',
+      'Updated At',
+      'Reviewed At',
+      'Reviewed By',
+      'Resume Filename',
+      'Job Description Filename',
+      'Job Title',
+      'Industry'
+    ];
+
+    const csvRows = feedbackWithAnalysis.map(fb => [
+      fb.feedbackId,
+      fb.analysisId,
+      fb.userId || 'Anonymous',
+      fb.rating,
+      fb.helpful ? 'Yes' : 'No',
+      fb.category,
+      fb.status,
+      `"${fb.suggestions.replace(/"/g, '""')}"`, // Escape quotes in CSV
+      fb.adminNotes ? `"${fb.adminNotes.replace(/"/g, '""')}"` : '',
+      fb.createdAt.toISOString(),
+      fb.updatedAt.toISOString(),
+      fb.reviewedAt ? fb.reviewedAt.toISOString() : '',
+      fb.reviewedBy || '',
+      fb.analysis?.resumeFilename || '',
+      fb.analysis?.jobDescriptionFilename || '',
+      fb.analysis?.jobTitle || '',
+      fb.analysis?.industry || ''
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.join(','))
+    ].join('\n');
+
+    // Set response headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="feedback-export-${new Date().toISOString().split('T')[0]}.csv"`);
+    
+    res.status(200).send(csvContent);
+
+  } catch (error) {
+    logger.error('Error exporting feedback:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

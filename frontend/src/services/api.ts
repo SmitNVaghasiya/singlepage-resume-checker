@@ -326,7 +326,7 @@ class ApiService {
   }
 
   // Poll for analysis completion (for backward compatibility)
-  async pollForResult(analysisId: string, maxAttempts: number = 30, interval: number = 2000): Promise<AnalysisResult> {
+  async pollForResult(analysisId: string, maxAttempts: number = 20, interval: number = 1000): Promise<AnalysisResult> {
     let attempts = 0;
     
     while (attempts < maxAttempts) {
@@ -465,6 +465,88 @@ class ApiService {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to fetch your analyses');
     }
+    return response.json();
+  }
+
+  // Generic HTTP methods for feedback service
+  async get(endpoint: string): Promise<any> {
+    const response = await fetch(this.getApiUrl(endpoint), {
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Add response properties to the error object for proper error handling
+      (error as any).response = {
+        status: response.status,
+        data: errorData
+      };
+      throw error;
+    }
+    
+    return response.json();
+  }
+
+  async post(endpoint: string, data: any): Promise<any> {
+    const response = await fetch(this.getApiUrl(endpoint), {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Add response properties to the error object for proper error handling
+      (error as any).response = {
+        status: response.status,
+        data: errorData
+      };
+      throw error;
+    }
+    
+    return response.json();
+  }
+
+  async put(endpoint: string, data: any): Promise<any> {
+    const response = await fetch(this.getApiUrl(endpoint), {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Add response properties to the error object for proper error handling
+      (error as any).response = {
+        status: response.status,
+        data: errorData
+      };
+      throw error;
+    }
+    
+    return response.json();
+  }
+
+  async delete(endpoint: string): Promise<any> {
+    const response = await fetch(this.getApiUrl(endpoint), {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Add response properties to the error object for proper error handling
+      (error as any).response = {
+        status: response.status,
+        data: errorData
+      };
+      throw error;
+    }
+    
     return response.json();
   }
 

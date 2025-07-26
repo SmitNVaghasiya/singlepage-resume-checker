@@ -707,16 +707,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [downloadOpen]);
 
-  if (loading) {
-    return (
-      <div className="resume-analysis-container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-        </div>
-      </div>
-    );
-  }
-
+  // Remove the loading check since parent component handles it
   if (error) {
     return (
       <div className="resume-analysis-container">
@@ -941,7 +932,7 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
           {activeTab === "assessment" && renderFinalAssessment()}
           {/* Feedback Tab */}
           {activeTab === "feedback" && analysisId && (
-            <div style={{ maxWidth: 600, margin: "0 auto" }}>
+            <div style={{ width: "100%", padding: "0 20px" }}>
               <FeedbackForm analysisId={analysisId} />
             </div>
           )}

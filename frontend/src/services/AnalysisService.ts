@@ -157,20 +157,9 @@ export class AnalysisService {
 
       setCurrentStep('analyze');
       setIsAnalyzing(true);
-      setAnalysisProgress(0);
-      setCurrentStageIndex(0);
 
       // Import the API service
       const { apiService } = await import('./api');
-
-      // Stage 1: Preparing analysis
-      setCurrentStageIndex(0);
-      setAnalysisProgress(10);
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Stage 2: Uploading files
-      setCurrentStageIndex(1);
-      setAnalysisProgress(25);
 
       let analysisResponse;
 
@@ -188,9 +177,6 @@ export class AnalysisService {
         console.error('No resume file available for analysis');
         throw new Error('Resume file is required. Please upload a resume file and try again.');
       }
-      
-      // Minimal delay to ensure state is synchronized
-      await new Promise(resolve => setTimeout(resolve, 50));
       
       if (resumeFile) {
         console.log('Using current files for analysis:', {
@@ -214,20 +200,8 @@ export class AnalysisService {
         throw new Error('Resume file is required. Please upload a resume file and try again.');
       }
       
-      // Stage 3: Processing with AI
-      setCurrentStageIndex(2);
-      setAnalysisProgress(50);
-
       // Poll for results
       const result = await apiService.pollForResult(analysisResponse.analysisId);
-
-      // Stage 4: Finalizing results
-      setCurrentStageIndex(3);
-      setAnalysisProgress(90);
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Complete
-      setAnalysisProgress(100);
 
       // Extract job title from job description text if available
       const jobTitle = this.extractJobTitle(result, jobDescription, jobFile, jobInputMethod);
@@ -275,17 +249,9 @@ export class AnalysisService {
       localStorage.removeItem('hasPendingAnalysis');
       setRequiresAuth(false);
 
-      // Add a smooth transition delay before navigation for better UX
-      console.log('Analysis completed successfully, preparing for navigation...');
-      
-      // Show completion state briefly before navigating
-      setCurrentStageIndex(4);
-      setAnalysisProgress(100);
-      
-      // Smooth transition to results page
-      setTimeout(() => {
-        onAnalysisComplete?.(analysisResponse.analysisId);
-      }, 800); // Longer delay for smoother transition
+      // Navigate immediately without unnecessary delays
+      console.log('Analysis completed successfully, navigating to results...');
+      onAnalysisComplete?.(analysisResponse.analysisId);
 
     } catch (error) {
       console.error('Analysis failed:', error);

@@ -822,25 +822,89 @@ export const exportUserData = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // In a real implementation, you'd also fetch:
-    // - User's analysis history
-    // - Any other related data
-    // For now, we'll export basic user data
+    // Import Analysis model for fetching analysis history
+    const { Analysis } = require('../models/Analysis');
+    const { Feedback } = require('../models/Feedback');
+
+    // Get user's analysis history
+    const analyses = await Analysis.find({ userId: userId })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Get user's feedback submissions
+    const feedbacks = await Feedback.find({ userId: userId })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Transform analyses to include full details
+    const transformedAnalyses = analyses.map((analysis: any) => ({
+      id: analysis._id,
+      analysisId: analysis.analysisId,
+      resumeFilename: analysis.resumeFilename,
+      jobDescriptionFilename: analysis.jobDescriptionFilename,
+      jobDescriptionText: analysis.jobDescriptionText,
+      resumeText: analysis.resumeText,
+      result: analysis.result,
+      status: analysis.status,
+      createdAt: analysis.createdAt,
+      updatedAt: analysis.updatedAt,
+      processingTime: analysis.processingTime,
+      industry: analysis.industry,
+      jobTitle: analysis.jobTitle
+    }));
+
+    // Transform feedback to include full details
+    const transformedFeedbacks = feedbacks.map((feedback: any) => ({
+      id: feedback._id,
+      analysisId: feedback.analysisId,
+      rating: feedback.rating,
+      helpful: feedback.helpful,
+      suggestions: feedback.suggestions,
+      category: feedback.category,
+      status: feedback.status,
+      adminNotes: feedback.adminNotes,
+      createdAt: feedback.createdAt,
+      updatedAt: feedback.updatedAt
+    }));
+
+    // Calculate statistics
+    const totalAnalyses = analyses.length;
+    const completedAnalyses = analyses.filter((a: any) => a.status === 'completed').length;
+    const averageScore = analyses.length > 0 
+      ? analyses.reduce((sum: number, a: any) => {
+          const score = a.result?.score_out_of_100 || a.result?.overallScore || 0;
+          return sum + score;
+        }, 0) / analyses.length 
+      : 0;
 
     const userData = {
       profile: {
         id: user._id,
         username: user.username,
+        fullName: user.fullName,
         email: user.email,
+        location: user.location,
         isEmailVerified: user.isEmailVerified,
+        status: user.status,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       },
+      statistics: {
+        totalAnalyses,
+        completedAnalyses,
+        averageScore: Math.round(averageScore * 100) / 100,
+        totalFeedbacks: feedbacks.length
+      },
+      analyses: transformedAnalyses,
+      feedbacks: transformedFeedbacks,
       exportedAt: new Date().toISOString(),
-      note: 'This export contains your basic profile information. Analysis data export will be available in a future update.'
+      note: 'This export contains your complete profile information, analysis history, and feedback submissions.'
     };
 
-    logger.info(`Data export requested by user: ${user.email}`);
+    logger.info(`Complete data export requested by user: ${user.email}`, {
+      totalAnalyses,
+      totalFeedbacks: feedbacks.length
+    });
 
     res.status(200).json(userData);
 

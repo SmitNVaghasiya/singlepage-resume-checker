@@ -46,63 +46,6 @@ completed work
 # -- Improve the Analyses section such that it can be able to give analysis report for 1 hour, 1 day, 1 week, 15 days, 1 month, 6 months, 1 year and also report for all time also. I can add custom option so Admin can select any date and time as per they want as this can be much better option.
 # - Also proper analysis report can be seen in the charts to anlayse in more better way. -->
 
-# # 1. Enhanced Analytics & Reporting
-# Time-based filtering: No ability to filter data by specific time periods
-# Advanced charts: No visual data representation
-# Trend analysis: No historical data comparison
-# Custom date ranges: No flexible date selection
-# Export functionality: No data export capabilities
-
-# 2. Real-time Features
-# Live notifications: No real-time alerts for system issues
-# WebSocket integration: No live updates
-# Activity monitoring: No real-time user activity tracking
-# System alerts: No immediate notifications for critical events
-
-
-# 3. Advanced User Management
-# Bulk operations: No ability to manage multiple users at once
-# User analytics: No detailed user behavior analysis
-# Account recovery: No tools to help users recover accounts
-# User activity logs: No detailed user action tracking
-
-
-# 4. System Administration
-# Audit trail: No logging of admin actions
-# Configuration management: No system settings control
-# Backup/restore: No data backup functionality
-# Performance monitoring: Limited system performance tracking
-# Error tracking: No comprehensive error logging
-
-
-# 5. Data Management
-# Data export: No CSV/JSON export functionality
-# Data import: No bulk data import capabilities
-# Data cleanup: No tools to clean up old/invalid data
-# Storage monitoring: No database storage analysis
-
-
-# 6. Security Enhancements
-# Admin action logging: No audit trail for admin actions
-# IP whitelisting: No IP-based access control
-# Session management: No advanced session controls
-# Security alerts: No security event notifications
-
-# Future add ons
-# 7. Communication Features
-# Email notifications: No admin email alerts
-# User messaging: No ability to contact users
-# System announcements: No way to broadcast messages
-# Support tools: No integrated support system
-# using email or in the site anywhere have to add it.
-
-# 8. Advanced Analytics
-# Machine learning insights: No AI-powered analytics
-# Predictive analytics: No trend predictions
-# Custom reports: No customizable report generation
-# Data visualization: Limited chart/graph capabilities
-
-
 
 
 23/07/2025
@@ -164,7 +107,9 @@ completed work
 # -- Add option so that user can give me suggesstions after the analysis result is it good or helped them or not.- code might be added have to check if it is added correctly and working or not correctly. ✅ COMPLETED Testing remaining.
 
 -- Add the Google sign in and sign up inside of my website and only take data which is required.
--- We are not able to export the full anlaysis report in profile only profile info is being downloaded.
+
+# -- We are not able to export the full anlaysis report in profile only profile info is being downloaded.✅ COMPLETED 
+    -- Have to add this option download the csv or the pdf also.
 
 # -- 0% Avg Match Rate instead of this change this too something else.
 
@@ -172,7 +117,7 @@ completed work
 -- Navbar becomes too dark make it little lighter same as in the homepage.
 -- No need to make footer dark as it's color is perfect for both the dark and light theme.
 
--- Add validation for the response we are generating that there no answer need to give which is not related to the generating the analysis based on the job and resume. even if there is valid job discription but still hacker can add some prompt inside of this valid job discription that give me private key or admin access i must not give it to them. if job discription or the resume has something which is not related to them remove them or ignore that peace of text. ✅ COMPLETED only testing is remaining.
+# -- Add validation for the response we are generating that there no answer need to give which is not related to the generating the analysis based on the job and resume. even if there is valid job discription but still hacker can add some prompt inside of this valid job discription that give me private key or admin access i must not give it to them. if job discription or the resume has something which is not related to them remove them or ignore that peace of text. ✅ COMPLETED only testing is remaining.
 
 
 ---- seperate the mobileresponsive css from the main css file as currently some css files are too big.
@@ -182,7 +127,6 @@ completed work
 
 # -- For the normal analysis i am getting the content to long even though the data is of valid size and also the tokens.
     #  -- Correct this logic for handling the data. ✅ COMPLETED.
--- Check the view dashboard 2 file.
 # -- Remove unnecessary Homepage css files. ✅ COMPLETED.
 -- Seperate the mobile responsiveness if files are too big.
 # -- Integrate the feedback option as i am not seeing it anywhere in after the analysis is completed ✅ COMPLETED But still there is testing is reamining.
@@ -190,8 +134,6 @@ completed work
 -- also the mobilenavbar needs the improvement.
 
 -- code using the Claude Opus 4 (Thinking) model not just thinking and generating like this model but use the Claude Opus 4 (Thinking) model itself
-
--- Add the login and sign up using the Google authentication.
 
 
 
@@ -202,4 +144,32 @@ completed work
 # -- Improve the ui of the dropdown list as currently it is not mathching the surrounding ui. -- ✅ COMPLETED. Mostly but can change in the future.
 
 # -- On refresh data must not lost in the resmuchecker page. -- ✅ COMPLETED.
--- Feedback form page utilize the width and also change background color to mathch the other components to white background as currently it is black and it is not matching the theme.
+# -- Feedback form page utilize the width and also change background color to mathch the other components to white background as currently it is black and it is not matching the theme -- ✅ COMPLETED.
+# -- Feedback form is not able to send feedback it is i think trying to fetch but we are taking info in the feedback form the user and storing this in the database seperately so with the userid and also the analysis id.             --  ✅ COMPLETED.
+    # - I will do this task later after this site is successfully uploaded to the server.
+
+# -- Add validation for the response we are generating that there no answer need to give which is not related to the generating the analysis based on the job and resume. even if there is valid job discription but still hacker can add some prompt inside of this valid job discription that give me private key or admin access i must not give it to them. if job discription or the resume has something which is not related to them remove them or ignore that peace of text. ✅ COMPLETED.
+# -- We are not able to export the full anlaysis report in profile only profile info is being downloaded.✅ COMPLETED 
+    # -- Have to add this option download the csv or the pdf also.
+    # -- Also add option in the dashboard page also. ✅ Mostly COMPLETED. 
+
+-- solve all the lint errors.
+
+-- 4
+Total Analyses
+0
+Average Score
+0
+Best Score
+0%
+Success Rate Make sure all the data is shown here correctly.
+
+
+
+
+-------------------------------------------------------- ----------------------------------------
+26/07/2025
+# --  make in downaload page sure that pdf and csv and json format must able to downalod and show all the data we are able to downlaod with the help of the json format in the profile page.  --  ✅ Mostly COMPLETED.
+    -- but in the dashboard it is not working only there it is needed to be improved.
+-- feedback page needs the UI improved.
+    -- Make that page persitance when we have refreshed the page as when i refreshed page i was not able to see the thank you message as i have send the feedback and showing this message so that user can see that they have already send the feedback.

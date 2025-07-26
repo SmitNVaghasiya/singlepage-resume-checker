@@ -5,7 +5,8 @@ import {
   getAllFeedback,
   getFeedbackStats,
   updateFeedback,
-  getFeedbackById
+  getFeedbackById,
+  exportFeedback
 } from '../controllers/feedbackController';
 import { authenticateToken } from '../middleware/auth';
 import { authenticateAdmin } from '../admin/middleware/adminAuth';
@@ -20,6 +21,7 @@ router.get('/analysis/:analysisId', authenticateToken, getFeedbackByAnalysis);
 // Admin routes (require admin authentication)
 router.get('/admin/all', authenticateAdmin, getAllFeedback);
 router.get('/admin/stats', authenticateAdmin, getFeedbackStats);
+router.get('/admin/export', authenticateAdmin, exportFeedback);
 router.get('/admin/:feedbackId', authenticateAdmin, getFeedbackById);
 router.put('/admin/:feedbackId', authenticateAdmin, updateFeedback);
 

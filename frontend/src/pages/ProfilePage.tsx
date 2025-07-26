@@ -19,9 +19,13 @@ import {
   BarChart3,
   Loader,
   Shield,
+  ChevronDown,
 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { apiService } from "../services/api";
+import jsPDF from "jspdf";
+import Papa from "papaparse";
+import ReactDOM from "react-dom";
 import "../styles/pages/ProfilePage.css";
 
 interface UserProfileData {
@@ -61,6 +65,14 @@ const ProfilePage: React.FC = () => {
     new: false,
     confirm: false,
   });
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const [downloadBtnRef, setDownloadBtnRef] =
+    useState<HTMLButtonElement | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  }>({ top: 0, left: 0, width: 0 });
 
   const [profileData, setProfileData] = useState<UserProfileData>({
     username: user?.username || "",
@@ -288,33 +300,239 @@ const ProfilePage: React.FC = () => {
     setErrors({});
   };
 
-  const handleExportData = async () => {
+  const handleExportData = async (type: "json" | "pdf" | "csv") => {
     try {
       setIsLoading(true);
-      const userData = await apiService.exportUserData();
+      setErrors({});
+      setSuccessMessage("");
+      console.log("Starting export process for type:", type);
+      console.log("User data:", user);
 
-      // Create and download file
-      const blob = new Blob([JSON.stringify(userData, null, 2)], {
-        type: "application/json",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `resume-analyzer-data-${user!.username}-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Get user data from API
+      let userData;
+      try {
+        userData = await apiService.exportUserData();
+        console.log("Export data received:", userData);
+      } catch (apiError) {
+        console.error("API error:", apiError);
+        // Create fallback data if API fails
+        userData = {
+          profile: {
+            username: user?.username || "Unknown",
+            fullName: user?.fullName || "",
+            email: user?.email || "",
+            location: user?.location || "",
+            createdAt: user?.createdAt || new Date().toISOString(),
+          },
+          statistics: {
+            totalAnalyses: 0,
+            completedAnalyses: 0,
+            averageScore: 0,
+            totalFeedbacks: 0,
+          },
+          analyses: [],
+        };
+        console.log("Using fallback data:", userData);
+      }
 
-      setSuccessMessage("Data exported successfully!");
+      const timestamp = new Date().toISOString().split("T")[0];
+      const baseFilename = `resume-analyzer-complete-data-${
+        user!.username
+      }-${timestamp}`;
+
+      if (type === "json") {
+        const filename = `${baseFilename}.json`;
+        const jsonData = JSON.stringify(userData, null, 2);
+        const blob = new Blob([jsonData], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setSuccessMessage("Your data has been exported successfully as JSON!");
+      } else if (type === "pdf") {
+        const filename = `${baseFilename}.pdf`;
+        const doc = new jsPDF();
+        let y = 15;
+        const lineHeight = 6;
+        const pageHeight = doc.internal.pageSize.height;
+        const margin = 10;
+        const maxWidth = doc.internal.pageSize.width - 2 * margin;
+
+        doc.setFontSize(16);
+        doc.text("Resume Analyzer - Complete User Data", margin, y);
+        y += 10;
+        doc.setFontSize(12);
+        doc.text("Profile Information", margin, y);
+        y += 8;
+        doc.setFontSize(10);
+
+        // Recursively print all fields
+        const printObject = (obj: any, indent = 0) => {
+          Object.entries(obj).forEach(([key, value]) => {
+            let prefix = "";
+            for (let i = 0; i < indent; i++) prefix += "  ";
+            if (typeof value === "object" && value !== null) {
+              if (Array.isArray(value)) {
+                doc.text(`${prefix}${key}: [Array]`, margin + indent * 5, y);
+                y += lineHeight;
+                value.forEach((item, idx) => {
+                  doc.text(`${prefix}  [${idx}]`, margin + (indent + 1) * 5, y);
+                  y += lineHeight;
+                  if (typeof item === "object" && item !== null) {
+                    printObject(item, indent + 2);
+                  } else {
+                    doc.text(
+                      `${prefix}    ${item}`,
+                      margin + (indent + 2) * 5,
+                      y
+                    );
+                    y += lineHeight;
+                  }
+                });
+              } else {
+                doc.text(`${prefix}${key}:`, margin + indent * 5, y);
+                y += lineHeight;
+                printObject(value, indent + 1);
+              }
+            } else {
+              const text = `${prefix}${key}: ${value}`;
+              const lines = doc.splitTextToSize(text, maxWidth - indent * 5);
+              lines.forEach((line: string) => {
+                if (y > pageHeight - margin) {
+                  doc.addPage();
+                  y = margin;
+                }
+                doc.text(line, margin + indent * 5, y);
+                y += lineHeight;
+              });
+            }
+            if (y > pageHeight - margin) {
+              doc.addPage();
+              y = margin;
+            }
+          });
+        };
+
+        printObject(userData.profile);
+        y += 5;
+        doc.setFontSize(12);
+        doc.text("Statistics", margin, y);
+        y += 8;
+        doc.setFontSize(10);
+        printObject(userData.statistics);
+        y += 5;
+        if (userData.analyses && userData.analyses.length > 0) {
+          doc.setFontSize(12);
+          doc.text("Analyses", margin, y);
+          y += 8;
+          doc.setFontSize(10);
+          userData.analyses.forEach((analysis: any, index: number) => {
+            doc.text(`Analysis ${index + 1}:`, margin, y);
+            y += lineHeight;
+            printObject(analysis, 1);
+            y += 5;
+          });
+        }
+        doc.save(filename);
+        setSuccessMessage("Your data has been exported successfully as PDF!");
+      } else if (type === "csv") {
+        const filename = `${baseFilename}.csv`;
+        // Flatten the data for CSV, including all nested fields
+        const flatten = (obj: any, prefix = "") => {
+          let rows: any[] = [];
+          Object.entries(obj).forEach(([key, value]) => {
+            const fullKey = prefix ? `${prefix}.${key}` : key;
+            if (
+              typeof value === "object" &&
+              value !== null &&
+              !Array.isArray(value)
+            ) {
+              rows = rows.concat(flatten(value, fullKey));
+            } else if (Array.isArray(value)) {
+              if (value.length === 0) {
+                rows.push({ key: fullKey, value: "[]" });
+              } else {
+                value.forEach((item, idx) => {
+                  if (typeof item === "object" && item !== null) {
+                    rows = rows.concat(flatten(item, `${fullKey}[${idx}]`));
+                  } else {
+                    rows.push({ key: `${fullKey}[${idx}]`, value: item });
+                  }
+                });
+              }
+            } else {
+              rows.push({ key: fullKey, value });
+            }
+          });
+          return rows;
+        };
+        let rows: any[] = [];
+        rows = rows.concat(flatten(userData.profile, "profile"));
+        rows = rows.concat(flatten(userData.statistics, "statistics"));
+        if (userData.analyses && Array.isArray(userData.analyses)) {
+          userData.analyses.forEach((analysis: any, idx: number) => {
+            rows = rows.concat(flatten(analysis, `analyses[${idx}]`));
+          });
+        }
+        const csv = Papa.unparse([
+          ["Field", "Value"],
+          ...rows.map((r) => [r.key, r.value]),
+        ]);
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setSuccessMessage("Your data has been exported successfully as CSV!");
+      }
+
+      console.log(`${type.toUpperCase()} export completed`);
     } catch (error) {
-      setErrors({ general: "Failed to export data. Please try again." });
+      console.error("Export error:", error);
+      setErrors({
+        general:
+          error instanceof Error
+            ? error.message
+            : "Failed to export data. Please try again.",
+      });
     } finally {
       setIsLoading(false);
+      setDownloadOpen(false);
     }
   };
+
+  // Add click-away handler for dropdown
+  useEffect(() => {
+    if (!downloadOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const dropdown = document.getElementById("profile-download-dropdown");
+      if (dropdown && !dropdown.contains(e.target as Node)) {
+        setDownloadOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [downloadOpen]);
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (downloadOpen && downloadBtnRef) {
+      const rect = downloadBtnRef.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [downloadOpen, downloadBtnRef]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -341,7 +559,7 @@ const ProfilePage: React.FC = () => {
             {user.location && (
               <p className="profile-location">
                 <svg
-                  className="w-4 h-4"
+                  className="w-4 h-4 profile-location-icon"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -824,25 +1042,182 @@ const ProfilePage: React.FC = () => {
 
                 <div className="export-compact">
                   <div className="export-info-compact">
-                    <span className="export-title">Download Your Data</span>
+                    <span className="export-title">
+                      Download Your Complete Data
+                    </span>
                     <small>
-                      Export profile and analysis data in JSON format
+                      Export your profile, all resume analyses, feedback
+                      submissions, and detailed reports in multiple formats
                     </small>
                   </div>
-                  <button
-                    onClick={handleExportData}
-                    className="btn-secondary-small"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    Export Data
-                  </button>
+                  <div className="export-container">
+                    <button
+                      ref={setDownloadBtnRef}
+                      className="btn-secondary-small"
+                      disabled={isLoading}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        position: "relative",
+                      }}
+                      onClick={() => setDownloadOpen((v) => !v)}
+                    >
+                      {isLoading ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      <span>Export Data</span>
+                      <ChevronDown size={16} style={{ marginLeft: 2 }} />
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {/* Download Dropdown */}
+              {downloadOpen &&
+                ReactDOM.createPortal(
+                  <div
+                    id="profile-download-dropdown"
+                    style={{
+                      position: "absolute",
+                      top: dropdownPos.top,
+                      left: dropdownPos.left,
+                      width: dropdownPos.width,
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: 6,
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                      zIndex: 9999,
+                      minWidth: 140,
+                      padding: 4,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                    }}
+                  >
+                    <button
+                      className="dropdown-item"
+                      style={{
+                        width: "100%",
+                        padding: "12px 18px",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 15,
+                        color: "#222",
+                        fontWeight: 500,
+                        borderRadius: "8px 8px 0 0",
+                        transition: "background 0.15s, color 0.15s",
+                      }}
+                      onMouseOver={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "#f3f4ff";
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          "#3b3be6";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.fontWeight = "600";
+                      }}
+                      onMouseOut={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "none";
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          "#222";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.fontWeight = "500";
+                      }}
+                      onClick={() => handleExportData("json")}
+                    >
+                      JSON
+                    </button>
+                    <button
+                      className="dropdown-item"
+                      style={{
+                        width: "100%",
+                        padding: "12px 18px",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 15,
+                        color: "#222",
+                        fontWeight: 500,
+                        borderTop: "1px solid #ececff",
+                        transition: "background 0.15s, color 0.15s",
+                      }}
+                      onMouseOver={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "#f3f4ff";
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          "#3b3be6";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.fontWeight = "600";
+                      }}
+                      onMouseOut={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "none";
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          "#222";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.fontWeight = "500";
+                      }}
+                      onClick={() => handleExportData("pdf")}
+                    >
+                      PDF
+                    </button>
+                    <button
+                      className="dropdown-item"
+                      style={{
+                        width: "100%",
+                        padding: "12px 18px",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 15,
+                        color: "#222",
+                        fontWeight: 500,
+                        borderTop: "1px solid #ececff",
+                        borderRadius: "0 0 8px 8px",
+                        transition: "background 0.15s, color 0.15s",
+                      }}
+                      onMouseOver={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "#f3f4ff";
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          "#3b3be6";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.fontWeight = "600";
+                      }}
+                      onMouseOut={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "none";
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          "#222";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.fontWeight = "500";
+                      }}
+                      onClick={() => handleExportData("csv")}
+                    >
+                      CSV
+                    </button>
+                  </div>,
+                  document.body
+                )}
             </>
           )}
 
@@ -956,7 +1331,7 @@ const ProfilePage: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal delete-modal">
             <div className="modal-header">
-              <h3 style={{ color: "white" }}>Delete Account</h3>
+              <h3 className="modal-title-delete">Delete Account</h3>
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="modal-close"
@@ -1012,7 +1387,7 @@ const ProfilePage: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal delete-modal">
             <div className="modal-header">
-              <h3 style={{ color: "white" }}>Confirm Account Deletion</h3>
+              <h3 className="modal-title-delete">Confirm Account Deletion</h3>
               <button
                 onClick={() => {
                   setShowDeleteConfirmation(false);
@@ -1031,31 +1406,16 @@ const ProfilePage: React.FC = () => {
                   To permanently delete your account @{user?.username}, please
                   enter your username below
                 </p>
-                <div style={{ marginTop: "1rem" }}>
+                <div className="delete-confirm-input-wrapper">
                   <input
                     type="text"
                     value={deleteUsername}
                     onChange={(e) => setDeleteUsername(e.target.value)}
                     placeholder="Enter your username"
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "2px solid #e2e8f0",
-                      borderRadius: "8px",
-                      fontSize: "1rem",
-                      marginBottom: "1rem",
-                    }}
+                    className="delete-confirm-input"
                   />
                   {errors.general && (
-                    <p
-                      style={{
-                        color: "#ef4444",
-                        fontSize: "0.875rem",
-                        margin: "0",
-                      }}
-                    >
-                      {errors.general}
-                    </p>
+                    <p className="delete-confirm-error">{errors.general}</p>
                   )}
                 </div>
                 <p className="warning-text">

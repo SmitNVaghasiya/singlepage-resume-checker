@@ -17,7 +17,7 @@ interface ContactFormData {
 // Contact form submission endpoint
 router.post(
   '/',
-  rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }), // 5 requests per 15 minutes
+  rateLimiter, // Use the pre-configured rate limiter instance
   [
     body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
     body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),

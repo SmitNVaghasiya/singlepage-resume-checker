@@ -241,7 +241,7 @@ class Server {
 
   private setupRateLimiting(): void {
     // Global rate limiting
-    this.app.use('/api/', rateLimiter());
+    this.app.use('/api/', rateLimiter);
   }
 
   private setupRoutes(): void {

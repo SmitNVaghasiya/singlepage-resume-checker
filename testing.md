@@ -6,3 +6,4 @@
 - Profile module working correctly.
 - Is the analysis Report generated is giving the correct report.
 - Is admin module allow the password change(We can give this option) or the profile page.
+- Prompt enejction testing is remaining and also resumechecker page test.

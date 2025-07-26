@@ -12,69 +12,91 @@ import {
   Award,
   Loader,
   Lock,
+  Download,
+  CheckSquare,
+  Square,
+  ChevronDown,
 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { AnalysisResult } from "../types";
+import jsPDF from "jspdf";
+import Papa from "papaparse";
+import ReactDOM from "react-dom";
 
 import "../styles/pages/DashboardPage.css";
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    user,
-    isAuthLoading,
-    currentAnalysis,
-    analysisHistory,
-    resetAnalysis,
-  } = useAppContext();
+  const { user, currentAnalysis, analysisHistory, resetAnalysis } =
+    useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Check authentication when component mounts
+  // Bulk download functionality
+  const [selectedAnalyses, setSelectedAnalyses] = useState<Set<string>>(
+    new Set()
+  );
+  const [selectAll, setSelectAll] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const [downloadBtnRef, setDownloadBtnRef] =
+    useState<HTMLButtonElement | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  }>({ top: 0, left: 0, width: 0 });
+
+  // Close bulk download dropdown when clicking outside
   useEffect(() => {
-    if (!isAuthLoading && !user) {
-      // User is not authenticated, will show auth prompt
+    // This useEffect is no longer needed as the button is persistent
+    // but keeping it for now as it might be re-used or removed later.
+    // If the button is removed, this can be removed.
+  }, []);
+
+  // Update select all when individual selections change
+  useEffect(() => {
+    const filteredHistory = analysisHistory.filter(
+      (analysis) =>
+        (analysis.resumeFilename || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        getJobTitle(analysis).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (filteredHistory.length === 0) {
+      setSelectAll(false);
+      return;
     }
-  }, [user, isAuthLoading]);
 
-  // Don't render content until we know authentication status
-  if (isAuthLoading) {
-    return (
-      <div className="dashboard-page loading">
-        <div className="dashboard-loading">
-          <Loader className="loading-spinner2" />
-          <p>Loading dashboard...</p>
-        </div>
-      </div>
+    const allSelected = filteredHistory.every(
+      (analysis) => analysis.id && selectedAnalyses.has(analysis.id)
     );
-  }
+    setSelectAll(allSelected);
+  }, [selectedAnalyses, analysisHistory, searchTerm]);
 
-  // Show auth prompt if not authenticated
-  if (!user) {
-    return (
-      <div className="dashboard-page">
-        <div className="auth-required-section">
-          <div className="auth-required-content">
-            <div className="auth-required-icon">
-              <Lock className="lock-icon" />
-            </div>
-            <h2>Authentication Required</h2>
-            <p>
-              Please sign in to view your analysis dashboard and track your
-              resume improvements.
-            </p>
-            <button
-              onClick={() => {
-                navigate("/login?redirect=/dashboard");
-              }}
-              className="auth-required-btn"
-            >
-              Sign In to Continue
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Add click-away handler for dropdown
+  useEffect(() => {
+    if (!downloadOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const dropdown = document.getElementById("dashboard-download-dropdown");
+      if (dropdown && !dropdown.contains(e.target as Node)) {
+        setDownloadOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [downloadOpen]);
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (downloadOpen && downloadBtnRef) {
+      const rect = downloadBtnRef.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [downloadOpen, downloadBtnRef]);
 
   // Helper functions to handle both new and legacy formats
   const getAnalysisScore = (analysis: AnalysisResult): number => {
@@ -130,6 +152,204 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  // Bulk selection handlers
+  const handleSelectAll = () => {
+    const filteredHistory = analysisHistory.filter(
+      (analysis) =>
+        (analysis.resumeFilename || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        getJobTitle(analysis).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (selectAll) {
+      // Deselect all
+      setSelectedAnalyses(new Set());
+    } else {
+      // Select all
+      const newSelected = new Set(
+        filteredHistory
+          .map((analysis) => analysis.id)
+          .filter(Boolean) as string[]
+      );
+      setSelectedAnalyses(newSelected);
+    }
+  };
+
+  const handleSelectAnalysis = (analysisId: string | undefined) => {
+    if (!analysisId) return;
+    const newSelected = new Set(selectedAnalyses);
+    if (newSelected.has(analysisId)) {
+      newSelected.delete(analysisId);
+    } else {
+      newSelected.add(analysisId);
+    }
+    setSelectedAnalyses(newSelected);
+  };
+
+  // Bulk download handlers
+  const handleBulkDownload = (type: "json" | "pdf" | "csv") => {
+    if (selectedAnalyses.size === 0) return;
+
+    const selectedAnalysisData = analysisHistory.filter(
+      (analysis) => analysis.id && selectedAnalyses.has(analysis.id)
+    );
+
+    const timestamp = new Date().toISOString().split("T")[0];
+    const baseFilename = `selected_resume_analyses_${timestamp}`;
+
+    if (type === "json") {
+      const filename = `${baseFilename}.json`;
+      const json = JSON.stringify(selectedAnalysisData, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else if (type === "pdf") {
+      const filename = `${baseFilename}.pdf`;
+      const doc = new jsPDF();
+      let y = 15;
+      const lineHeight = 6;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 10;
+      const maxWidth = doc.internal.pageSize.width - 2 * margin;
+
+      doc.setFontSize(16);
+      doc.text("Selected Resume Analyses Report", margin, y);
+      y += 10;
+      doc.setFontSize(10);
+
+      // Recursively print all fields
+      const printObject = (obj: any, indent = 0) => {
+        Object.entries(obj).forEach(([key, value]) => {
+          let prefix = "";
+          for (let i = 0; i < indent; i++) prefix += "  ";
+          if (typeof value === "object" && value !== null) {
+            if (Array.isArray(value)) {
+              doc.text(`${prefix}${key}: [Array]`, margin + indent * 5, y);
+              y += lineHeight;
+              value.forEach((item, idx) => {
+                doc.text(`${prefix}  [${idx}]`, margin + (indent + 1) * 5, y);
+                y += lineHeight;
+                if (typeof item === "object" && item !== null) {
+                  printObject(item, indent + 2);
+                } else {
+                  doc.text(
+                    `${prefix}    ${item}`,
+                    margin + (indent + 2) * 5,
+                    y
+                  );
+                  y += lineHeight;
+                }
+              });
+            } else {
+              doc.text(`${prefix}${key}:`, margin + indent * 5, y);
+              y += lineHeight;
+              printObject(value, indent + 1);
+            }
+          } else {
+            const text = `${prefix}${key}: ${value}`;
+            const lines = doc.splitTextToSize(text, maxWidth - indent * 5);
+            lines.forEach((line: string) => {
+              if (y > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+              }
+              doc.text(line, margin + indent * 5, y);
+              y += lineHeight;
+            });
+          }
+          if (y > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+          }
+        });
+      };
+
+      selectedAnalysisData.forEach((analysis, index) => {
+        // Add page break if needed
+        if (y > pageHeight - margin - 50) {
+          doc.addPage();
+          y = margin;
+        }
+
+        doc.setFontSize(12);
+        doc.text(
+          `Analysis ${index + 1}: ${analysis.resumeFilename || "Unknown"}`,
+          margin,
+          y
+        );
+        y += 8;
+        doc.setFontSize(10);
+
+        // Print all analysis data recursively
+        printObject(analysis, 1);
+        y += 10;
+      });
+
+      doc.save(filename);
+    } else if (type === "csv") {
+      const filename = `${baseFilename}.csv`;
+
+      // Flatten the data for CSV, including all nested fields
+      const flatten = (obj: any, prefix = "") => {
+        let rows: any[] = [];
+        Object.entries(obj).forEach(([key, value]) => {
+          const fullKey = prefix ? `${prefix}.${key}` : key;
+          if (
+            typeof value === "object" &&
+            value !== null &&
+            !Array.isArray(value)
+          ) {
+            rows = rows.concat(flatten(value, fullKey));
+          } else if (Array.isArray(value)) {
+            if (value.length === 0) {
+              rows.push({ key: fullKey, value: "[]" });
+            } else {
+              value.forEach((item, idx) => {
+                if (typeof item === "object" && item !== null) {
+                  rows = rows.concat(flatten(item, `${fullKey}[${idx}]`));
+                } else {
+                  rows.push({ key: `${fullKey}[${idx}]`, value: item });
+                }
+              });
+            }
+          } else {
+            rows.push({ key: fullKey, value });
+          }
+        });
+        return rows;
+      };
+
+      let rows: any[] = [];
+      selectedAnalysisData.forEach((analysis, idx) => {
+        rows = rows.concat(flatten(analysis, `analysis[${idx}]`));
+      });
+
+      const csv = Papa.unparse([
+        ["Field", "Value"],
+        ...rows.map((r) => [r.key, r.value]),
+      ]);
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    setDownloadOpen(false);
+  };
+
   // Calculate statistics
   const totalAnalyses = analysisHistory.length;
   const averageScore =
@@ -167,10 +387,24 @@ const DashboardPage: React.FC = () => {
   );
 
   const getScoreBadgeColor = (score: number) => {
-    if (score >= 80) return "success";
-    if (score >= 60) return "warning";
-    return "error";
+    if (score >= 80) return "score-excellent";
+    if (score >= 60) return "score-good";
+    return "score-poor";
   };
+
+  // Export functionality
+  const handleExportData = (type: "csv" | "pdf") => {
+    // This function is now deprecated and does nothing.
+    // All export logic is handled by the Download button for selected reports as JSON.
+    return;
+  };
+
+  // Close download dropdown when clicking outside
+  useEffect(() => {
+    // This useEffect is no longer needed as the button is persistent
+    // but keeping it for now as it might be re-used or removed later.
+    // If the button is removed, this can be removed.
+  }, []);
 
   return (
     <div className="dashboard-page">
@@ -251,15 +485,211 @@ const DashboardPage: React.FC = () => {
             <div className="history-header">
               <h2 className="section-title">Analysis History</h2>
 
-              <div className="search-container">
-                <Search className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search analyses..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
-                />
+              <div className="history-actions">
+                <div className="search-container">
+                  <Search className="search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Search analyses..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
+                  />
+                </div>
+
+                {/* Bulk Download Button */}
+                <div
+                  className="bulk-export-container"
+                  style={{ position: "relative" }}
+                >
+                  <button
+                    ref={setDownloadBtnRef}
+                    className="bulk-export-button"
+                    onClick={() => setDownloadOpen((v) => !v)}
+                    title={
+                      selectedAnalyses.size > 0
+                        ? `Download ${selectedAnalyses.size} selected analyses`
+                        : "Select at least one report to download"
+                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 16px",
+                      backgroundColor:
+                        selectedAnalyses.size > 0 ? "#10b981" : "#d1d5db",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor:
+                        selectedAnalyses.size > 0 ? "pointer" : "not-allowed",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      transition: "background-color 0.2s",
+                    }}
+                    disabled={selectedAnalyses.size === 0}
+                  >
+                    <Download size={16} />
+                    <span>
+                      Download
+                      {selectedAnalyses.size > 0
+                        ? ` (${selectedAnalyses.size})`
+                        : ""}
+                    </span>
+                    <ChevronDown size={16} style={{ marginLeft: 2 }} />
+                  </button>
+                </div>
+
+                {/* Download Dropdown */}
+                {downloadOpen &&
+                  ReactDOM.createPortal(
+                    <div
+                      id="dashboard-download-dropdown"
+                      style={{
+                        position: "absolute",
+                        top: dropdownPos.top,
+                        left: dropdownPos.left,
+                        width: dropdownPos.width,
+                        background: "#fff",
+                        border: "1px solid #ddd",
+                        borderRadius: 6,
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                        zIndex: 9999,
+                        minWidth: 140,
+                        padding: 4,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
+                      }}
+                    >
+                      <button
+                        className="dropdown-item"
+                        style={{
+                          width: "100%",
+                          padding: "12px 18px",
+                          textAlign: "left",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 15,
+                          color: "#222",
+                          fontWeight: 500,
+                          borderRadius: "8px 8px 0 0",
+                          transition: "background 0.15s, color 0.15s",
+                        }}
+                        onMouseOver={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "#f3f4ff";
+                          (e.currentTarget as HTMLButtonElement).style.color =
+                            "#3b3be6";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.fontWeight = "600";
+                        }}
+                        onMouseOut={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "none";
+                          (e.currentTarget as HTMLButtonElement).style.color =
+                            "#222";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.fontWeight = "500";
+                        }}
+                        onClick={() => handleBulkDownload("json")}
+                      >
+                        JSON
+                      </button>
+                      <button
+                        className="dropdown-item"
+                        style={{
+                          width: "100%",
+                          padding: "12px 18px",
+                          textAlign: "left",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 15,
+                          color: "#222",
+                          fontWeight: 500,
+                          borderTop: "1px solid #ececff",
+                          transition: "background 0.15s, color 0.15s",
+                        }}
+                        onMouseOver={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "#f3f4ff";
+                          (e.currentTarget as HTMLButtonElement).style.color =
+                            "#3b3be6";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.fontWeight = "600";
+                        }}
+                        onMouseOut={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "none";
+                          (e.currentTarget as HTMLButtonElement).style.color =
+                            "#222";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.fontWeight = "500";
+                        }}
+                        onClick={() => handleBulkDownload("pdf")}
+                      >
+                        PDF
+                      </button>
+                      <button
+                        className="dropdown-item"
+                        style={{
+                          width: "100%",
+                          padding: "12px 18px",
+                          textAlign: "left",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 15,
+                          color: "#222",
+                          fontWeight: 500,
+                          borderTop: "1px solid #ececff",
+                          borderRadius: "0 0 8px 8px",
+                          transition: "background 0.15s, color 0.15s",
+                        }}
+                        onMouseOver={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "#f3f4ff";
+                          (e.currentTarget as HTMLButtonElement).style.color =
+                            "#3b3be6";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.fontWeight = "600";
+                        }}
+                        onMouseOut={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "none";
+                          (e.currentTarget as HTMLButtonElement).style.color =
+                            "#222";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.fontWeight = "500";
+                        }}
+                        onClick={() => handleBulkDownload("csv")}
+                      >
+                        CSV
+                      </button>
+                    </div>,
+                    document.body
+                  )}
+
+                <div
+                  className="export-container"
+                  style={{ position: "relative" }}
+                >
+                  {/* Export All button and dropdown removed as requested */}
+                </div>
               </div>
             </div>
 
@@ -268,6 +698,27 @@ const DashboardPage: React.FC = () => {
                 <table>
                   <thead>
                     <tr>
+                      <th style={{ width: "40px" }}>
+                        <button
+                          onClick={handleSelectAll}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "4px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          title={selectAll ? "Deselect all" : "Select all"}
+                        >
+                          {selectAll ? (
+                            <CheckSquare size={16} color="#3b82f6" />
+                          ) : (
+                            <Square size={16} color="#6b7280" />
+                          )}
+                        </button>
+                      </th>
                       <th>Resume</th>
                       <th>Job Title</th>
                       <th>Date</th>
@@ -278,6 +729,27 @@ const DashboardPage: React.FC = () => {
                   <tbody>
                     {filteredHistory.map((analysis: AnalysisResult) => (
                       <tr key={analysis.id} className="table-row">
+                        <td>
+                          <button
+                            onClick={() => handleSelectAnalysis(analysis.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {analysis.id &&
+                            selectedAnalyses.has(analysis.id) ? (
+                              <CheckSquare size={16} color="#3b82f6" />
+                            ) : (
+                              <Square size={16} color="#6b7280" />
+                            )}
+                          </button>
+                        </td>
                         <td>
                           <div className="file-info">
                             <div className="file-icon-wrapper">

@@ -138,10 +138,10 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 {/* User Routes - Protected from admin access */}
-                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<ProtectedUserRoute element={<DashboardPage />} />} />
                 <Route
                   path="/dashboard/analysis/:id"
-                  element={<AnalysisDetailsPage />}
+                  element={<ProtectedUserRoute element={<AnalysisDetailsPage />} />}
                 />
                 <Route
                   path="/profile"
