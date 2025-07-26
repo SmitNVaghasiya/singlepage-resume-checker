@@ -9,7 +9,7 @@ import {
   exportFeedback
 } from '../controllers/feedbackController';
 import { authenticateToken } from '../middleware/auth';
-import { authenticateAdmin } from '../admin/middleware/adminAuth';
+import { authenticateAdmin } from '../admin';
 import { rateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();

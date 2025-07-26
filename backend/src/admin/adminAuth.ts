@@ -1,12 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Admin, IAdmin } from '../models/Admin';
-import { logger } from '../../utils/logger';
-import { config } from '../../config/config';
+import { Admin, IAdmin } from './Admin';
+import { logger } from '../utils/logger';
+import { config } from '../config/config';
 
-interface AdminRequest extends Request {
-  admin?: IAdmin;
-}
+import { AdminRequest } from './types';
 
 export const authenticateAdmin = async (req: AdminRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -14,19 +12,18 @@ export const authenticateAdmin = async (req: AdminRequest, res: Response, next: 
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({
-        success: false,
-        message: 'Admin authentication required'
+        error: 'Unauthorized',
+        message: 'Admin token required'
       });
       return;
     }
 
     const token = authHeader.substring(7);
     
-    if (!config.jwtSecret) {
-      logger.error('JWT secret not configured');
-      res.status(500).json({
-        success: false,
-        message: 'Server configuration error'
+    if (!token) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Admin token required'
       });
       return;
     }
@@ -36,15 +33,15 @@ export const authenticateAdmin = async (req: AdminRequest, res: Response, next: 
 
     if (!admin) {
       res.status(401).json({
-        success: false,
-        message: 'Admin not found'
+        error: 'Unauthorized',
+        message: 'Invalid admin token'
       });
       return;
     }
 
     if (!admin.isActive) {
       res.status(401).json({
-        success: false,
+        error: 'Unauthorized',
         message: 'Admin account is deactivated'
       });
       return;
@@ -52,40 +49,45 @@ export const authenticateAdmin = async (req: AdminRequest, res: Response, next: 
 
     if (admin.isLocked()) {
       res.status(401).json({
-        success: false,
-        message: 'Admin account is temporarily locked'
+        error: 'Unauthorized',
+        message: 'Admin account is locked'
       });
       return;
     }
 
-    req.admin = admin;
-    next();
+    if (admin.isPasswordExpired()) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Admin password has expired'
+      });
+      return;
+    }
 
+    req.admin = admin as IAdmin & { _id: string };
+    next();
   } catch (error) {
     logger.error('Admin authentication error:', error);
     res.status(401).json({
-      success: false,
+      error: 'Unauthorized',
       message: 'Invalid admin token'
     });
   }
 };
 
-// Permission check - verify admin has specific permission
 export const requirePermission = (permission: string) => {
   return (req: AdminRequest, res: Response, next: NextFunction): void => {
     if (!req.admin) {
       res.status(401).json({
-        success: false,
+        error: 'Unauthorized',
         message: 'Admin authentication required'
       });
       return;
     }
 
-    // Check if admin has the required permission
     if (!req.admin.hasPermission(permission)) {
       res.status(403).json({
-        success: false,
-        message: `Permission denied: ${permission} required`
+        error: 'Forbidden',
+        message: `Permission '${permission}' required`
       });
       return;
     }
@@ -94,18 +96,18 @@ export const requirePermission = (permission: string) => {
   };
 };
 
-// Simplified role check - admin has all roles
 export const requireRole = (_roles: string[]) => {
   return (req: AdminRequest, res: Response, next: NextFunction): void => {
     if (!req.admin) {
       res.status(401).json({
-        success: false,
+        error: 'Unauthorized',
         message: 'Admin authentication required'
       });
       return;
     }
 
-    // Admin has all roles
+    // For now, all admins have the same role
+    // This can be extended later with role-based permissions
     next();
   };
 }; 

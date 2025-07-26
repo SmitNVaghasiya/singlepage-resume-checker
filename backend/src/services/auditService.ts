@@ -1,6 +1,6 @@
 import { AuditTrail, IAuditTrail } from '../models/AuditTrail';
 import { Notification, INotification } from '../models/Notification';
-import { IAdmin } from '../admin/models/Admin';
+import { IAdmin } from '../admin';
 import { logger } from '../utils/logger';
 
 export interface AuditLogData {

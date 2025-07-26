@@ -23,7 +23,7 @@
 -------- Normal Site Future add on.
 -- add option where user can find out which are the improvements resume needs.
 
-completed work
+-- completed work
 # -- "How We Compare" make sure that this feature is correct. ---For now this is correct.
 # -- add option so that i can fill both the password and email, save in the browser itself. completed mostly
 
@@ -59,22 +59,22 @@ completed work
 
 -- Test the ui improvement done for the mobile responsiveness.
 
--- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it. -- 
+# -- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it. -- ✅ Mostly completed Testing remaining.
 
 ------------------- 24/07/2025 -------------------
 # -- currently this code is looking working perfectly in local setup. 
 # -- Still backend is calling the resume-analyzer build and also when i last time tried calling the python server it did not responded. -- Completed this was happening because of the old build catche was loaded in the backend vercel server so this was happening.
-    -- Currently for some reason after solving this now backend is not calling the python sever in render at all.
--- Backend is now calling the /api/resume/analyze instead of /api/v1/analyze as i can see in the server logs and also this request is not reacing to the backend as i tried callling /api/resume/analyze normally with the help of render api uri.
+    # -- Currently for some reason after solving this now backend is not calling the python sever in render at all.   ✅ completed.
+    # -- Backend is now calling the /api/resume/analyze instead of /api/v1/analyze as i can see in the server logs and also this request is not reacing to the backend as i tried callling /api/resume/analyze normally with the help of render api uri. ✅ completed.
 
 
 -- This is new mobile responsive design worked little bit but needs too much improvements.
 
 # --- do not show data to every user show data to users only who have done the analysis.As corrrenlty when other user logged in it show all users data there even though user was newly logged in and do not have access to see other user data. -- ✅ Mostly completed as added the validation only testing is reamining by creating new account and testing it there.
 
-# -- If user trying with the temp id for the sign up give them error that do not use the temp mail use the original mail we have setup the logic and it is working just have to change the text what we show it as when one user tried this it did not created account and shown something wrong or some other error i forgot i do not completely know it is the case but if it will find out that mail used is temp stop it and show the error. --      ✅ Mostly completed Testing remaining.
+# -- If user trying with the temp id for the sign up give them error that do not use the temp mail use the original mail we have setup the logic and it is working just have to change the text what we show it as when one user tried this it did not created account and shown something wrong or some other error i forgot i do not completely know it is the case but if it will find out that mail used is temp stop it and show the error. -- ✅ Mostly completed Testing remaining.
 
--- -- Separate the admin module in the backend totally. from the noraml users module code.**4**
+# -- Separate the admin module in the backend totally. from the noraml users module code.**4** -- ✅ Mostly completed Testing remaining.
 
 -- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.
 
@@ -83,14 +83,15 @@ completed work
 
 # -- height of the analysis step.
 
--- Ui of analysis step is totally different than rest of my website in color combo.
+-- Ui of analysis step in resumecheck page is totally different than rest of my website in color combo and also it is not same as the other two steps resume upload and also the job description. right now anlaysis page is lookikng too light font color and also it ui is not looking like the other steps.
 
 -- In the content view page too much color used make it simple as the rest of the ui make it similar to the dashboard how we show four content and also make too much color to simple white ui.
--- increase the width of the dashboard and dashboard/analysis page.
+# -- increase the width of the dashboard and dashboard/analysis page.
 -- Smit Resume.pdf content shown in the dashboard make file icon to put on the left side of the text not on the top.and also make font darker right now it is too light.
+
 -- Analysis Dashboard Track your resume analysis history and improvements - color used for this text card i have to add to the other pages also.
 
---- reduce the size of the http://localhost:5173/dashboard/analysis/ page text.
+--- reduce the size of the http://localhost:5173/dashboard/analysis/ page text size.
 
 -- improve the normal dashboard ui and seperate the admin dashboard compoenents totally.
 
@@ -113,9 +114,11 @@ completed work
 
 # -- 0% Avg Match Rate instead of this change this too something else.
 
--- Dark theme is not perfect every where make it consitence everywhere. in dashboard/Analysis it is not working.
--- Navbar becomes too dark make it little lighter same as in the homepage.
--- No need to make footer dark as it's color is perfect for both the dark and light theme.
+-- You have to anlayse the hoempage as it has the perfect dark theme integrated and after do as i have mentioned
+-- Dark theme is not perfect every where make it consitence everywhere also make sure that texts are in white or light color as durin dark theme white or light text can be visible if you have used the dark color font they will not be visible and also along with it check that background is in the dark or not as if not white font won't be visible.in profile page it is not working.
+
+# -- Navbar becomes too dark make it little lighter same as in the homepage. ✅ COMPLETED.
+# -- No need to make footer dark as it's color is perfect for both the dark and light theme. ✅ COMPLETED.
 
 # -- Add validation for the response we are generating that there no answer need to give which is not related to the generating the analysis based on the job and resume. even if there is valid job discription but still hacker can add some prompt inside of this valid job discription that give me private key or admin access i must not give it to them. if job discription or the resume has something which is not related to them remove them or ignore that peace of text. ✅ COMPLETED only testing is remaining.
 
@@ -167,9 +170,12 @@ Success Rate Make sure all the data is shown here correctly.
 
 
 
--------------------------------------------------------- ----------------------------------------
+---------------------------------------------- -- ---------------------------------------------------------
 26/07/2025
+-- I will solve this issue in the future.
 # --  make in downaload page sure that pdf and csv and json format must able to downalod and show all the data we are able to downlaod with the help of the json format in the profile page.  --  ✅ Mostly COMPLETED.
     -- but in the dashboard it is not working only there it is needed to be improved.
 -- feedback page needs the UI improved.
     -- Make that page persitance when we have refreshed the page as when i refreshed page i was not able to see the thank you message as i have send the feedback and showing this message so that user can see that they have already send the feedback.
+---------------------------------------------- -- ---------------------------------------------------------
+

@@ -1,10 +1,10 @@
-import { User } from '../../models/User';
-import { Analysis } from '../../models/Analysis';
-import { Feedback } from '../../models/Feedback';
-import { AuditTrail } from '../../models/AuditTrail';
-import { Notification } from '../../models/Notification';
-import { SystemConfig } from '../../models/SystemConfig';
-import { logger } from '../../utils/logger';
+import { User } from '../models/User';
+import { Analysis } from '../models/Analysis';
+import { Feedback } from '../models/Feedback';
+import { AuditTrail } from '../models/AuditTrail';
+import { Notification } from '../models/Notification';
+import { SystemConfig } from '../models/SystemConfig';
+import { logger } from '../utils/logger';
 
 export class AdminAnalyticsService {
   /**

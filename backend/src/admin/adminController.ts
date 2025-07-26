@@ -1,20 +1,18 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { Admin, IAdmin } from '../models/Admin';
-import { User } from '../../models/User';
-import { Analysis } from '../../models/Analysis';
-import { Feedback } from '../../models/Feedback';
-import { AuditTrail } from '../../models/AuditTrail';
-import { Notification } from '../../models/Notification';
-import { SystemConfig } from '../../models/SystemConfig';
-import { AuditService } from '../../services/auditService';
-import { SystemConfigService } from '../../services/systemConfigService';
-import { logger } from '../../utils/logger';
-import { config } from '../../config/config';
+import { Admin, IAdmin } from './Admin';
+import { User } from '../models/User';
+import { Analysis } from '../models/Analysis';
+import { Feedback } from '../models/Feedback';
+import { AuditTrail } from '../models/AuditTrail';
+import { Notification } from '../models/Notification';
+import { SystemConfig } from '../models/SystemConfig';
+import { AuditService } from '../services/auditService';
+import { SystemConfigService } from '../services/systemConfigService';
+import { logger } from '../utils/logger';
+import { config } from '../config/config';
 
-interface AdminRequest extends Request {
-  admin?: IAdmin & { _id: string };
-}
+import { AdminRequest } from './types';
 
 // Admin Authentication
 export const adminLogin = async (req: Request, res: Response): Promise<void> => {

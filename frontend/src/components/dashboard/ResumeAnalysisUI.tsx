@@ -723,6 +723,40 @@ const ResumeAnalysisUI: React.FC<ResumeAnalysisUIProps> = ({ analysisId }) => {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="resume-analysis-container">
+        <div
+          className="loading-container"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "60vh",
+            textAlign: "center",
+          }}
+        >
+          <div
+            className="loading-spinner"
+            style={{
+              width: "2rem",
+              height: "2rem",
+              border: "3px solid #f3f4f6",
+              borderTop: "3px solid #3b82f6",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              marginBottom: "1rem",
+            }}
+          ></div>
+          <p style={{ color: "#6b7280", fontSize: "1rem" }}>
+            Loading analysis...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="resume-analysis-container">

@@ -1,8 +1,8 @@
-import { User } from '../../models/User';
-import { Analysis } from '../../models/Analysis';
-import { Feedback } from '../../models/Feedback';
-import { AuditTrail } from '../../models/AuditTrail';
-import { logger } from '../../utils/logger';
+import { User } from '../models/User';
+import { Analysis } from '../models/Analysis';
+import { Feedback } from '../models/Feedback';
+import { AuditTrail } from '../models/AuditTrail';
+import { logger } from '../utils/logger';
 
 export class AdminUserService {
   /**

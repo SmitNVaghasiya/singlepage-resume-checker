@@ -3,7 +3,7 @@ import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 
 import { User, IUser } from '../models/User';
-import { Admin, IAdmin } from '../admin/models/Admin';
+import { Admin, IAdmin } from '../admin';
 import { emailService } from '../services/emailService';
 import { emailValidationService } from '../services/emailValidationService';
 import { logger } from '../utils/logger';
