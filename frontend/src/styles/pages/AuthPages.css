@@ -835,10 +835,12 @@
 
 .dark .input-label {
   color: #e2e8f0;
+  color: #94a3b8 !important;
 }
 
 .dark .input-field {
-  background: #334155;
+  /* background: #334155; */
+  color: #94a3b8 !important;
   border-color: #475569;
   color: #f1f5f9;
 }
@@ -865,6 +867,7 @@
 
 .dark .input-field:disabled {
   background: #1e293b;
+  
 }
 
 .dark .error-banner {

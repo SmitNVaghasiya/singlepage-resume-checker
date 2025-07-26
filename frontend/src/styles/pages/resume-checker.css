@@ -918,6 +918,31 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Dark mode styles for inline progress steps */
+.dark .step-button:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .step-button.disabled {
+  opacity: 0.4;
+}
+
+.dark .step-title {
+  color: #94a3b8;
+}
+
+.dark .step-button.active .step-title {
+  color: #60a5fa;
+}
+
+.dark .step-button.completed:not(.active) .step-title {
+  color: #34d399;
+}
+
+.dark .step-button.disabled .step-title {
+  color: #64748b;
+}
+
 /* Advanced mobile and accessibility improvements */
 .progress-steps,
 .inline-progress-steps {

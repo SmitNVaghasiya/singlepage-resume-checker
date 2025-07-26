@@ -1280,8 +1280,253 @@
   border: 1px solid var(--gray-200);
 }
 
-@media (prefers-color-scheme: dark) {
-  .feedback-tab-content .feedback-container {
-    border-color: var(--gray-700);
-  }
+.dark .feedback-tab-content .feedback-container {
+  background: #1e293b;
+}
+
+/* Dark theme styles */
+.dark .view-details-container {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark .view-details-header {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-bottom-color: #475569;
+}
+
+.dark .view-details-title h1 {
+  color: #f1f5f9;
+}
+
+.dark .view-details-subtitle {
+  color: #94a3b8;
+}
+
+.dark .tab-button {
+  background: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.dark .tab-button:hover {
+  background: #475569;
+  color: #cbd5e1;
+}
+
+.dark .tab-button.active {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  border-color: #3b82f6;
+}
+
+.dark .tab-label {
+  color: inherit;
+}
+
+.dark .tab-count {
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+
+.dark .analysis-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.dark .analysis-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark .card-header {
+  border-bottom-color: #334155;
+}
+
+.dark .card-header-title {
+  color: #f1f5f9;
+}
+
+.dark .card-badge {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .stat-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .stat-card-info h3 {
+  color: #f1f5f9;
+}
+
+.dark .stat-card-info .value {
+  color: #cbd5e1;
+}
+
+.dark .overview-hero {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-color: #475569;
+}
+
+.dark .overview-hero-title {
+  color: #f1f5f9;
+}
+
+.dark .overview-hero-description {
+  color: #94a3b8;
+}
+
+.dark .overview-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .overview-card:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .overview-card h4 {
+  color: #f1f5f9;
+}
+
+.dark .overview-card p {
+  color: #94a3b8;
+}
+
+.dark .stat-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .stat-item:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .stat-number {
+  color: #f1f5f9;
+}
+
+.dark .stat-label {
+  color: #94a3b8;
+}
+
+.dark .info-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .info-item:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .info-item h4 {
+  color: #f1f5f9;
+}
+
+.dark .info-item p {
+  color: #94a3b8;
+}
+
+.dark .eligibility-badge.eligible {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.dark .eligibility-badge.partially-eligible {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.dark .eligibility-badge.not-eligible {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dark .section-feedback-item h4 {
+  color: #f1f5f9;
+}
+
+.dark .section-feedback-item p {
+  color: #94a3b8;
+}
+
+.dark .priority-improvements {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .priority-title {
+  color: #f1f5f9;
+}
+
+.dark .priority-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .priority-item:hover {
+  background: #475569;
+  border-color: #64748b;
+}
+
+.dark .priority-number {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+}
+
+.dark .priority-text {
+  color: #f1f5f9;
+}
+
+.dark .list-item-content {
+  color: #f1f5f9;
+}
+
+.dark .missing-sections-content h4 {
+  color: #f1f5f9;
+}
+
+.dark .missing-sections-content p {
+  color: #94a3b8;
+}
+
+.dark .assessment-hero {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-color: #475569;
+}
+
+.dark .assessment-hero-title {
+  color: #f1f5f9;
+}
+
+.dark .loading-container {
+  background: #1e293b;
+}
+
+.dark .error-container {
+  background: #1e293b;
+}
+
+.dark .error-message {
+  color: #f1f5f9;
+}
+
+.dark .retry-button {
+  background: #334155;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
+.dark .retry-button:hover {
+  background: #475569;
+  color: white;
 }

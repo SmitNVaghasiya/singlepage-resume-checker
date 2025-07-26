@@ -175,3 +175,5 @@
     -- Make that page persitance when we have refreshed the page as when i refreshed page i was not able to see the thank you message as i have send the feedback and showing this message so that user can see that they have already send the feedback.
 ---------------------------------------------- -- ---------------------------------------------------------
 
+27/07/2025
+-- css files are too big so have to reduce the size if this file contains the style for other pages in there style.

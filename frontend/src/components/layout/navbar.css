@@ -424,6 +424,10 @@
   border-color: #64748b;
 }
 
+.dark .user-name {
+  color: #f1f5f9;
+}
+
 .dark .user-menu {
   background: #1e293b;
   border-color: #334155;
@@ -517,7 +521,11 @@
 }
 
 @media (max-width: 768px) {
-  .navbar-link, .navbar-auth-btn, .navbar-user-btn, .navbar-admin-btn, .navbar-icon-btn {
+  .navbar-link,
+  .navbar-auth-btn,
+  .navbar-user-btn,
+  .navbar-admin-btn,
+  .navbar-icon-btn {
     min-height: 44px;
     min-width: 44px;
     font-size: clamp(0.95rem, 3vw, 1.1rem);
@@ -533,10 +541,13 @@
     gap: 0.75rem;
     margin-left: 0;
   }
-  .user-name, .admin-name, .admin-badge {
+  .user-name,
+  .admin-name,
+  .admin-badge {
     display: none;
   }
-  .user-menu, .admin-menu {
+  .user-menu,
+  .admin-menu {
     right: 0;
     min-width: 12rem;
     max-width: 90vw;

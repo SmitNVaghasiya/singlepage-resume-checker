@@ -363,8 +363,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .retry-button {
@@ -539,131 +543,129 @@
 }
 
 /* Dark theme support */
-@media (prefers-color-scheme: dark) {
-  .feedback-management {
-    color: #f9fafb;
-  }
+.dark .feedback-management {
+  color: #f9fafb;
+}
 
-  .feedback-header h1 {
-    color: #f9fafb;
-  }
+.dark .feedback-header h1 {
+  color: #f9fafb;
+}
 
-  .feedback-header p {
-    color: #d1d5db;
-  }
+.dark .feedback-header p {
+  color: #d1d5db;
+}
 
-  .stat-card,
-  .filters-panel,
-  .feedback-item,
-  .modal-content {
-    background: #1f2937;
-    border-color: #374151;
-  }
+.dark .stat-card,
+.dark .filters-panel,
+.dark .feedback-item,
+.dark .modal-content {
+  background: #1f2937;
+  border-color: #374151;
+}
 
-  .stat-content h3 {
-    color: #f9fafb;
-  }
+.dark .stat-content h3 {
+  color: #f9fafb;
+}
 
-  .stat-content p {
-    color: #9ca3af;
-  }
+.dark .stat-content p {
+  color: #9ca3af;
+}
 
-  .filters-header h3 {
-    color: #f9fafb;
-  }
+.dark .filters-header h3 {
+  color: #f9fafb;
+}
 
-  .filter-toggle {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
+.dark .filter-toggle {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
 
-  .filter-toggle:hover {
-    background: #4b5563;
-  }
+.dark .filter-toggle:hover {
+  background: #4b5563;
+}
 
-  .filter-group label {
-    color: #d1d5db;
-  }
+.dark .filter-group label {
+  color: #d1d5db;
+}
 
-  .filter-group select,
-  .filter-group input {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
+.dark .filter-group select,
+.dark .filter-group input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
 
-  .clear-filters {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
+.dark .clear-filters {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
 
-  .clear-filters:hover {
-    background: #4b5563;
-  }
+.dark .clear-filters:hover {
+  background: #4b5563;
+}
 
-  .action-button {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
+.dark .action-button {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
 
-  .action-button:hover {
-    background: #4b5563;
-  }
+.dark .action-button:hover {
+  background: #4b5563;
+}
 
-  .category-badge {
-    background: #374151;
-    color: #d1d5db;
-  }
+.dark .category-badge {
+  background: #374151;
+  color: #d1d5db;
+}
 
-  .feedback-suggestions {
-    color: #d1d5db;
-  }
+.dark .feedback-suggestions {
+  color: #d1d5db;
+}
 
-  .feedback-analysis {
-    color: #9ca3af;
-  }
+.dark .feedback-analysis {
+  color: #9ca3af;
+}
 
-  .pagination-button {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
+.dark .pagination-button {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
 
-  .pagination-button:hover:not(:disabled) {
-    background: #4b5563;
-  }
+.dark .pagination-button:hover:not(:disabled) {
+  background: #4b5563;
+}
 
-  .modal-header h2 {
-    color: #f9fafb;
-  }
+.dark .modal-header h2 {
+  color: #f9fafb;
+}
 
-  .detail-section h3 {
-    color: #f9fafb;
-  }
+.dark .detail-section h3 {
+  color: #f9fafb;
+}
 
-  .detail-item label {
-    color: #9ca3af;
-  }
+.dark .detail-item label {
+  color: #9ca3af;
+}
 
-  .detail-item span {
-    color: #d1d5db;
-  }
+.dark .detail-item span {
+  color: #d1d5db;
+}
 
-  .suggestions-text {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
+.dark .suggestions-text {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
 
-  .status-select,
-  .admin-notes {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
+.dark .status-select,
+.dark .admin-notes {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
 }
 
 /* Responsive design */
@@ -704,4 +706,4 @@
     margin: 20px;
     max-height: calc(100vh - 40px);
   }
-} 
+}

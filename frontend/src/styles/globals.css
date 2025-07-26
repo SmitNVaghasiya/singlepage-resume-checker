@@ -77,8 +77,8 @@ body {
 
 /* Dark Mode Styles */
 .dark body {
-  color: var(--gray-100);
-  background-color: var(--gray-900);
+  color: #f1f5f9;
+  background-color: #0f172a;
 }
 
 .dark {

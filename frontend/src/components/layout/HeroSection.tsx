@@ -77,7 +77,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
               <span>Analyze My Resume</span>
               <ArrowRight className="w-5 h-5" />
             </button>
-            <p className="hero-cta-subtext">Free analysis • No signup required • Instant results</p>
+            <p className="hero-cta-subtext">Free analysis • Signup required • Instant results</p>
           </div>
         </div>
 

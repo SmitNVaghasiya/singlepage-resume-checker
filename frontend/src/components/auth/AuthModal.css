@@ -265,9 +265,17 @@
   border-color: rgba(16, 185, 129, 0.3);
 }
 
+.dark .upload-info-header {
+  color: #10b981;
+}
+
 .dark .upload-info-file {
   background: #334155;
   color: #e2e8f0;
+}
+
+.dark .upload-info-text {
+  color: #10b981;
 }
 
 .dark .auth-error {
@@ -295,12 +303,36 @@
   color: #94a3b8;
 }
 
+.dark .input-icon {
+  color: #94a3b8;
+}
+
+.dark .password-toggle {
+  color: #94a3b8;
+}
+
+.dark .password-toggle:hover {
+  color: #cbd5e1;
+}
+
+.dark .otp-info {
+  color: #94a3b8;
+}
+
 .dark .auth-switch {
   border-top-color: #475569;
 }
 
 .dark .auth-switch p {
   color: #94a3b8;
+}
+
+.dark .auth-switch-btn {
+  color: #60a5fa;
+}
+
+.dark .auth-switch-btn:hover {
+  color: #93c5fd;
 }
 
 /* Responsive design */

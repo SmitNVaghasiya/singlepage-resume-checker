@@ -23,12 +23,12 @@ const AnalysisDetailsPage: React.FC = () => {
     return (
       <div className="analysis-details-page-full">
         <div className="error-message">Invalid analysis ID</div>
-        <button
+        {/* <button
           className="back-btn-full"
           onClick={() => navigate("/dashboard")}
         >
           ← Back to Dashboard
-        </button>
+        </button> */}
       </div>
     );
   }

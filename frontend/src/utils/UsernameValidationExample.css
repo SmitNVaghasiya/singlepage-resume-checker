@@ -270,3 +270,101 @@
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
+
+/* Dark theme styles */
+.dark .username-validation-demo {
+  background: #1e293b;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.dark .username-validation-title {
+  color: #f1f5f9;
+}
+
+.dark .validation-method-label {
+  color: #cbd5e1;
+}
+
+.dark .validation-method-select {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark .validation-method-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.dark .username-input-label {
+  color: #cbd5e1;
+}
+
+.dark .username-input-icon {
+  color: #94a3b8;
+}
+
+.dark .username-input {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark .username-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.dark .username-input.success:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.dark .username-input.warning:focus {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+}
+
+.dark .username-input.error:focus {
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.2);
+}
+
+.dark .validation-message {
+  color: #94a3b8;
+}
+
+.dark .character-analysis {
+  background: #334155;
+}
+
+.dark .character-analysis-title {
+  color: #cbd5e1;
+}
+
+.dark .character-analysis-content {
+  color: #94a3b8;
+}
+
+.dark .suggestions-title {
+  color: #cbd5e1;
+}
+
+.dark .suggestion-button {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.dark .suggestion-button:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.dark .validation-rules {
+  color: #94a3b8;
+}
+
+.dark .validation-rules-title {
+  color: #cbd5e1;
+}
