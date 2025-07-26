@@ -466,6 +466,7 @@ class ResumeController {
           jobDescriptionFilename: analysis.jobDescriptionFilename || 'Text Input',
           jobTitle: transformedResult?.jobTitle || analysis.result?.jobTitle || 'Position Analysis',
           overallScore: transformedResult?.score_out_of_100 || transformedResult?.overallScore || analysis.result?.overallScore || 0,
+          score_out_of_100: transformedResult?.score_out_of_100 || transformedResult?.overallScore || analysis.result?.overallScore || 0,
           chance_of_selection_percentage: transformedResult?.chance_of_selection_percentage || transformedResult?.matchPercentage || analysis.result?.matchPercentage || 0,
           analyzedAt: analysis.createdAt,
           status: analysis.status,

@@ -602,7 +602,7 @@ class AnalysisService {
       // Execute queries
       const [analyses, totalCount] = await Promise.all([
         Analysis.find({ userId })
-          .select('analysisId resumeFilename jobDescriptionFilename status createdAt result.overallScore result.jobTitle')
+          .select('analysisId resumeFilename jobDescriptionFilename status createdAt result.overallScore result.score_out_of_100 result.chance_of_selection_percentage result.jobTitle result.matchPercentage')
           .sort(sort)
           .skip(skip)
           .limit(limit)

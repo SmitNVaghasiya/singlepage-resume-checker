@@ -155,18 +155,14 @@
 # -- We are not able to export the full anlaysis report in profile only profile info is being downloaded.✅ COMPLETED 
     # -- Have to add this option download the csv or the pdf also.
     # -- Also add option in the dashboard page also. ✅ Mostly COMPLETED. 
-
+ 
 -- solve all the lint errors.
 
--- 4
-Total Analyses
-0
-Average Score
-0
-Best Score
-0%
-Success Rate Make sure all the data is shown here correctly.
-
+# -- 4 Total Analyses
+# 0 Average Score
+# 0 Best Score
+# 0% Success Rate Make sure all the data is shown here correctly.currently only the total resumes are counted correctly. ✅ COMPLETED.
+-- stat-icon-container make icons inside of this size bigger as you can see they are not even visible through the eyes.i think it is happening due to parent calss so i am reverting back to last style.
 
 
 

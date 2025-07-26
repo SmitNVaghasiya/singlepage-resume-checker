@@ -268,6 +268,8 @@ export interface AnalysisHistoryItem {
   jobDescriptionFilename?: string;
   jobTitle: string;
   overallScore: number;
+  score_out_of_100?: number;
+  chance_of_selection_percentage?: number;
   analyzedAt: Date;
   status: 'completed' | 'processing' | 'failed';
 }

@@ -124,7 +124,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Save resume checker state to localStorage
   const saveResumeCheckerState = async () => {
     try {
-      const stateToSave = {
+      const stateToSave: any = {
         currentStep,
         jobDescription,
         jobInputMethod,
@@ -672,9 +672,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadAnalysisHistory = async () => {
     try {
       const historyResponse = await apiService.getAnalysisHistory(1, 50); // Get recent analyses
+      console.log("Raw history response:", historyResponse);
+
       // Convert AnalysisHistoryItem to AnalysisResult format for compatibility
       const convertedHistory: AnalysisResult[] = historyResponse.analyses.map(
         (item) => {
+          console.log("Processing history item:", item);
           // Ensure date is properly handled
           let analyzedDate: Date;
           try {
@@ -687,13 +690,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             analyzedDate = new Date(); // Fallback to current date
           }
 
-          return {
+          const convertedItem = {
             // Basic required fields
             job_description_validity: "Valid",
             resume_eligibility: "Eligible",
-            score_out_of_100: item.overallScore || 0,
+            score_out_of_100: item.score_out_of_100 || item.overallScore || 0,
             short_conclusion: "Analysis completed successfully.",
-            chance_of_selection_percentage: 0,
+            chance_of_selection_percentage:
+              item.chance_of_selection_percentage || 0,
             resume_improvement_priority: [],
             overall_fit_summary: "",
 
@@ -837,10 +841,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             developmentAreas: [],
             confidence: 85,
           };
+
+          console.log("Converted analysis item:", {
+            id: item.id,
+            score_out_of_100: item.score_out_of_100 || item.overallScore || 0,
+            overallScore: item.overallScore,
+            chance_of_selection_percentage: item.chance_of_selection_percentage,
+            final_score_out_of_100: convertedItem.score_out_of_100,
+          });
+
+          return convertedItem;
         }
       );
 
       setAnalysisHistory(convertedHistory);
+      console.log(
+        "Analysis history loaded:",
+        convertedHistory.length,
+        "analyses"
+      );
+      if (convertedHistory.length > 0) {
+        console.log("Sample analysis score data:", {
+          score_out_of_100: convertedHistory[0].score_out_of_100,
+          chance_of_selection_percentage:
+            convertedHistory[0].chance_of_selection_percentage,
+          overallScore: convertedHistory[0].overallScore,
+        });
+      }
     } catch (error) {
       console.warn("Failed to load analysis history:", error);
       // Don't throw error to avoid breaking the app
