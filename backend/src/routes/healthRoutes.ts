@@ -16,6 +16,24 @@ router.get('/', (_req: Request, res: Response) => {
   });
 });
 
+// CORS test endpoint
+router.get('/cors-test', (req: Request, res: Response) => {
+  const origin = req.headers.origin;
+  logger.info(`CORS test - Origin: ${origin}, Headers:`, req.headers);
+  
+  res.status(200).json({
+    status: 'cors-test-successful',
+    timestamp: new Date().toISOString(),
+    origin: origin,
+    headers: req.headers,
+    corsHeaders: {
+      'Access-Control-Allow-Origin': res.getHeader('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Credentials': res.getHeader('Access-Control-Allow-Credentials'),
+      'Access-Control-Allow-Methods': res.getHeader('Access-Control-Allow-Methods'),
+    }
+  });
+});
+
 // Detailed health check
 router.get('/detailed', async (_req: Request, res: Response) => {
   try {

@@ -578,6 +578,14 @@ class PythonApiService {
   }
 
   private createAnalysisError(error: unknown): Error {
+    // Create error with status code preserved
+    const createErrorWithStatus = (msg: string, statusCode: number = 500): Error => {
+      const err = new Error(msg) as any;
+      err.status = statusCode;
+      err.statusCode = statusCode;
+      return err;
+    };
+
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const message = error.response?.data?.message || error.response?.data?.detail || error.message;
@@ -586,42 +594,42 @@ class PythonApiService {
       if (status === 400) {
         // Handle validation errors from Python API
         if (message && message.includes('Security validation failed:')) {
-          return new Error(`Security validation failed: ${message.replace('Security validation failed: ', '')}`);
+          return createErrorWithStatus(`Security validation failed: ${message.replace('Security validation failed: ', '')}`, 400);
         }
         if (message && message.includes('Invalid job description:')) {
-          return new Error(`Invalid job description: ${message.replace('Invalid job description: ', '')}`);
+          return createErrorWithStatus(`Invalid job description: ${message.replace('Invalid job description: ', '')}`, 400);
         }
         if (message && message.includes('Invalid resume:')) {
-          return new Error(`Invalid resume: ${message.replace('Invalid resume: ', '')}`);
+          return createErrorWithStatus(`Invalid resume: ${message.replace('Invalid resume: ', '')}`, 400);
         }
         if (details && Array.isArray(details)) {
           const fieldErrors = details.map((detail: any) => 
             `${detail.loc?.join('.')}: ${detail.msg}`
           ).join(', ');
-          return new Error(`Validation error: ${fieldErrors}`);
+          return createErrorWithStatus(`Validation error: ${fieldErrors}`, 400);
         }
-        return new Error(`Invalid request: ${message}`);
+        return createErrorWithStatus(`Invalid request: ${message}`, 400);
       } else if (status === 422) {
         // Handle validation errors from Python API
         if (details && Array.isArray(details)) {
           const fieldErrors = details.map((detail: any) => 
             `${detail.loc?.join('.')}: ${detail.msg}`
           ).join(', ');
-          return new Error(`Validation error: ${fieldErrors}`);
+          return createErrorWithStatus(`Validation error: ${fieldErrors}`, 422);
         }
-        return new Error(`Validation error: ${message}`);
+        return createErrorWithStatus(`Validation error: ${message}`, 422);
       } else if (status === 413) {
-        return new Error('File too large. Please use smaller files.');
+        return createErrorWithStatus('File too large. Please use smaller files.', 413);
       } else if (status === 429) {
-        return new Error('Too many requests. Please try again later.');
+        return createErrorWithStatus('Too many requests. Please try again later.', 429);
       } else if (status && status >= 500) {
-        return new Error('Analysis service temporarily unavailable. Please try again.');
+        return createErrorWithStatus('Analysis service temporarily unavailable. Please try again.', 503);
       } else {
-        return new Error(`Analysis failed: ${message}`);
+        return createErrorWithStatus(`Analysis failed: ${message}`, status || 500);
       }
     }
 
-    return new Error(`Analysis failed: ${extractErrorMessage(error)}`);
+    return createErrorWithStatus(`Analysis failed: ${extractErrorMessage(error)}`, 500);
   }
 
   private logApiError(error: AxiosError): void {

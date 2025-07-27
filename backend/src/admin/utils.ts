@@ -35,7 +35,7 @@ export const validatePermissions = (permissions: string[]): boolean => {
  */
 export const sanitizeAdminData = (admin: IAdmin) => {
   return {
-    id: admin._id,
+    id: (admin._id as any).toString(),
     username: admin.username,
     email: admin.email,
     fullName: admin.fullName,
@@ -59,7 +59,7 @@ export const generateAuditData = (
   details?: Record<string, any>
 ) => {
   return {
-    adminId: admin._id.toString(),
+    adminId: (admin._id as any).toString(),
     adminUsername: admin.username,
     action,
     resource,

@@ -119,7 +119,7 @@ class Server {
       hsts: config.nodeEnv === 'production',
     }));
 
-    // CORS configuration - Simplified and more robust
+    // CORS configuration - Enhanced for Vercel deployment
     const corsOptions = {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Allow requests with no origin (like mobile apps or curl requests)
@@ -161,32 +161,78 @@ class Server {
       },
       credentials: true,
       optionsSuccessStatus: 200,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id', 'Origin', 'Accept', 'X-Requested-With'],
+      exposedHeaders: ['Content-Length', 'X-Request-Id'],
     };
 
     this.app.use(cors(corsOptions));
 
-    // Handle preflight OPTIONS requests explicitly
+    // Enhanced preflight handling for Vercel
     this.app.options('*', (req, res) => {
       const origin = req.headers.origin;
-      const allowedOrigins = this.normalizeOrigins(config.corsOrigin);
       
-      // Check if origin is allowed
-      let allowOrigin = '*';
+      // Set CORS headers for preflight requests
       if (origin) {
-        if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
-          allowOrigin = origin;
-        } else if (config.nodeEnv === 'production' && origin.includes('.vercel.app')) {
-          allowOrigin = origin;
+        // Allow Vercel domains in production
+        if (config.nodeEnv === 'production' && origin.includes('.vercel.app')) {
+          res.header('Access-Control-Allow-Origin', origin);
+        } else {
+          // Check against configured origins
+          const allowedOrigins = this.normalizeOrigins(config.corsOrigin);
+          if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+            res.header('Access-Control-Allow-Origin', origin);
+          } else {
+            res.header('Access-Control-Allow-Origin', '*');
+          }
         }
+      } else {
+        res.header('Access-Control-Allow-Origin', '*');
       }
       
-      res.header('Access-Control-Allow-Origin', allowOrigin);
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id, Origin, Accept, X-Requested-With');
       res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Max-Age', '86400'); // 24 hours
       res.status(200).end();
+    });
+
+    // Additional middleware to ensure CORS headers are set on all responses
+    this.app.use((req, res, next) => {
+      const origin = req.headers.origin;
+      
+      // Always set CORS headers for all responses
+      if (origin) {
+        // Allow Vercel domains in production
+        if (config.nodeEnv === 'production' && origin.includes('.vercel.app')) {
+          res.header('Access-Control-Allow-Origin', origin);
+        } else {
+          // Check against configured origins
+          const allowedOrigins = this.normalizeOrigins(config.corsOrigin);
+          if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+            res.header('Access-Control-Allow-Origin', origin);
+          } else if (allowedOrigins === '*') {
+            res.header('Access-Control-Allow-Origin', '*');
+          }
+        }
+      } else {
+        // If no origin, allow all (for server-to-server requests)
+        res.header('Access-Control-Allow-Origin', '*');
+      }
+      
+      // Set other CORS headers
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id, Origin, Accept, X-Requested-With');
+      
+      // Handle preflight requests
+      if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Max-Age', '86400'); // 24 hours
+        res.status(200).end();
+        return;
+      }
+      
+      next();
     });
   }
 

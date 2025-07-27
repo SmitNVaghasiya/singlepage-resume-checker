@@ -46,7 +46,9 @@ export const config: Config = {
   // Security - Optimized for Vercel
   corsOrigin: process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim().replace(/\/$/, '')) || [
     'https://singlepage-resume-checker.vercel.app',
-    'https://singlepage-resume-checker-backend.vercel.app'
+    'https://singlepage-resume-checker-backend.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
   ],
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
