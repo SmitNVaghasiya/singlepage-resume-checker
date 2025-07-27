@@ -119,7 +119,34 @@ async def analyze_resume(
     if not result:
         raise HTTPException(status_code=500, detail="AI analysis failed, no result returned")
     
-    # Save the analysis result
+    # Check for security validation failures
+    if result.get("security_validation") == "Failed":
+        security_error = result.get("security_error", "Security threat detected")
+        logger.warning(f"Security validation failed: {security_error}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Security validation failed: {security_error}"
+        )
+    
+    # Check for job description validation failures
+    if result.get("job_description_validity") == "Invalid":
+        validation_error = result.get("validation_error", "Invalid job description")
+        logger.warning(f"Job description validation failed: {validation_error}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid job description: {validation_error}"
+        )
+    
+    # Check for resume validation failures
+    if result.get("resume_validity") == "Invalid":
+        validation_error = result.get("validation_error", "Invalid resume")
+        logger.warning(f"Resume validation failed: {validation_error}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid resume: {validation_error}"
+        )
+    
+    # Save the analysis result only if validation passed
     analysis_doc = AnalysisDocument(
         analysisId=analysisId,
         userId=userId,

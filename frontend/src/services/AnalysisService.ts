@@ -263,6 +263,30 @@ export class AnalysisService {
       // Check if it's an authentication error
       if (errorMessage.includes('Access token is required') || errorMessage.includes('Authentication')) {
         setShowAuthModal(true);
+      } else if (errorMessage.includes('Security validation failed:')) {
+        // Handle security validation errors
+        const cleanMessage = errorMessage.replace('Security validation failed: ', '');
+        alert(`Security validation failed: ${cleanMessage}\n\nPlease ensure your job description and resume contain only legitimate professional information related to employment and career development.`);
+        // Reset to job description step so user can fix the issue
+        setCurrentStep('job-description');
+      } else if (errorMessage.includes('Invalid job description:')) {
+        // Handle job description validation errors
+        const cleanMessage = errorMessage.replace('Invalid job description: ', '');
+        alert(`Invalid job description: ${cleanMessage}\n\nPlease provide a proper job posting that includes:\n• Job title and company name\n• Specific job responsibilities and duties\n• Required qualifications and experience\n• Technical requirements (if applicable)`);
+        // Reset to job description step so user can fix the issue
+        setCurrentStep('job-description');
+      } else if (errorMessage.includes('Invalid resume:')) {
+        // Handle resume validation errors
+        const cleanMessage = errorMessage.replace('Invalid resume: ', '');
+        alert(`Invalid resume: ${cleanMessage}\n\nPlease provide a proper professional resume that includes:\n• Your personal information (name, contact details)\n• Work experience and professional history\n• Educational background and qualifications\n• Skills and technical competencies\n• Projects and achievements`);
+        // Reset to upload step so user can fix the issue
+        setCurrentStep('upload');
+      } else if (errorMessage.includes('Validation error:')) {
+        // Handle general validation errors
+        const cleanMessage = errorMessage.replace('Validation error: ', '');
+        alert(`Validation error: ${cleanMessage}\n\nPlease check your input and try again.`);
+        // Reset to job description step so user can fix the issue
+        setCurrentStep('job-description');
       } else {
         alert(`Analysis failed: ${errorMessage}`);
         // Reset to job description step

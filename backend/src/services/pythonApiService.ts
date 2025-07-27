@@ -580,10 +580,26 @@ class PythonApiService {
   private createAnalysisError(error: unknown): Error {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      const message = error.response?.data?.message || error.message;
+      const message = error.response?.data?.message || error.response?.data?.detail || error.message;
       const details = error.response?.data?.detail;
 
       if (status === 400) {
+        // Handle validation errors from Python API
+        if (message && message.includes('Security validation failed:')) {
+          return new Error(`Security validation failed: ${message.replace('Security validation failed: ', '')}`);
+        }
+        if (message && message.includes('Invalid job description:')) {
+          return new Error(`Invalid job description: ${message.replace('Invalid job description: ', '')}`);
+        }
+        if (message && message.includes('Invalid resume:')) {
+          return new Error(`Invalid resume: ${message.replace('Invalid resume: ', '')}`);
+        }
+        if (details && Array.isArray(details)) {
+          const fieldErrors = details.map((detail: any) => 
+            `${detail.loc?.join('.')}: ${detail.msg}`
+          ).join(', ');
+          return new Error(`Validation error: ${fieldErrors}`);
+        }
         return new Error(`Invalid request: ${message}`);
       } else if (status === 422) {
         // Handle validation errors from Python API

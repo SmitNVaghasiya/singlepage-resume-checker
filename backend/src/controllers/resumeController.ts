@@ -608,6 +608,26 @@ class ResumeController {
       return pythonAnalysisId;
 
     } catch (error) {
+      // Handle validation errors specifically
+      const errorMessage = extractErrorMessage(error);
+      
+      // Check if this is a validation error from Python server
+      if (errorMessage.includes('Security validation failed:') || 
+          errorMessage.includes('Invalid job description:') ||
+          errorMessage.includes('Invalid resume:') ||
+          errorMessage.includes('Validation error:')) {
+        
+        logger.warn('Analysis failed due to validation error:', {
+          error: errorMessage,
+          userId,
+          resumeFile: resumeFile.originalname
+        });
+        
+        // Don't create any analysis records for validation failures
+        // Just throw the error to be handled by the frontend
+        throw error;
+      }
+      
       // Update duplicate request status to failed if we have the analysis ID
       if (resumeFileHash && jobDescText) {
         try {
