@@ -84,6 +84,8 @@ export interface ExportReportRequest {
 
 class ApiService {
   private baseUrl: string;
+  private tokenValidationCache: { token: string; result: any; timestamp: number } | null = null;
+  private readonly CACHE_DURATION = 30000; // 30 seconds cache
 
   constructor() {
     // Normalize the base URL to prevent double slashes
@@ -120,6 +122,8 @@ class ApiService {
     
     if (data.token) {
       localStorage.setItem('authToken', data.token);
+      // Clear token validation cache when new token is set
+      this.clearTokenValidationCache();
     }
 
     return data;
@@ -141,6 +145,8 @@ class ApiService {
     
     if (data.token) {
       localStorage.setItem('authToken', data.token);
+      // Clear token validation cache when new token is set
+      this.clearTokenValidationCache();
     }
 
     return data;
@@ -152,9 +158,18 @@ class ApiService {
         method: 'POST',
         headers: this.getAuthHeaders(),
       });
+    } catch (error) {
+      console.warn('Logout request failed:', error);
     } finally {
+      // Clear local storage and cache
       localStorage.removeItem('authToken');
+      this.clearTokenValidationCache();
     }
+  }
+
+  // Clear token validation cache
+  private clearTokenValidationCache(): void {
+    this.tokenValidationCache = null;
   }
 
   async getCurrentUser(): Promise<User> {
@@ -170,32 +185,62 @@ class ApiService {
     return data.user; // Extract user from the response wrapper
   }
 
-  // Lightweight token validation for faster auth checks
+  // Lightweight token validation for faster auth checks with caching
   async validateToken(): Promise<{ valid: boolean; user?: User; message?: string }> {
     const startTime = performanceMonitor.startTimer();
+    const token = localStorage.getItem('authToken');
+    
+    // Check cache first
+    if (this.tokenValidationCache && 
+        this.tokenValidationCache.token === token &&
+        Date.now() - this.tokenValidationCache.timestamp < this.CACHE_DURATION) {
+      performanceMonitor.endAuthValidation(startTime);
+      return this.tokenValidationCache.result;
+    }
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       const response = await fetch(this.getApiUrl('auth/validate-token'), {
         headers: this.getAuthHeaders(),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        performanceMonitor.endAuthValidation(startTime);
-        return {
+        const result = {
           valid: false,
           message: errorData.message || 'Token validation failed'
         };
+        
+        // Cache the result even if it's invalid
+        this.tokenValidationCache = { token: token || '', result, timestamp: Date.now() };
+        performanceMonitor.endAuthValidation(startTime);
+        return result;
       }
 
       const data = await response.json();
-      performanceMonitor.endAuthValidation(startTime);
-      return {
+      const result = {
         valid: data.valid,
         user: data.user
       };
+      
+      // Cache the successful result
+      this.tokenValidationCache = { token: token || '', result, timestamp: Date.now() };
+      performanceMonitor.endAuthValidation(startTime);
+      return result;
     } catch (error) {
       performanceMonitor.endAuthValidation(startTime);
+      
+      // If it's a timeout or network error, return cached result if available
+      if (this.tokenValidationCache && this.tokenValidationCache.token === token) {
+        console.warn('Using cached token validation due to network error:', error);
+        return this.tokenValidationCache.result;
+      }
+      
       return {
         valid: false,
         message: error instanceof Error ? error.message : 'Token validation failed'

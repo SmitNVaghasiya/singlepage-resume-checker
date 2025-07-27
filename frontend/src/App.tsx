@@ -25,6 +25,7 @@ import "./components/file-upload/FileUpload.css";
 import "./components/analysis/analysis.css";
 import "./styles/pages/resume-checker.css";
 import "./components/job-description/job-description.css";
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
 // Protected Route Component for Users
 const ProtectedUserRoute: React.FC<{ element: React.ReactElement }> = ({
@@ -36,35 +37,12 @@ const ProtectedUserRoute: React.FC<{ element: React.ReactElement }> = ({
   // If still loading auth state, show loading
   if (isAuthLoading) {
     return (
-      <div
-        className="loading-container"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "50vh",
-          gap: "1rem",
-        }}
-      >
-        <div
-          className="loading-spinner"
-          style={{
-            width: "40px",
-            height: "40px",
-            border: "4px solid #f3f3f3",
-            borderTop: "4px solid #3498db",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        ></div>
-        <p>Loading...</p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner 
+          size="large" 
+          text="Authenticating..." 
+          className="text-center"
+        />
       </div>
     );
   }
@@ -77,6 +55,33 @@ const ProtectedUserRoute: React.FC<{ element: React.ReactElement }> = ({
   // Prevent admin from accessing user routes
   if (isAdminAuthenticated) {
     return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return element;
+};
+
+// Protected Route Component for Admins
+const ProtectedAdminRoute: React.FC<{ element: React.ReactElement }> = ({
+  element,
+}) => {
+  const { isAuthenticated, isLoading } = useAdmin();
+
+  // If still loading auth state, show loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner 
+          size="large" 
+          text="Loading admin panel..." 
+          className="text-center"
+        />
+      </div>
+    );
+  }
+
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   return element;
@@ -151,7 +156,7 @@ function App() {
                 {/* Admin Routes */}
                 <Route
                   path="/admin/dashboard"
-                  element={<AdminDashboardPage />}
+                  element={<ProtectedAdminRoute element={<AdminDashboardPage />} />}
                 />
 
                 {/* Error Routes */}

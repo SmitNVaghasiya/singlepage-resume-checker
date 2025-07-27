@@ -29,21 +29,21 @@ class Database {
       logger.info(`Attempting to connect to MongoDB: ${mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
       
       await mongoose.connect(mongoUri, {
-        maxPoolSize: serverless ? 1 : (config.nodeEnv === 'production' ? 1 : 10),
-        serverSelectionTimeoutMS: 30000,
-        socketTimeoutMS: 45000,
+        maxPoolSize: serverless ? 1 : (config.nodeEnv === 'production' ? 5 : 10),
+        serverSelectionTimeoutMS: 10000, // Reduced from 30s to 10s
+        socketTimeoutMS: 30000, // Reduced from 45s to 30s
         bufferCommands: true,
         retryWrites: true,
         w: 'majority',
         // Connection pool settings optimized for serverless
-        minPoolSize: serverless ? 0 : (config.nodeEnv === 'production' ? 0 : 1),
-        maxIdleTimeMS: serverless ? 5000 : (config.nodeEnv === 'production' ? 10000 : 30000),
+        minPoolSize: serverless ? 0 : (config.nodeEnv === 'production' ? 1 : 1),
+        maxIdleTimeMS: serverless ? 3000 : (config.nodeEnv === 'production' ? 5000 : 15000), // Reduced idle time
         // Timeout settings
-        connectTimeoutMS: 30000,
+        connectTimeoutMS: 15000, // Reduced from 30s to 15s
         // Heartbeat settings
-        heartbeatFrequencyMS: serverless ? 5000 : 10000,
+        heartbeatFrequencyMS: serverless ? 3000 : 5000, // Reduced heartbeat frequency
         // Server selection settings
-        localThresholdMS: 15
+        localThresholdMS: 10 // Reduced from 15ms to 10ms
       });
 
       this.isConnected = true;
@@ -71,8 +71,8 @@ class Database {
       logger.error(`Failed to connect to MongoDB (attempt ${this.connectionAttempts}/${this.maxRetries}):`, error);
       
       if (this.connectionAttempts < this.maxRetries) {
-        logger.info(`Retrying connection in 5 seconds...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        logger.info(`Retrying connection in 3 seconds...`); // Reduced from 5s to 3s
+        await new Promise(resolve => setTimeout(resolve, 3000));
         return this.connect();
       }
       

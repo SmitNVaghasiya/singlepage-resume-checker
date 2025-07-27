@@ -7,114 +7,79 @@ interface PerformanceMetrics {
 }
 
 class PerformanceMonitor {
-  private metrics: PerformanceMetrics = {
-    authValidationTime: 0,
-    analysisLoadTime: 0,
-    cacheHitRate: 0,
-    totalRequests: 0,
-    cachedRequests: 0
-  };
-
   private authValidationTimes: number[] = [];
   private analysisLoadTimes: number[] = [];
+  private maxSamples = 10;
 
-  /**
-   * Start timing an operation
-   */
-  public startTimer(): number {
+  startTimer(): number {
     return performance.now();
   }
 
-  /**
-   * End timing and record auth validation time
-   */
-  public endAuthValidation(startTime: number): void {
+  endAuthValidation(startTime: number, fromCache: boolean = false): void {
     const duration = performance.now() - startTime;
     this.authValidationTimes.push(duration);
-    this.metrics.authValidationTime = this.calculateAverage(this.authValidationTimes);
     
-    console.log(`🔐 Auth validation completed in ${duration.toFixed(2)}ms`);
+    // Keep only the last N samples
+    if (this.authValidationTimes.length > this.maxSamples) {
+      this.authValidationTimes.shift();
+    }
+
+    console.log(`Auth validation ${fromCache ? '(cached)' : ''} took ${duration.toFixed(2)}ms`);
+    
+    // Log warning if auth is taking too long
+    if (duration > 3000 && !fromCache) {
+      console.warn(`Slow authentication detected: ${duration.toFixed(2)}ms`);
+    }
   }
 
-  /**
-   * End timing and record analysis load time
-   */
-  public endAnalysisLoad(startTime: number, fromCache: boolean = false): void {
+  endAnalysisLoad(startTime: number, fromCache: boolean = false): void {
     const duration = performance.now() - startTime;
     this.analysisLoadTimes.push(duration);
-    this.metrics.analysisLoadTime = this.calculateAverage(this.analysisLoadTimes);
     
-    this.metrics.totalRequests++;
-    if (fromCache) {
-      this.metrics.cachedRequests++;
+    // Keep only the last N samples
+    if (this.analysisLoadTimes.length > this.maxSamples) {
+      this.analysisLoadTimes.shift();
     }
-    
-    this.metrics.cacheHitRate = (this.metrics.cachedRequests / this.metrics.totalRequests) * 100;
-    
-    const source = fromCache ? 'cookie cache' : 'server';
-    console.log(`📊 Analysis loaded from ${source} in ${duration.toFixed(2)}ms`);
+
+    console.log(`Analysis load ${fromCache ? '(cached)' : ''} took ${duration.toFixed(2)}ms`);
   }
 
-  /**
-   * Get current performance metrics
-   */
-  public getMetrics(): PerformanceMetrics {
-    return { ...this.metrics };
+  getAverageAuthTime(): number {
+    if (this.authValidationTimes.length === 0) return 0;
+    const sum = this.authValidationTimes.reduce((a, b) => a + b, 0);
+    return sum / this.authValidationTimes.length;
   }
 
-  /**
-   * Get performance summary
-   */
-  public getSummary(): string {
-    const avgAuthTime = this.metrics.authValidationTime.toFixed(2);
-    const avgAnalysisTime = this.metrics.analysisLoadTime.toFixed(2);
-    const cacheHitRate = this.metrics.cacheHitRate.toFixed(1);
+  getAverageAnalysisLoadTime(): number {
+    if (this.analysisLoadTimes.length === 0) return 0;
+    const sum = this.analysisLoadTimes.reduce((a, b) => a + b, 0);
+    return sum / this.analysisLoadTimes.length;
+  }
+
+  logImprovements(): void {
+    const avgAuthTime = this.getAverageAuthTime();
+    const avgAnalysisTime = this.getAverageAnalysisLoadTime();
     
-    return `
-🚀 Performance Summary:
-• Average Auth Validation: ${avgAuthTime}ms
-• Average Analysis Load: ${avgAnalysisTime}ms
-• Cache Hit Rate: ${cacheHitRate}%
-• Total Requests: ${this.metrics.totalRequests}
-• Cached Requests: ${this.metrics.cachedRequests}
-    `.trim();
+    console.log('Performance Summary:', {
+      averageAuthTime: `${avgAuthTime.toFixed(2)}ms`,
+      averageAnalysisLoadTime: `${avgAnalysisTime.toFixed(2)}ms`,
+      totalAuthSamples: this.authValidationTimes.length,
+      totalAnalysisSamples: this.analysisLoadTimes.length,
+    });
+
+    // Suggest optimizations
+    if (avgAuthTime > 2000) {
+      console.warn('Consider implementing auth caching or reducing database queries');
+    }
+    if (avgAnalysisTime > 5000) {
+      console.warn('Consider implementing analysis result caching');
+    }
   }
 
-  /**
-   * Reset all metrics
-   */
-  public reset(): void {
-    this.metrics = {
-      authValidationTime: 0,
-      analysisLoadTime: 0,
-      cacheHitRate: 0,
-      totalRequests: 0,
-      cachedRequests: 0
-    };
+  clear(): void {
     this.authValidationTimes = [];
     this.analysisLoadTimes = [];
   }
-
-  /**
-   * Calculate average of an array of numbers
-   */
-  private calculateAverage(numbers: number[]): number {
-    if (numbers.length === 0) return 0;
-    return numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
-  }
-
-  /**
-   * Log performance improvements
-   */
-  public logImprovements(): void {
-    console.log('🎯 Performance Optimizations Active:');
-    console.log('✅ User authentication caching (5min TTL)');
-    console.log('✅ Analysis data cookie storage (7 days)');
-    console.log('✅ Lightweight token validation endpoint');
-    console.log('✅ Reduced database timeout (3s → 5s)');
-    console.log('✅ Instant analysis loading from cookies');
-  }
 }
 
-// Export singleton instance
 export const performanceMonitor = new PerformanceMonitor(); 

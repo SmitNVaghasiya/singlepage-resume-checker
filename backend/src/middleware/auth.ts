@@ -74,11 +74,11 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     let user = await cacheService.getObject<IUser>(cacheKey);
 
     if (!user) {
-      // User not in cache, fetch from database with timeout
+      // User not in cache, fetch from database with reduced timeout
       user = await Promise.race([
-        User.findById(userId).exec(),
+        User.findById(userId).select('username email isEmailVerified fullName location createdAt').lean().exec(),
         new Promise<null>((_resolve, reject) => 
-          setTimeout(() => reject(new Error('Database operation timeout')), 3000) // Reduced timeout to 3 seconds
+          setTimeout(() => reject(new Error('Database operation timeout')), 2000) // Reduced timeout to 2 seconds
         )
       ]) as IUser | null;
 
@@ -179,11 +179,11 @@ export const optionalAuth = async (req: Request, _res: Response, next: NextFunct
     let user = await cacheService.getObject<IUser>(cacheKey);
 
     if (!user) {
-      // User not in cache, fetch from database with timeout
+      // User not in cache, fetch from database with reduced timeout
       user = await Promise.race([
-        User.findById(decoded.userId).exec(),
+        User.findById(decoded.userId).select('username email isEmailVerified fullName location createdAt').lean().exec(),
         new Promise<null>((_resolve, reject) => 
-          setTimeout(() => reject(new Error('Database operation timeout')), 3000) // Reduced timeout to 3 seconds
+          setTimeout(() => reject(new Error('Database operation timeout')), 2000) // Reduced timeout to 2 seconds
         )
       ]) as IUser | null;
 

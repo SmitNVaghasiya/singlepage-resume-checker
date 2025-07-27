@@ -65,9 +65,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // User state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [analysisHistory, setAnalysisHistory] = useState<AnalysisResult[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [requiresAuth, setRequiresAuth] = useState(false);
+  const [pendingAuthRequest, setPendingAuthRequest] = useState<Promise<any> | null>(null);
 
   // Analysis state
-  const [analysisHistory, setAnalysisHistory] = useState<AnalysisResult[]>([]);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(
     null
   );
@@ -78,9 +81,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [jobDescription, setJobDescription] = useState("");
   const [jobFile, setJobFile] = useState<File | null>(null);
   const [jobInputMethod, setJobInputMethod] = useState<"text" | "file">("text");
-
-  // Authentication state
-  const [requiresAuth, setRequiresAuth] = useState(false);
 
   const location = useLocation();
 
@@ -326,146 +326,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
-      // Only fetch history if authenticated, or if on dashboard/history page (for demo)
       const isDashboardRoute = location.pathname.startsWith("/dashboard");
+      
       if (token) {
         try {
-          // Use faster token validation first
-          const tokenValidation = await apiService.validateToken();
+          // Prevent multiple simultaneous auth requests
+          if (pendingAuthRequest) {
+            await pendingAuthRequest;
+            return;
+          }
+
+          const authPromise = apiService.validateToken();
+          setPendingAuthRequest(authPromise);
+          
+          const tokenValidation = await authPromise;
+          setPendingAuthRequest(null);
 
           if (tokenValidation.valid && tokenValidation.user) {
             setUser(tokenValidation.user);
-            // Load analysis history after authentication
-            await loadAnalysisHistory();
+            
+            // Only load analysis history if on dashboard route to reduce initial load time
+            if (isDashboardRoute) {
+              // Load history in background without blocking UI
+              loadAnalysisHistory().catch(console.warn);
+            }
 
             // Check if we need to continue analysis after login
             const pendingAnalysis = localStorage.getItem("pendingAnalysis");
             console.log("Checking for pending analysis:", pendingAnalysis);
+            
             if (pendingAnalysis) {
               try {
                 const analysisData = JSON.parse(pendingAnalysis);
-                console.log("Restoring analysis data:", analysisData);
+                console.log("Restoring pending analysis:", analysisData);
 
-                // Clear the pending analysis first to prevent double restoration
-                localStorage.removeItem("pendingAnalysis");
-
-                // Log the current state before restoration
-                console.log("State before restoration:", {
-                  currentResumeFile: resumeFile?.name,
-                  currentJobFile: jobFile?.name,
-                });
-
-                // Restore the analysis state
-                setCurrentStep(analysisData.currentStep || "job-description");
-                setJobDescription(analysisData.jobDescription || "");
-                setJobInputMethod(analysisData.jobInputMethod || "text");
-
-                console.log("State after restoration setup:", {
-                  restoredStep: analysisData.currentStep || "job-description",
-                  restoredJobDescription: analysisData.jobDescription || "",
-                  restoredJobDescriptionLength: (
-                    analysisData.jobDescription || ""
-                  ).length,
-                  restoredJobInputMethod: analysisData.jobInputMethod || "text",
-                });
-
-                // Restore file objects if they exist in tempFiles
-                // Note: We can't restore the actual File objects from localStorage,
-                // but we can restore the metadata and the tempFiles should contain the uploaded files
-                if (analysisData.resumeFile) {
-                  console.log(
-                    "Resume file metadata found:",
-                    analysisData.resumeFile
-                  );
-                  // Reconstruct actual File object from base64 data
-                  if (analysisData.resumeFile.data) {
-                    try {
-                      const reconstructedResumeFile = restoreFileFromAuth(
-                        analysisData.resumeFile
-                      );
-                      setResumeFile(reconstructedResumeFile);
-                      console.log("Resume file reconstructed successfully:", {
-                        name: reconstructedResumeFile.name,
-                        size: reconstructedResumeFile.size,
-                        type: reconstructedResumeFile.type,
-                      });
-                    } catch (error) {
-                      console.error(
-                        "Failed to reconstruct resume file:",
-                        error
-                      );
-                      // Fallback to placeholder
-                      const placeholderResumeFile = new File(
-                        [""],
-                        analysisData.resumeFile.name,
-                        { type: analysisData.resumeFile.type }
-                      );
-                      setResumeFile(placeholderResumeFile);
-                      console.log(
-                        "Using placeholder resume file:",
-                        placeholderResumeFile.name
-                      );
-                    }
-                  } else {
-                    // Fallback to placeholder if no data
-                    const placeholderResumeFile = new File(
-                      [""],
-                      analysisData.resumeFile.name,
-                      { type: analysisData.resumeFile.type }
-                    );
-                    setResumeFile(placeholderResumeFile);
-                    console.log(
-                      "Using placeholder resume file (no data):",
-                      placeholderResumeFile.name
-                    );
-                  }
-                } else {
-                  console.log("No resume file metadata found in analysis data");
-                }
-
-                // Restore job description file if it exists
-                if (analysisData.jobFile) {
-                  console.log("Job file metadata found:", analysisData.jobFile);
-                  // Reconstruct actual File object from base64 data
-                  if (analysisData.jobFile.data) {
-                    try {
-                      const reconstructedJobFile = restoreFileFromAuth(
-                        analysisData.jobFile
-                      );
-                      setJobFile(reconstructedJobFile);
-                      setJobInputMethod("file"); // Set input method to file when job file is restored
-                      console.log(
-                        "Job file reconstructed:",
-                        reconstructedJobFile.name,
-                        reconstructedJobFile.size
-                      );
-                    } catch (error) {
-                      console.error("Failed to reconstruct job file:", error);
-                      // Fallback to placeholder
-                      const placeholderJobFile = new File(
-                        [""],
-                        analysisData.jobFile.name,
-                        { type: analysisData.jobFile.type }
-                      );
-                      setJobFile(placeholderJobFile);
-                      setJobInputMethod("file"); // Set input method to file even for placeholder
-                    }
-                  } else {
-                    // Fallback to placeholder if no data
-                    const placeholderJobFile = new File(
-                      [""],
-                      analysisData.jobFile.name,
-                      { type: analysisData.jobFile.type }
-                    );
-                    setJobFile(placeholderJobFile);
-                    setJobInputMethod("file"); // Set input method to file for placeholder
-                  }
-                }
-
-                // If we have a resume file, make sure we're on the job-description step
-                if (analysisData.currentStep === "upload") {
-                  setCurrentStep("job-description");
-                }
+                // Restore analysis state
+                setResumeFile(analysisData.resumeFile);
+                setJobFile(analysisData.jobFile);
+                setCurrentStep(analysisData.currentStep);
+                setJobDescription(analysisData.jobDescription);
+                setJobInputMethod(analysisData.jobInputMethod);
 
                 // Log final state after all restoration
                 console.log("Final state after file restoration:", {
@@ -493,10 +393,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } catch (error) {
           console.warn("Failed to validate token:", error);
           localStorage.removeItem("authToken");
+          setPendingAuthRequest(null);
         }
       } else if (isDashboardRoute) {
-        // Load analysis history for demo purposes only on dashboard/history pages
-        await loadAnalysisHistory();
+        // Only load analysis history for demo purposes on dashboard/history pages
+        // Load in background without blocking UI
+        loadAnalysisHistory().catch(console.warn);
       }
       setIsAuthLoading(false);
     };
@@ -682,8 +584,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Function to load analysis history
   const loadAnalysisHistory = async () => {
+    // Don't load if already loading
+    if (isHistoryLoading) {
+      return;
+    }
+
     try {
-      const historyResponse = await apiService.getAnalysisHistory(1, 50); // Get recent analyses
+      setIsHistoryLoading(true);
+      const historyResponse = await apiService.getAnalysisHistory(1, 20); // Reduced from 50 to 20 for faster loading
       console.log("Raw history response:", historyResponse);
 
       // Convert AnalysisHistoryItem to AnalysisResult format for compatibility
@@ -702,18 +610,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             analyzedDate = new Date(); // Fallback to current date
           }
 
-          const convertedItem = {
-            // Basic required fields
-            job_description_validity: "Valid",
-            resume_eligibility: "Eligible",
+          const convertedItem: AnalysisResult = {
+            id: item.id,
+            analysisId: item.analysisId,
+            resumeFilename: item.resumeFilename || "Resume",
+            jobTitle: item.jobTitle || "Position Analysis",
+            analyzedAt: analyzedDate,
             score_out_of_100: item.score_out_of_100 || item.overallScore || 0,
-            short_conclusion: "Analysis completed successfully.",
-            chance_of_selection_percentage:
-              item.chance_of_selection_percentage || 0,
+            overallScore: item.overallScore || item.score_out_of_100 || 0,
+            chance_of_selection_percentage: item.chance_of_selection_percentage || 0,
+            short_conclusion: "Analysis completed successfully",
+            overall_fit_summary: "Fit summary available",
             resume_improvement_priority: [],
-            overall_fit_summary: "",
-
-            // Detailed analysis report structure
             resume_analysis_report: {
               candidate_information: {
                 name: "",
@@ -777,81 +685,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 long_term_potential: "",
               },
             },
-
-            // Metadata
-            id: item.id,
-            analysisId: item.analysisId,
-            resumeFilename: item.resumeFilename || "Resume",
-            jobTitle: item.jobTitle || "Position Analysis",
-            overallScore: item.overallScore || 0,
-            matchPercentage: 0, // Will be loaded when viewing details
-            industry: "General", // Default value
-            analyzedAt: analyzedDate,
-
-            // Legacy compatibility fields
-            keywordMatch: {
-              matched: [],
-              missing: [],
-              percentage: 0,
-              suggestions: [],
-            },
-            skillsAnalysis: {
-              technical: {
-                required: [],
-                present: [],
-                missing: [],
-                recommendations: [],
-              },
-              soft: {
-                required: [],
-                present: [],
-                missing: [],
-                recommendations: [],
-              },
-              industry: {
-                required: [],
-                present: [],
-                missing: [],
-                recommendations: [],
-              },
-            },
-            experienceAnalysis: {
-              yearsRequired: 0,
-              yearsFound: 0,
-              relevant: true,
-              experienceGaps: [],
-              strengthAreas: [],
-              improvementAreas: [],
-            },
-            resumeQuality: {
-              formatting: { score: 0, issues: [], suggestions: [] },
-              content: { score: 0, issues: [], suggestions: [] },
-              length: { score: 0, wordCount: 0, recommendations: [] },
-              structure: { score: 0, missingSections: [], suggestions: [] },
-            },
-            competitiveAnalysis: {
-              positioningStrength: 0,
-              competitorComparison: [],
-              differentiators: [],
-              marketPosition: "",
-              improvementImpact: [],
-            },
-            detailedFeedback: {
-              strengths: [],
-              weaknesses: [],
-              quickWins: [],
-              industryInsights: [],
-            },
-            improvementPlan: {
-              immediate: [],
-              shortTerm: [],
-              longTerm: [],
-            },
-            overallRecommendation: "",
-            aiInsights: [],
+            job_description_validity: "Valid",
+            resume_eligibility: "Eligible",
             candidateStrengths: [],
             developmentAreas: [],
-            confidence: 85,
           };
 
           console.log("Converted analysis item:", {
@@ -883,6 +720,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     } catch (error) {
       console.warn("Failed to load analysis history:", error);
       // Don't throw error to avoid breaking the app
+    } finally {
+      setIsHistoryLoading(false);
     }
   };
 
