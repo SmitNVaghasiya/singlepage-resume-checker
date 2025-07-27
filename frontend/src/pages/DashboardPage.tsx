@@ -438,7 +438,7 @@ const DashboardPage: React.FC = () => {
         <div className="stats-grid">
           <div className="stat-card stat-primary">
             <div className="stat-icon-container">
-              <FileText className="stat-icon"/>
+              <FileText className="stat-icon" />
             </div>
             <div className="stat-content">
               <div className="stat-value">{totalAnalyses}</div>

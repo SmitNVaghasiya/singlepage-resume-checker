@@ -10,6 +10,8 @@ import { User, apiService } from "../services/api";
 import { usePasteHandler } from "../hooks/shared/usePasteHandler";
 import { base64ToFile, restoreFileFromAuth } from "../utils/fileValidation";
 import { useLocation } from "react-router-dom";
+import { analysisCookieService } from "../services/AnalysisCookieService";
+import { performanceMonitor } from "../utils/performanceMonitor";
 
 type AnalysisStep = "upload" | "job-description" | "analyze";
 
@@ -319,71 +321,93 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Check for existing authentication on app load
   useEffect(() => {
+    // Log performance improvements on app start
+    performanceMonitor.logImprovements();
+
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
       // Only fetch history if authenticated, or if on dashboard/history page (for demo)
       const isDashboardRoute = location.pathname.startsWith("/dashboard");
       if (token) {
         try {
-          const currentUser = await apiService.getCurrentUser();
-          setUser(currentUser);
-          // Load analysis history after authentication
-          await loadAnalysisHistory();
+          // Use faster token validation first
+          const tokenValidation = await apiService.validateToken();
 
-          // Check if we need to continue analysis after login
-          const pendingAnalysis = localStorage.getItem("pendingAnalysis");
-          console.log("Checking for pending analysis:", pendingAnalysis);
-          if (pendingAnalysis) {
-            try {
-              const analysisData = JSON.parse(pendingAnalysis);
-              console.log("Restoring analysis data:", analysisData);
+          if (tokenValidation.valid && tokenValidation.user) {
+            setUser(tokenValidation.user);
+            // Load analysis history after authentication
+            await loadAnalysisHistory();
 
-              // Clear the pending analysis first to prevent double restoration
-              localStorage.removeItem("pendingAnalysis");
+            // Check if we need to continue analysis after login
+            const pendingAnalysis = localStorage.getItem("pendingAnalysis");
+            console.log("Checking for pending analysis:", pendingAnalysis);
+            if (pendingAnalysis) {
+              try {
+                const analysisData = JSON.parse(pendingAnalysis);
+                console.log("Restoring analysis data:", analysisData);
 
-              // Log the current state before restoration
-              console.log("State before restoration:", {
-                currentResumeFile: resumeFile?.name,
-                currentJobFile: jobFile?.name,
-              });
+                // Clear the pending analysis first to prevent double restoration
+                localStorage.removeItem("pendingAnalysis");
 
-              // Restore the analysis state
-              setCurrentStep(analysisData.currentStep || "job-description");
-              setJobDescription(analysisData.jobDescription || "");
-              setJobInputMethod(analysisData.jobInputMethod || "text");
+                // Log the current state before restoration
+                console.log("State before restoration:", {
+                  currentResumeFile: resumeFile?.name,
+                  currentJobFile: jobFile?.name,
+                });
 
-              console.log("State after restoration setup:", {
-                restoredStep: analysisData.currentStep || "job-description",
-                restoredJobDescription: analysisData.jobDescription || "",
-                restoredJobDescriptionLength: (
-                  analysisData.jobDescription || ""
-                ).length,
-                restoredJobInputMethod: analysisData.jobInputMethod || "text",
-              });
+                // Restore the analysis state
+                setCurrentStep(analysisData.currentStep || "job-description");
+                setJobDescription(analysisData.jobDescription || "");
+                setJobInputMethod(analysisData.jobInputMethod || "text");
 
-              // Restore file objects if they exist in tempFiles
-              // Note: We can't restore the actual File objects from localStorage,
-              // but we can restore the metadata and the tempFiles should contain the uploaded files
-              if (analysisData.resumeFile) {
-                console.log(
-                  "Resume file metadata found:",
-                  analysisData.resumeFile
-                );
-                // Reconstruct actual File object from base64 data
-                if (analysisData.resumeFile.data) {
-                  try {
-                    const reconstructedResumeFile = restoreFileFromAuth(
-                      analysisData.resumeFile
-                    );
-                    setResumeFile(reconstructedResumeFile);
-                    console.log("Resume file reconstructed successfully:", {
-                      name: reconstructedResumeFile.name,
-                      size: reconstructedResumeFile.size,
-                      type: reconstructedResumeFile.type,
-                    });
-                  } catch (error) {
-                    console.error("Failed to reconstruct resume file:", error);
-                    // Fallback to placeholder
+                console.log("State after restoration setup:", {
+                  restoredStep: analysisData.currentStep || "job-description",
+                  restoredJobDescription: analysisData.jobDescription || "",
+                  restoredJobDescriptionLength: (
+                    analysisData.jobDescription || ""
+                  ).length,
+                  restoredJobInputMethod: analysisData.jobInputMethod || "text",
+                });
+
+                // Restore file objects if they exist in tempFiles
+                // Note: We can't restore the actual File objects from localStorage,
+                // but we can restore the metadata and the tempFiles should contain the uploaded files
+                if (analysisData.resumeFile) {
+                  console.log(
+                    "Resume file metadata found:",
+                    analysisData.resumeFile
+                  );
+                  // Reconstruct actual File object from base64 data
+                  if (analysisData.resumeFile.data) {
+                    try {
+                      const reconstructedResumeFile = restoreFileFromAuth(
+                        analysisData.resumeFile
+                      );
+                      setResumeFile(reconstructedResumeFile);
+                      console.log("Resume file reconstructed successfully:", {
+                        name: reconstructedResumeFile.name,
+                        size: reconstructedResumeFile.size,
+                        type: reconstructedResumeFile.type,
+                      });
+                    } catch (error) {
+                      console.error(
+                        "Failed to reconstruct resume file:",
+                        error
+                      );
+                      // Fallback to placeholder
+                      const placeholderResumeFile = new File(
+                        [""],
+                        analysisData.resumeFile.name,
+                        { type: analysisData.resumeFile.type }
+                      );
+                      setResumeFile(placeholderResumeFile);
+                      console.log(
+                        "Using placeholder resume file:",
+                        placeholderResumeFile.name
+                      );
+                    }
+                  } else {
+                    // Fallback to placeholder if no data
                     const placeholderResumeFile = new File(
                       [""],
                       analysisData.resumeFile.name,
@@ -391,95 +415,83 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                     );
                     setResumeFile(placeholderResumeFile);
                     console.log(
-                      "Using placeholder resume file:",
+                      "Using placeholder resume file (no data):",
                       placeholderResumeFile.name
                     );
                   }
                 } else {
-                  // Fallback to placeholder if no data
-                  const placeholderResumeFile = new File(
-                    [""],
-                    analysisData.resumeFile.name,
-                    { type: analysisData.resumeFile.type }
-                  );
-                  setResumeFile(placeholderResumeFile);
-                  console.log(
-                    "Using placeholder resume file (no data):",
-                    placeholderResumeFile.name
-                  );
+                  console.log("No resume file metadata found in analysis data");
                 }
-              } else {
-                console.log("No resume file metadata found in analysis data");
-              }
 
-              // Restore job description file if it exists
-              if (analysisData.jobFile) {
-                console.log("Job file metadata found:", analysisData.jobFile);
-                // Reconstruct actual File object from base64 data
-                if (analysisData.jobFile.data) {
-                  try {
-                    const reconstructedJobFile = restoreFileFromAuth(
-                      analysisData.jobFile
-                    );
-                    setJobFile(reconstructedJobFile);
-                    setJobInputMethod("file"); // Set input method to file when job file is restored
-                    console.log(
-                      "Job file reconstructed:",
-                      reconstructedJobFile.name,
-                      reconstructedJobFile.size
-                    );
-                  } catch (error) {
-                    console.error("Failed to reconstruct job file:", error);
-                    // Fallback to placeholder
+                // Restore job description file if it exists
+                if (analysisData.jobFile) {
+                  console.log("Job file metadata found:", analysisData.jobFile);
+                  // Reconstruct actual File object from base64 data
+                  if (analysisData.jobFile.data) {
+                    try {
+                      const reconstructedJobFile = restoreFileFromAuth(
+                        analysisData.jobFile
+                      );
+                      setJobFile(reconstructedJobFile);
+                      setJobInputMethod("file"); // Set input method to file when job file is restored
+                      console.log(
+                        "Job file reconstructed:",
+                        reconstructedJobFile.name,
+                        reconstructedJobFile.size
+                      );
+                    } catch (error) {
+                      console.error("Failed to reconstruct job file:", error);
+                      // Fallback to placeholder
+                      const placeholderJobFile = new File(
+                        [""],
+                        analysisData.jobFile.name,
+                        { type: analysisData.jobFile.type }
+                      );
+                      setJobFile(placeholderJobFile);
+                      setJobInputMethod("file"); // Set input method to file even for placeholder
+                    }
+                  } else {
+                    // Fallback to placeholder if no data
                     const placeholderJobFile = new File(
                       [""],
                       analysisData.jobFile.name,
                       { type: analysisData.jobFile.type }
                     );
                     setJobFile(placeholderJobFile);
-                    setJobInputMethod("file"); // Set input method to file even for placeholder
+                    setJobInputMethod("file"); // Set input method to file for placeholder
                   }
-                } else {
-                  // Fallback to placeholder if no data
-                  const placeholderJobFile = new File(
-                    [""],
-                    analysisData.jobFile.name,
-                    { type: analysisData.jobFile.type }
-                  );
-                  setJobFile(placeholderJobFile);
-                  setJobInputMethod("file"); // Set input method to file for placeholder
                 }
+
+                // If we have a resume file, make sure we're on the job-description step
+                if (analysisData.currentStep === "upload") {
+                  setCurrentStep("job-description");
+                }
+
+                // Log final state after all restoration
+                console.log("Final state after file restoration:", {
+                  finalResumeFile: resumeFile?.name,
+                  finalJobFile: jobFile?.name,
+                  finalStep: currentStep,
+                  finalJobDescription: jobDescription.substring(0, 50) + "...",
+                  finalJobInputMethod: jobInputMethod,
+                });
+
+                setRequiresAuth(false);
+
+                console.log("Analysis state restored successfully.");
+
+                // State restored successfully - user can now continue manually
+                console.log(
+                  "Analysis state restored successfully. User can continue manually."
+                );
+              } catch (error) {
+                console.warn("Failed to restore pending analysis:", error);
+                localStorage.removeItem("pendingAnalysis");
               }
-
-              // If we have a resume file, make sure we're on the job-description step
-              if (analysisData.currentStep === "upload") {
-                setCurrentStep("job-description");
-              }
-
-              // Log final state after all restoration
-              console.log("Final state after file restoration:", {
-                finalResumeFile: resumeFile?.name,
-                finalJobFile: jobFile?.name,
-                finalStep: currentStep,
-                finalJobDescription: jobDescription.substring(0, 50) + "...",
-                finalJobInputMethod: jobInputMethod,
-              });
-
-              setRequiresAuth(false);
-
-              console.log("Analysis state restored successfully.");
-
-              // State restored successfully - user can now continue manually
-              console.log(
-                "Analysis state restored successfully. User can continue manually."
-              );
-            } catch (error) {
-              console.warn("Failed to restore pending analysis:", error);
-              localStorage.removeItem("pendingAnalysis");
             }
           }
         } catch (error) {
-          console.warn("Failed to get current user:", error);
+          console.warn("Failed to validate token:", error);
           localStorage.removeItem("authToken");
         }
       } else if (isDashboardRoute) {
@@ -959,6 +971,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
     setUser(null);
     resetAnalysis();
+
+    // Clear analysis cookies on logout
+    analysisCookieService.clearAllAnalyses();
   };
 
   const value: AppContextType = {

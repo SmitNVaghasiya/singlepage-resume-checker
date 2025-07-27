@@ -1,5 +1,6 @@
 import { AnalysisResult, JobInputMethod } from '../types';
 import { saveFileForAuth } from '../utils/fileValidation';
+import { analysisCookieService } from './AnalysisCookieService';
 
 interface AnalysisStage {
   id: number;
@@ -242,6 +243,10 @@ export class AnalysisService {
 
       setAnalysisResult(analysisResult);
       addAnalysisToHistory(analysisResult);
+      
+      // Store analysis result in cookie for faster future access
+      analysisCookieService.storeAnalysis(analysisResponse.analysisId, analysisResult);
+      
       setIsAnalyzing(false);
 
       // Clear any pending analysis from localStorage

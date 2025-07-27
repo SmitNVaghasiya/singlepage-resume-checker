@@ -6,6 +6,8 @@ import {
   AnalysisHistoryItem 
 } from '../types';
 import { config } from '../utils/config';
+import { analysisCookieService } from './AnalysisCookieService';
+import { performanceMonitor } from '../utils/performanceMonitor';
 
 const API_BASE_URL = config.api.baseUrl;
 
@@ -168,6 +170,39 @@ class ApiService {
     return data.user; // Extract user from the response wrapper
   }
 
+  // Lightweight token validation for faster auth checks
+  async validateToken(): Promise<{ valid: boolean; user?: User; message?: string }> {
+    const startTime = performanceMonitor.startTimer();
+    
+    try {
+      const response = await fetch(this.getApiUrl('auth/validate-token'), {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        performanceMonitor.endAuthValidation(startTime);
+        return {
+          valid: false,
+          message: errorData.message || 'Token validation failed'
+        };
+      }
+
+      const data = await response.json();
+      performanceMonitor.endAuthValidation(startTime);
+      return {
+        valid: data.valid,
+        user: data.user
+      };
+    } catch (error) {
+      performanceMonitor.endAuthValidation(startTime);
+      return {
+        valid: false,
+        message: error instanceof Error ? error.message : 'Token validation failed'
+      };
+    }
+  }
+
   async sendOtp(email: string): Promise<{ message: string }> {
     const response = await fetch(this.getApiUrl('auth/send-otp'), {
       method: 'POST',
@@ -313,16 +348,40 @@ class ApiService {
     status: string; 
     result: AnalysisResult 
   }> {
+    const startTime = performanceMonitor.startTimer();
+    
+    // First, try to get from cookie for faster access
+    const cachedData = analysisCookieService.getAnalysis(analysisId);
+    if (cachedData) {
+      console.log(`Analysis result retrieved from cookie: ${analysisId}`);
+      performanceMonitor.endAnalysisLoad(startTime, true);
+      return {
+        analysisId,
+        status: 'completed',
+        result: cachedData
+      };
+    }
+
+    // If not in cookie, fetch from server
     const response = await fetch(this.getApiUrl(`resume/analysis/${analysisId}/result`), {
       headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      performanceMonitor.endAnalysisLoad(startTime, false);
       throw new Error(errorData.message || 'Failed to get analysis result');
     }
 
-    return response.json();
+    const result = await response.json();
+    
+    // Store in cookie for future access
+    if (result.result) {
+      analysisCookieService.storeAnalysis(analysisId, result.result);
+    }
+
+    performanceMonitor.endAnalysisLoad(startTime, false);
+    return result;
   }
 
   // Poll for analysis completion (for backward compatibility)
@@ -335,6 +394,12 @@ class ApiService {
         
         if (status.status === 'completed') {
           const resultResponse = await this.getAnalysisResult(analysisId);
+          
+          // Store in cookie for future access
+          if (resultResponse.result) {
+            analysisCookieService.storeAnalysis(analysisId, resultResponse.result);
+          }
+          
           return resultResponse.result;
         } else if (status.status === 'failed') {
           throw new Error(status.error || 'Analysis failed');

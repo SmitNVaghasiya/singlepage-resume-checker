@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Star,
   MessageSquare,
@@ -29,6 +29,57 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if feedback has already been submitted when component loads
+  useEffect(() => {
+    const checkFeedbackStatus = async () => {
+      if (!analysisId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Check localStorage first for immediate response
+        const localStorageKey = `feedback_submitted_${analysisId}`;
+        const storedFeedback = localStorage.getItem(localStorageKey);
+
+        if (storedFeedback) {
+          setHasSubmitted(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Only check backend if user is logged in
+        if (user) {
+          try {
+            const hasFeedback = await FeedbackService.hasSubmittedFeedback(
+              analysisId
+            );
+            if (hasFeedback) {
+              setHasSubmitted(true);
+              // Store in localStorage for future reference
+              localStorage.setItem(localStorageKey, "true");
+            }
+          } catch (backendError) {
+            console.error(
+              "Error checking backend feedback status:",
+              backendError
+            );
+            // If backend check fails, we'll still show the form
+            // The user can try to submit again if needed
+          }
+        }
+      } catch (error) {
+        console.error("Error checking feedback status:", error);
+        // Don't show error to user, just continue with form
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkFeedbackStatus();
+  }, [user, analysisId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +103,11 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
       };
       await FeedbackService.submitFeedback(feedbackData);
       setHasSubmitted(true);
+
+      // Store in localStorage for persistence
+      const localStorageKey = `feedback_submitted_${analysisId}`;
+      localStorage.setItem(localStorageKey, "true");
+
       onFeedbackSubmitted?.();
     } catch (error: any) {
       console.error("Feedback submission error:", error);
@@ -76,7 +132,21 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     setSuggestions("");
     setCategory("general");
     setError(null);
+
+    // Remove from localStorage when user wants to send again
+    const localStorageKey = `feedback_submitted_${analysisId}`;
+    localStorage.removeItem(localStorageKey);
   };
+
+  // Clear localStorage when component unmounts if user is not logged in
+  useEffect(() => {
+    return () => {
+      if (!user) {
+        const localStorageKey = `feedback_submitted_${analysisId}`;
+        localStorage.removeItem(localStorageKey);
+      }
+    };
+  }, [user, analysisId]);
 
   const renderStars = () => (
     <div className="stars-container">
@@ -125,6 +195,17 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <div className="feedback-container">
+        <div className="feedback-loading">
+          <div className="loading-spinner"></div>
+          <p>Checking feedback status...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (hasSubmitted) {
     return (
       <div className="feedback-container">
@@ -140,9 +221,31 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
             We're truly grateful for taking the time to help us improve our
             resume analysis service.
           </p>
-          <button onClick={handleSendAgain} className="send-again-btn">
-            Send Another Feedback
-          </button>
+          {!user && (
+            <p className="login-reminder">
+              <em>Please log in to submit additional feedback.</em>
+            </p>
+          )}
+          {user && (
+            <button onClick={handleSendAgain} className="send-again-btn">
+              Send Another Feedback
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="feedback-container">
+        <div className="feedback-login-required">
+          <MessageSquare size={32} className="login-icon" />
+          <h3>Login Required</h3>
+          <p>
+            Please log in to submit feedback and help us improve our resume
+            analysis service.
+          </p>
         </div>
       </div>
     );

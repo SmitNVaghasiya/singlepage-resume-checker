@@ -27,6 +27,8 @@ import FeedbackForm from "../feedback/FeedbackForm";
 import jsPDF from "jspdf";
 import Papa from "papaparse";
 import ReactDOM from "react-dom";
+import { analysisCookieService } from "../../services/AnalysisCookieService";
+import { performanceMonitor } from "../../utils/performanceMonitor";
 import "./view_DetailsUi_2.css";
 import "./view_DetailsUi_2.dark.css";
 
@@ -53,10 +55,23 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
   }, [analysisId]);
 
   const fetchAnalysisData = async () => {
+    const startTime = performanceMonitor.startTimer();
+
     try {
       setLoading(true);
       setError(null);
 
+      // First, try to get from cookie for instant loading
+      const cachedData = analysisCookieService.getAnalysis(analysisId);
+      if (cachedData) {
+        console.log("Analysis data loaded from cookie:", analysisId);
+        setData(cachedData);
+        performanceMonitor.endAnalysisLoad(startTime, true);
+        setLoading(false);
+        return;
+      }
+
+      // If not in cookie, fetch from server
       const response = await apiService.getAnalysisResult(analysisId);
 
       // Handle both response structures:
@@ -64,11 +79,13 @@ const ViewDetailsUI2: React.FC<ViewDetailsUI2Props> = ({ analysisId }) => {
       // 2. Actual: response.result.result (nested structure)
       const analysisData = (response.result as any).result || response.result;
       setData(analysisData);
+      performanceMonitor.endAnalysisLoad(startTime, false);
     } catch (err) {
       console.error("Error fetching analysis data:", err);
       setError(
         err instanceof Error ? err.message : "Failed to fetch analysis data"
       );
+      performanceMonitor.endAnalysisLoad(startTime, false);
     } finally {
       setLoading(false);
     }

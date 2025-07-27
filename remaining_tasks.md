@@ -22,6 +22,8 @@
 
 -------- Normal Site Future add on.
 -- add option where user can find out which are the improvements resume needs. Though we are providing this we have to give this in more dertail. Think about this is this needed or not.
+    -- We have to generate if user asks for this after he has completed the simple analysis.
+    -- In future add this feature in the premium version.
 
 -- completed work
 # -- "How We Compare" make sure that this feature is correct. ---For now this is correct.
@@ -57,7 +59,7 @@
 
 # -- now check why we have uncommented this code as i commented this code because this code was conflicting with the explaination i just gave you so why we uncommented can you find out and to do this you can anlyse other folders also. -- ✅ this is working correctly.
 
--- Test the ui improvement done for the mobile responsiveness.
+# -- Test the ui improvement done for the mobile responsiveness. -- In some pages it is working but still needs more improvement.
 
 # -- Make sure backend and python server both are allowing the job discription in (txt, docx and pdf) format as currently i think pythonserver is allowing the .txt file type only have to check it. -- ✅ Mostly completed Testing remaining.
 
@@ -68,7 +70,6 @@
     # -- Backend is now calling the /api/resume/analyze instead of /api/v1/analyze as i can see in the server logs and also this request is not reacing to the backend as i tried callling /api/resume/analyze normally with the help of render api uri. ✅ completed.
 
 
--- This is new mobile responsive design worked little bit but needs too much improvements.
 
 # --- do not show data to every user show data to users only who have done the analysis.As corrrenlty when other user logged in it show all users data there even though user was newly logged in and do not have access to see other user data. -- ✅ Mostly completed as added the validation only testing is reamining by creating new account and testing it there.
 
@@ -76,12 +77,16 @@
 
 # -- Separate the admin module in the backend totally. from the noraml users module code.**4** -- ✅ Mostly completed Testing remaining.
 
--- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.
+# -- height of the analysis step.
+
+-- This is new mobile responsive design worked little bit but needs too much improvements.
+
+# -- when i move from view detail page to the page which shows the contet i am seein unnnecessary page which shows that analysing the report message and make me wait at that page. remove this and make it direct to move.-- ✅ Mostly completed Testing remaining. 
+    -- But still some times we are shown the laoding screen. 
 
 -- Improve the dashboard UI. 
 -- In dashboard UI add fetures like the download the report or export data. when we enter the view detailed page. and added features (like PDF or CSV) download.
 
-# -- height of the analysis step.
 
 -- Ui of analysis step in resumecheck page is totally different than rest of my website in color combo and also it is not same as the other two steps resume upload and also the job description. right now anlaysis page is lookikng too light font color and also it ui is not looking like the other steps.
 
@@ -91,7 +96,7 @@
 
 -- Analysis Dashboard Track your resume analysis history and improvements - color used for this text card i have to add to the other pages also.
 
---- reduce the size of the http://localhost:5173/dashboard/analysis/ page text size.
+# --- reduce the size of the http://localhost:5173/dashboard/analysis/ page text size.
 
 -- improve the normal dashboard ui and seperate the admin dashboard compoenents totally.
 
@@ -169,17 +174,24 @@
 ---------------------------------------------- -- ---------------------------------------------------------
 26/07/2025
 -- I will solve this issue in the future.
-# --  make in downaload page sure that pdf and csv and json format must able to downalod and show all the data we are able to downlaod with the help of the json format in the profile page.  --  ✅ Mostly COMPLETED.
+# --  make in downaload page sure that pdf and csv and json format must able to downalod and show all the data we are able to downlaod with the help of the json format in the profile page.  -- ✅ Mostly COMPLETED.
     -- but in the dashboard it is not working only there it is needed to be improved.
 -- feedback page needs the UI improved.
-    -- Make that page persitance when we have refreshed the page as when i refreshed page i was not able to see the thank you message as i have send the feedback and showing this message so that user can see that they have already send the feedback.
+#     -- Make that page persitance when we have refreshed the page as when i refreshed page i was not able to see the thank you message as i have send the feedback it is forgoting that feedback is given and have to show the appropriate message we are showing and showing this message so that user can see that they have already send the feedback.
 ---------------------------------------------- -- ---------------------------------------------------------
 
 27/07/2025
 -- css files are too big so have to reduce the size if this file contains the style for other pages in there style.
+    # -- Homepage and analysis page view is completed for now.
 
 #-- i encounter that i am getting the response for the ai ml engineer now for some reason have to check what happened as it must give the answer based on the resume uplaoded and also the job description provided along with it.
 #    -- A Senior Cybersecurity Specialist is responsible for leading the design, implementation, and monitoring of security measures to protect systems, networks, and data. This role involves managing threat detection, incident response, and vulnerability assessments while ensuring compliance with industry standards. The senior specialist mentors junior staff, oversees security audits, and collaborates with IT and executive teams to develop robust security strategies. Strong expertise in firewalls, intrusion detection, cloud security, and risk management is essential. The role requires staying updated on emerging threats and evolving technologies to safeguard organizational assets effectively. Proven leadership and strategic decision-making skills are critical for this position.
 #-- i entered this prompt for the job description but still i got the same output for some reasone so have to check what is causing the issues. first check is the prompt reaching to the python server from the frontend and backend is changing the prompt to other prompt or are really asking the ai that you have to compare the resume with the job discription and after that you have to give the answer considering this view point. -- This happened because api key was revoked for some reason.
 
--- Make sure that when analysis is failed due to python server not able to make the report successfully it must return the message request failed and have to show this on the resumechecker page and no need to show in the dashboard and it must not return the any of the fake data ok.
+# -- Make sure that when analysis is failed due to python server not able to make the report successfully it must return the message request failed and have to show this on the resumechecker page and no need to show in the dashboard and it must not return the any of the fake data ok. --  ✅ Mostly COMPLETED Testing remaining.
+
+-- Make the authenication validation faster as currently it is slower for server uploaded frontend.
+
+-- Have to keep the cookies about the analysis viewing so that do not have to directly fetch from the server but can be accessed using the cookies we have stored.
+
+-- when entering the feedback option and if data is filled it is loading and i have to remove this loading to make it opening faster i think it is happening because of the ui.

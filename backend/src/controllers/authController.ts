@@ -8,6 +8,7 @@ import { emailService } from '../services/emailService';
 import { emailValidationService } from '../services/emailValidationService';
 import { logger } from '../utils/logger';
 import { database } from '../config/database';
+import { invalidateUserCache } from '../middleware/auth';
 
 // In-memory OTP storage (in production, use Redis)
 const otpStore = new Map<string, { otp: string; expires: Date; attempts: number }>();
@@ -629,6 +630,9 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 
     logger.info(`User profile updated: ${user.email}`);
 
+    // Invalidate user cache after profile update
+    await invalidateUserCache(userId);
+
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
@@ -715,6 +719,9 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
     // Update password
     user.password = newPassword;
     await user.save();
+
+    // Invalidate user cache after password update
+    await invalidateUserCache(userId);
 
     logger.info(`Password updated for user: ${user.email}`);
 

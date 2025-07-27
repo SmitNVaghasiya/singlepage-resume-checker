@@ -119,7 +119,7 @@ class Server {
       hsts: config.nodeEnv === 'production',
     }));
 
-    // CORS configuration
+    // CORS configuration - Simplified and more robust
     const corsOptions = {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Allow requests with no origin (like mobile apps or curl requests)
@@ -128,38 +128,32 @@ class Server {
           return;
         }
 
+        // Log for debugging
+        logger.info(`CORS check - Origin: ${origin}, CORS_ORIGIN env: ${process.env.CORS_ORIGIN}`);
+
+        // Always allow Vercel domains in production
+        if (config.nodeEnv === 'production' && origin.includes('.vercel.app')) {
+          callback(null, true);
+          return;
+        }
+
+        // Check against configured CORS_ORIGIN
         const allowedOrigins = this.normalizeOrigins(config.corsOrigin);
         
-        // If CORS_ORIGIN is '*' or not set, allow all origins
         if (allowedOrigins === '*' || allowedOrigins.length === 0) {
           callback(null, true);
           return;
         }
 
-        // Check if origin is in allowed list
         if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
           callback(null, true);
           return;
         }
 
-        // For production, allow specific Vercel domains
-        if (config.nodeEnv === 'production') {
-          const allowedVercelDomains = [
-            'https://singlepage-resume-checker.vercel.app',
-            'https://singlepage-resume-checker-backend-psxxoaojd.vercel.app',
-            'https://singlepage-resume-checker-backend.vercel.app'
-          ];
-          
-          if (allowedVercelDomains.includes(origin)) {
-            callback(null, true);
-            return;
-          }
-          
-          // Also allow any vercel.app subdomain for flexibility
-          if (origin.includes('.vercel.app')) {
-            callback(null, true);
-            return;
-          }
+        // Fallback: allow the specific frontend URL
+        if (origin === 'https://singlepage-resume-checker.vercel.app') {
+          callback(null, true);
+          return;
         }
 
         logger.warn(`CORS blocked origin: ${origin}`);
@@ -175,7 +169,20 @@ class Server {
 
     // Handle preflight OPTIONS requests explicitly
     this.app.options('*', (req, res) => {
-      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      const origin = req.headers.origin;
+      const allowedOrigins = this.normalizeOrigins(config.corsOrigin);
+      
+      // Check if origin is allowed
+      let allowOrigin = '*';
+      if (origin) {
+        if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+          allowOrigin = origin;
+        } else if (config.nodeEnv === 'production' && origin.includes('.vercel.app')) {
+          allowOrigin = origin;
+        }
+      }
+      
+      res.header('Access-Control-Allow-Origin', allowOrigin);
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id');
       res.header('Access-Control-Allow-Credentials', 'true');

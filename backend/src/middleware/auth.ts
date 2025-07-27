@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/User';
 import { logger } from '../utils/logger';
 import { database } from '../config/database';
+import { cacheService } from '../services/cacheService';
 
 interface JwtPayload {
   userId: string;
@@ -19,6 +20,9 @@ declare global {
     }
   }
 }
+
+// Cache user data for 5 minutes to reduce database calls
+const USER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -53,6 +57,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       });
       return;
     }
+    
     const decoded = jwt.verify(token, jwtSecret) as JwtPayload & { userId?: string };
     // Support both userId and userId for compatibility
     const userId = decoded.userId || (decoded as any).userId;
@@ -63,13 +68,27 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       });
       return;
     }
-    // Check if user still exists with timeout
-    const user = await Promise.race([
-      User.findById(userId).exec(),
-      new Promise<null>((_resolve, reject) => 
-        setTimeout(() => reject(new Error('Database operation timeout')), 5000)
-      )
-    ]) as IUser | null;
+
+    // Try to get user from cache first
+    const cacheKey = `user:${userId}`;
+    let user = await cacheService.getObject<IUser>(cacheKey);
+
+    if (!user) {
+      // User not in cache, fetch from database with timeout
+      user = await Promise.race([
+        User.findById(userId).exec(),
+        new Promise<null>((_resolve, reject) => 
+          setTimeout(() => reject(new Error('Database operation timeout')), 3000) // Reduced timeout to 3 seconds
+        )
+      ]) as IUser | null;
+
+      if (user) {
+        // Cache the user data for future requests
+        await cacheService.setObject(cacheKey, user, USER_CACHE_TTL);
+      }
+    } else {
+      logger.debug('User data retrieved from cache', { userId });
+    }
 
     if (!user) {
       res.status(401).json({
@@ -152,15 +171,27 @@ export const optionalAuth = async (req: Request, _res: Response, next: NextFunct
       next(); // Continue without authentication for optional auth
       return;
     }
+    
     const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
     
-    // Use timeout for user lookup
-    const user = await Promise.race([
-      User.findById(decoded.userId).exec(),
-      new Promise<null>((_resolve, reject) => 
-        setTimeout(() => reject(new Error('Database operation timeout')), 5000)
-      )
-    ]) as IUser | null;
+    // Try to get user from cache first
+    const cacheKey = `user:${decoded.userId}`;
+    let user = await cacheService.getObject<IUser>(cacheKey);
+
+    if (!user) {
+      // User not in cache, fetch from database with timeout
+      user = await Promise.race([
+        User.findById(decoded.userId).exec(),
+        new Promise<null>((_resolve, reject) => 
+          setTimeout(() => reject(new Error('Database operation timeout')), 3000) // Reduced timeout to 3 seconds
+        )
+      ]) as IUser | null;
+
+      if (user) {
+        // Cache the user data for future requests
+        await cacheService.setObject(cacheKey, user, USER_CACHE_TTL);
+      }
+    }
     
     if (user && user.isEmailVerified) {
       req.userId = decoded.userId;
@@ -172,5 +203,16 @@ export const optionalAuth = async (req: Request, _res: Response, next: NextFunct
     // Don't fail on optional auth errors, just continue
     logger.debug('Optional auth error (continuing):', error);
     next();
+  }
+};
+
+// Function to invalidate user cache when user data changes
+export const invalidateUserCache = async (userId: string): Promise<void> => {
+  try {
+    const cacheKey = `user:${userId}`;
+    await cacheService.deleteKey(cacheKey);
+    logger.debug('User cache invalidated', { userId });
+  } catch (error) {
+    logger.error('Failed to invalidate user cache', { userId, error });
   }
 }; 

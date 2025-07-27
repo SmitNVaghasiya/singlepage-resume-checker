@@ -13,7 +13,7 @@ import {
   forgotPassword,
   resetPassword
 } from '../controllers/authController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -42,9 +42,9 @@ const otpLimiter = rateLimit({
 });
 
 // Public routes
-router.post('/send-otp', otpLimiter, sendOTP);
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+router.post('/send-otp', otpLimiter, sendOTP);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', authLimiter, resetPassword);
 
@@ -55,6 +55,32 @@ router.put('/profile', authenticateToken, updateProfile);
 router.put('/password', authenticateToken, updatePassword);
 router.put('/notifications', authenticateToken, updateNotificationSettings);
 router.delete('/account', authenticateToken, deleteAccount);
-router.get('/export', authenticateToken, exportUserData);
+router.post('/export-data', authenticateToken, exportUserData);
+
+// Lightweight token validation endpoint for faster auth checks
+router.get('/validate-token', optionalAuth, (req, res) => {
+  const userId = (req as any).userId;
+  const user = (req as any).user;
+  
+  if (userId && user) {
+    res.status(200).json({
+      success: true,
+      valid: true,
+      userId,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified
+      }
+    });
+  } else {
+    res.status(401).json({
+      success: false,
+      valid: false,
+      message: 'Invalid or missing token'
+    });
+  }
+});
 
 export default router; 
