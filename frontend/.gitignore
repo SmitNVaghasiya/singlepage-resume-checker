@@ -31,3 +31,4 @@ pnpm-debug.log*
 Thumbs.db
 Desktop.ini
 dashboard_backup
+.vercel

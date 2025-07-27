@@ -21,7 +21,7 @@
 -- Add freemium version option. - Add payment gateway.
 
 -------- Normal Site Future add on.
--- add option where user can find out which are the improvements resume needs.
+-- add option where user can find out which are the improvements resume needs. Though we are providing this we have to give this in more dertail. Think about this is this needed or not.
 
 -- completed work
 # -- "How We Compare" make sure that this feature is correct. ---For now this is correct.
@@ -53,7 +53,7 @@
 
 # -- make sure whole backend is connected to the python server correctly. and also check is backend is fetching the data directly from the mongodb when python server sends the response that request is analysed corrected or not. As our functionality is like this we are saving the data directely using the python server and sends the minimal response saying success or failure and than backend fetches the data from the mongodb database directly for this backend do not have to go to the python server for the access of data to make it more robust and put less load on the python server.f this is not the case tell me which are the file not working correctly and give the location for all those file along with small but detailed explaination why it is not doing this or how to solve it or what it is doing and why. -- ✅ this is working correctly.
 
-# -- make sure whole backend is connected to the python server correctly. and also check is backend is fetching the data directly from the mongodb when python server sends the response that request is analysed corrected or not. As our functionality is like this we are saving the data directely using the python server and sends the minimal response saying success or failure and than backend fetches the data from the mongodb database directly for this backend do not have to go to the python server for the access of data to make it more robust and put less load on the python server.
+# -- make sure whole backend is connected to the python server correctly. and also check is backend is fetching the data directly from the mongodb when python server sends the response that request is analysed corrected or not. As our functionality is like this we are saving the data directely using the python server and sends the minimal response saying success or failure and than backend fetches the data from the mongodb database directly for this backend do not have to go to the python server for the access of data to make it more robust and put less load on the python server. -- ✅ this is working correctly.
 
 # -- now check why we have uncommented this code as i commented this code because this code was conflicting with the explaination i just gave you so why we uncommented can you find out and to do this you can anlyse other folders also. -- ✅ this is working correctly.
 
@@ -114,8 +114,8 @@
 
 # -- 0% Avg Match Rate instead of this change this too something else.
 
--- You have to anlayse the hoempage as it has the perfect dark theme integrated and after do as i have mentioned
--- Dark theme is not perfect every where make it consitence everywhere also make sure that texts are in white or light color as durin dark theme white or light text can be visible if you have used the dark color font they will not be visible and also along with it check that background is in the dark or not as if not white font won't be visible.in profile page it is not working.
+# -- You have to anlayse the hoempage as it has the perfect dark theme integrated and after do as i have mentioned
+# -- Dark theme is not perfect every where make it consitence everywhere also make sure that texts are in white or light color as durin dark theme white or light text can be visible if you have used the dark color font they will not be visible and also along with it check that background is in the dark or not as if not white font won't be visible.in profile page it is not working. ✅ COMPLETED.
 
 # -- Navbar becomes too dark make it little lighter same as in the homepage. ✅ COMPLETED.
 # -- No need to make footer dark as it's color is perfect for both the dark and light theme. ✅ COMPLETED.
@@ -177,3 +177,10 @@
 
 27/07/2025
 -- css files are too big so have to reduce the size if this file contains the style for other pages in there style.
+
+#-- i encounter that i am getting the response for the ai ml engineer now for some reason have to check what happened as it must give the answer based on the resume uplaoded and also the job description provided along with it.
+#    -- A Senior Cybersecurity Specialist is responsible for leading the design, implementation, and monitoring of security measures to protect systems, networks, and data. This role involves managing threat detection, incident response, and vulnerability assessments while ensuring compliance with industry standards. The senior specialist mentors junior staff, oversees security audits, and collaborates with IT and executive teams to develop robust security strategies. Strong expertise in firewalls, intrusion detection, cloud security, and risk management is essential. The role requires staying updated on emerging threats and evolving technologies to safeguard organizational assets effectively. Proven leadership and strategic decision-making skills are critical for this position.
+#-- i entered this prompt for the job description but still i got the same output for some reasone so have to check what is causing the issues. first check is the prompt reaching to the python server from the frontend and backend is changing the prompt to other prompt or are really asking the ai that you have to compare the resume with the job discription and after that you have to give the answer considering this view point. -- This happened because api key was revoked for some reason.
+
+
+-- Make sure that when analysis is failed due to python server not able to make the report successfully it must return the message request failed and have to show this on the resumechecker page and no need to show in the dashboard and it must not return the any of the fake data ok.

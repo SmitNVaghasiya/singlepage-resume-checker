@@ -80,14 +80,68 @@
   text-align: center;
 }
 
+/* Enhanced Mobile Responsiveness */
 @media (max-width: 768px) {
+  .analysis-details-page-full {
+    padding: 1rem 0;
+  }
+
   .analysis-details-header-bar {
     padding: 1rem 1rem 0.5rem 1rem;
   }
+
   .back-btn-full {
     width: 100%;
     padding: 0.75rem 0;
     font-size: 1rem;
+  }
+
+  .error-message {
+    font-size: 1rem;
+    margin: 1.5rem 0 1rem 0;
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .analysis-details-page-full {
+    padding: 0.5rem 0;
+  }
+
+  .analysis-details-header-bar {
+    padding: 0.75rem 0.5rem 0.5rem 0.5rem;
+  }
+
+  .back-btn-full {
+    padding: 0.875rem 0;
+    font-size: 0.95rem;
+    min-height: 44px;
+  }
+
+  .error-message {
+    font-size: 0.95rem;
+    margin: 1rem 0 0.75rem 0;
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .analysis-details-page-full {
+    padding: 0.25rem 0;
+  }
+
+  .analysis-details-header-bar {
+    padding: 0.5rem 0.25rem 0.25rem 0.25rem;
+  }
+
+  .back-btn-full {
+    padding: 0.75rem 0;
+    font-size: 0.9rem;
+  }
+
+  .error-message {
+    font-size: 0.9rem;
+    padding: 0 0.5rem;
   }
 }
 
@@ -126,12 +180,6 @@
 
 .error-message {
   word-break: break-word;
-}
-
-@media (max-width: 480px) {
-  .error-message {
-    font-size: 1rem;
-  }
 }
 
 /* Visually hidden (screen reader only) */

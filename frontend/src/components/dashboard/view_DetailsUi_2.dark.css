@@ -1,0 +1,422 @@
+/* ===== DARK THEME STYLES FOR VIEW DETAILS UI - FIXED ===== */
+
+/* Dark theme styles */
+.dark .view-details-container {
+  background: #0f172a;
+  clolor: #848d96;
+}
+
+.dark .view-details-header {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-bottom-color: #475569;
+}
+
+.dark .view-details-title h1 {
+  clolor: #848d96;
+}
+
+.dark .view-details-subtitle {
+  color: #94a3b8;
+}
+
+.dark .tab-container {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
+    0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.dark .tab-button:not(.active) {
+  background: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.dark .tab-button:not(.active):hover {
+  background: #475569;
+  color: #cbd5e1;
+}
+
+.dark .tab-label {
+  color: inherit;
+}
+
+.dark .tab-count {
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+
+.dark .analysis-card {
+  background: #1e293b;
+  border-color: #334155;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.dark .analysis-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark .card-header {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-bottom-color: #475569;
+  border-radius: 16px;
+}
+
+.dark .card-header-title {
+  clolor: #848d96;
+}
+
+.dark .card-badge {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .overview-hero {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-color: #475569;
+}
+
+.dark .overview-hero-title {
+  clolor: #848d96;
+}
+
+.dark .overview-hero-description {
+  color: #94a3b8;
+}
+
+.dark .overview-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .overview-card:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .overview-card h4 {
+  clolor: #848d96;
+}
+
+.dark .overview-card p {
+  color: #94a3b8;
+}
+
+.dark .stat-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .stat-item:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .stat-number {
+  clolor: #848d96;
+}
+
+.dark .stat-label {
+  color: #94a3b8;
+}
+
+.dark .info-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .info-item:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .info-item h4 {
+  clolor: #848d96;
+}
+
+.dark .info-item p {
+  color: #94a3b8;
+}
+
+.dark .eligibility-badge.eligible {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.dark .eligibility-badge.partially-eligible {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.dark .eligibility-badge.not-eligible {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dark .section-feedback-item h4 {
+  clolor: #848d96;
+}
+
+.dark .section-feedback-item p {
+  color: #94a3b8;
+}
+
+.dark .priority-improvements {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .priority-title {
+  clolor: #848d96;
+}
+
+.dark .priority-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .priority-item:hover {
+  background: #475569;
+  border-color: #64748b;
+}
+
+/* FIXED: Priority number should be visible on dark background */
+.dark .priority-number {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* FIXED: Priority text should be light on dark background */
+.dark .priority-text {
+  clolor: #848d96;
+}
+
+.dark .list-item-content {
+  clolor: #848d96;
+}
+
+.dark .missing-sections-item {
+  background: rgba(239, 68, 68, 0.1);
+  border-left-color: #ef4444;
+}
+
+.dark .missing-sections-bullet {
+  background: #ef4444;
+}
+
+.dark .missing-sections-content h4 {
+  color: #fca5a5;
+}
+
+.dark .missing-sections-content p {
+  color: #fecaca;
+}
+
+.dark .assessment-hero {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-color: #475569;
+}
+
+.dark .assessment-hero-title {
+  clolor: #848d96;
+}
+
+.dark .loading-container {
+  background: #1e293b;
+}
+
+.dark .error-container {
+  background: #1e293b;
+}
+
+.dark .error-message {
+  clolor: #848d96;
+}
+
+.dark .retry-button {
+  background: #334155;
+  clolor: #848d96;
+  border-color: #475569;
+}
+
+.dark .retry-button:hover {
+  background: #475569;
+  color: white;
+}
+
+.dark .feedback-tab-content .feedback-container {
+  background: #1e293b;
+}
+
+/* ===== ADDITIONAL FIXES FOR COMMON MISSING ELEMENTS ===== */
+
+/* General text elements */
+.dark {
+  clolor: #848d96;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  clolor: #848d96;
+}
+
+.dark p {
+  color: #94a3b8;
+}
+
+.dark span {
+  color: inherit;
+}
+
+.dark div {
+  color: inherit;
+}
+
+/* List items and bullet points */
+.dark ul,
+.dark ol {
+  color: #94a3b8;
+}
+
+.dark li {
+  color: #94a3b8;
+}
+
+/* Feedback items and content areas */
+.dark .feedback-item {
+  background: #1e293b;
+  border-color: #334155;
+  clolor: #848d96;
+}
+
+.dark .feedback-item:hover {
+  background: #334155;
+}
+
+.dark .feedback-item h4 {
+  clolor: #848d96;
+}
+
+.dark .feedback-item p {
+  color: #94a3b8;
+}
+
+/* Content sections */
+.dark .content-section {
+  background: #1e293b;
+  clolor: #848d96;
+}
+
+.dark .section-content {
+  color: #94a3b8;
+}
+
+/* Warning/alert items (like the red-bordered boxes in your images) */
+.dark .alert-item,
+.dark .warning-item {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.dark .alert-item p,
+.dark .warning-item p {
+  color: #fca5a5;
+}
+
+/* Information boxes */
+.dark .info-box {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.dark .info-box p {
+  color: #60a5fa;
+}
+
+/* Success items */
+.dark .success-item {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.dark .success-item p {
+  color: #10b981;
+}
+
+/* Strengths and improvements sections */
+.dark .strengths-section {
+  clolor: #848d96;
+}
+
+.dark .improvements-section {
+  clolor: #848d96;
+}
+
+.dark .strengths-section ul li {
+  color: #10b981;
+}
+
+.dark .improvements-section ul li {
+  color: #fca5a5;
+}
+
+/* Icons */
+.dark .icon {
+  color: inherit;
+}
+
+/* Buttons */
+.dark button {
+  background: #334155;
+  clolor: #848d96;
+  border-color: #475569;
+}
+
+.dark button:hover {
+  background: #475569;
+}
+
+/* Header buttons should have light text for visibility */
+.dark .header-button {
+  color: #e2e8f0;
+}
+
+.dark .header-button:hover {
+  clolor: #848d96;
+}
+
+/* Input fields */
+.dark input,
+.dark textarea,
+.dark select {
+  background: #334155;
+  clolor: #848d96;
+  border-color: #475569;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* Links */
+.dark a {
+  color: #60a5fa;
+}
+
+.dark a:hover {
+  color: #93c5fd;
+}

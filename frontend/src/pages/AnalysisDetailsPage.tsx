@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
-import ResumeAnalysisUI from "../components/dashboard/ResumeAnalysisUI";
+import ViewDetailsUI2 from "../components/dashboard/view_DetailsUi_2";
 import "../styles/pages/AnalysisDetailsPage.css";
 
 const AnalysisDetailsPage: React.FC = () => {
@@ -42,7 +42,7 @@ const AnalysisDetailsPage: React.FC = () => {
           animationFillMode: "forwards",
         }}
       >
-        <ResumeAnalysisUI analysisId={id} />
+        <ViewDetailsUI2 analysisId={id} />
       </div>
     </div>
   );
